@@ -2,3 +2,4 @@
 :root { --background:#f8fafc; --foreground:#1e293b; --card:#ffffff; --muted:#64748b; --border:#e2e8f0; --primary:#6366f1; }
 .dark { --background:#0f172a; --foreground:#e2e8f0; --card:#172033; --muted:#94a3b8; --border:#334155; --primary:#818cf8; }
 *{box-sizing:border-box} body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-inter),Arial,sans-serif} button,input{font:inherit}:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-heading),var(--font-inter),sans-serif;font-weight:650}
