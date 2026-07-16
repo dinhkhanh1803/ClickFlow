@@ -111,7 +111,7 @@ function SpaceList({ projects, onOpenTask }: { projects: Project[]; onOpenTask: 
   </section>;
 }
 
-function SpaceTaskModal({ project, task, onClose }: { project: Project; task: Task; onClose: () => void }) {
+export function SpaceTaskModal({ project, task, onClose }: { project: Project; task: Task; onClose: () => void }) {
   const { updateTask, addComment } = useWorkspace();
   const [fullscreen, setFullscreen] = useState(false);
   const [comment, setComment] = useState('');

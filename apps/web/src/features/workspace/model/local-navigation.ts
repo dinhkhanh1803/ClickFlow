@@ -42,4 +42,5 @@ export function loadLocalSpaces() {
 
 export function saveLocalSpaces(spaces: LocalSpace[]) {
   window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify(spaces));
+  window.dispatchEvent(new Event('clickflow:local-spaces-changed'));
 }

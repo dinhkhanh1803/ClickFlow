@@ -58,6 +58,15 @@ describe('WorkspaceRoot', () => {
     expect(screen.getByRole('heading', { name: 'Bookmarks' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Folders' })).toBeInTheDocument();
   });
+  it('opens task detail from Recent without leaving the Space overview', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceRoot />);
+
+    await user.click(screen.getByRole('button', { name: 'Define information architecture' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByLabelText('Task title')).toHaveValue('Define information architecture');
+  });
   it('switches the Space tab content without leaving the Space frame', async () => {
     const user = userEvent.setup();
     render(<WorkspaceRoot />);
@@ -66,7 +75,7 @@ describe('WorkspaceRoot', () => {
 
     expect(screen.getByRole('tab', { name: 'Board' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('heading', { name: 'Space Board' })).toBeInTheDocument();
-    expect(screen.getByText('ClickFlow Product')).toBeInTheDocument();
+    expect(screen.getByText('Space 1')).toBeInTheDocument();
   });
   it('renders the Space Board with ClickUp-style status controls and compact columns', async () => {
     const user = userEvent.setup();
