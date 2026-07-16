@@ -1,5 +1,15 @@
 @import "tailwindcss";
-:root { --background:#f8fafc; --foreground:#1e293b; --card:#ffffff; --muted:#64748b; --border:#e2e8f0; --primary:#6366f1; }
-.dark { --background:#0f172a; --foreground:#e2e8f0; --card:#172033; --muted:#94a3b8; --border:#334155; --primary:#818cf8; }
-*{box-sizing:border-box} body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-inter),Arial,sans-serif} button,input{font:inherit}:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-h1,h2,h3{font-family:var(--font-heading),var(--font-inter),sans-serif;font-weight:650}
+:root {
+  --background: #f8fafc; --foreground: #1e293b; --card: #ffffff; --muted: #64748b; --border: #e2e8f0;
+  --primary: #6366f1; --primary-foreground: #ffffff; --secondary: #7b68ee; --tertiary: #b95f00;
+  --destructive: #e11d48; --destructive-foreground: #ffffff; --focus-ring: #6366f1;
+  --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem; --space-6: 1.5rem; --space-8: 2rem;
+  --text-xs: .75rem; --text-sm: .875rem; --text-base: 1rem; --text-lg: 1.125rem; --text-xl: 1.25rem; --text-2xl: 1.5rem; --text-3xl: 1.875rem;
+}
+.dark { --background:#0f172a; --foreground:#e2e8f0; --card:#172033; --muted:#94a3b8; --border:#334155; --primary:#818cf8; --secondary:#9f8cff; --tertiary:#f59e0b; --destructive:#fb7185; --focus-ring:#a5b4fc; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--background); color:var(--foreground); font-family:var(--font-inter),Arial,sans-serif; font-size:var(--text-base); }
+button,input { font:inherit; }
+:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+h1,h2,h3 { font-family:var(--font-heading),var(--font-inter),sans-serif; font-weight:650; }
+code,kbd,pre { font-family:var(--font-mono),monospace; }

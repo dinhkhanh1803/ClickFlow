@@ -1,19 +1,37 @@
 # ClickFlow
 
-ClickFlow lÃ  á»©ng dá»¥ng quáº£n lÃ½ dá»± Ã¡n vÃ  cÃ´ng viá»‡c cho freelancer hoáº·c solo developer, theo dÃµi vÃ²ng Ä‘á»i tá»« Ã½ tÆ°á»Ÿng Ä‘áº¿n báº£o trÃ¬. Sáº£n pháº©m giÃºp táº­p trung dá»± Ã¡n web, mobile, game, content vÃ  internal tool trong má»™t workspace.
+ClickFlow is a mock-first product-management workspace for freelancers and small teams. Phase 1 establishes a production-quality frontend foundation without a backend API.
 
-## Tráº¡ng thÃ¡i
+## Phase 1 status
 
-Phase 0 â€” Product Foundation. Frontend vÃ  backend chÆ°a Ä‘Æ°á»£c khá»Ÿi táº¡o; khÃ´ng cÃ³ hÆ°á»›ng dáº«n cháº¡y á»©ng dá»¥ng á»Ÿ giai Ä‘oáº¡n nÃ y.
+The frontend foundation includes:
 
-## MVP vÃ  kiáº¿n trÃºc dá»± kiáº¿n
+- Next.js, TypeScript, Tailwind CSS, pnpm workspaces, and Turborepo.
+- Light/dark semantic design tokens, Hanken Grotesk, Inter, and JetBrains Mono.
+- Responsive app shell with active navigation, mobile drawer, header controls, account menu, and global toast feedback.
+- Typed mock contracts and dashboard widgets for metrics, tasks, weekly hours, deadlines, and project health.
+- Mock authentication UI: sign-in, password recovery, and password reset flows with React Hook Form and Zod validation.
+- Quality gates: ESLint, strict TypeScript, Vitest, Playwright smoke tests, axe accessibility checks, visual regression baselines, and GitHub Actions CI.
 
-MVP gá»“m xÃ¡c thá»±c, dá»± Ã¡n/cÃ´ng viá»‡c, cÃ¡c view Kanban/List/Calendar, theo dÃµi thá»i gian, tá»‡p Ä‘Ã­nh kÃ¨m, bÃ¬nh luáº­n, tÃ¬m kiáº¿m, template, bÃ¡o cÃ¡o cÆ¡ báº£n, archive vÃ  settings. Kiáº¿n trÃºc dá»± kiáº¿n: Next.js trÃªn Vercel â†’ NestJS REST API trÃªn Render â†’ PostgreSQL trÃªn Render â†’ object storage.
+## Run locally
 
-Monorepo dÃ¹ng pnpm workspace vÃ  Turborepo: `apps/web`, `apps/api`, cÃ¹ng `packages/contracts`, `ui`, `shared`, `eslint-config`, `typescript-config`.
+```bash
+pnpm install
+pnpm dev
+```
 
-## PhÃ¡t triá»ƒn
+Open `http://localhost:3000/dashboard`.
 
-CÃ¡c phase: Foundation, Frontend Foundation, Frontend Features, Backend Foundation, Backend Business Modules, Integration, Testing/Hardening, Deployment. Xem [roadmap](docs/delivery/DEVELOPMENT_ROADMAP.md) vÃ  [backlog](docs/delivery/BACKLOG.md).
+## Quality commands
 
-Branch dÃ¹ng `type/short-description`; commit dÃ¹ng Conventional Commits. Xem [CONTRIBUTING.md](CONTRIBUTING.md), [tÃ i liá»‡u sáº£n pháº©m](docs/product/PRODUCT_VISION.md) vÃ  [kiáº¿n trÃºc](docs/engineering/SYSTEM_ARCHITECTURE.md).
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm --filter web exec playwright test
+```
+
+## Scope boundary
+
+Phase 1 intentionally uses deterministic frontend mock data only. Authentication, persistence, API integration, real search, and business workflows start in Phase 2 and later.
