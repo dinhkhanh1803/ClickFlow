@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 on:
   pull_request:
   push:
@@ -16,4 +16,4 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
+      - run: pnpm build`n      - run: pnpm --filter web exec playwright install --with-deps chromium`n      - run: pnpm --filter web exec playwright test

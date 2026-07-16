@@ -1,15 +1,6 @@
+﻿'use client';
 import Link from 'next/link';
-
-const items = ['Dashboard', 'My Tasks', 'Calendar', 'Time Tracking', 'Projects', 'Templates', 'Reports', 'Archive', 'Settings'];
-
-export function AppSidebar() {
-  return (
-    <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white p-4" aria-label="Primary navigation">
-      <Link href="/dashboard" className="mb-8 text-xl font-bold text-indigo-600">ClickFlow</Link>
-      <nav className="space-y-1">
-        {items.map((item) => <Link key={item} href={item === 'Dashboard' ? '/dashboard' : `/${item.toLowerCase().replaceAll(' ', '-')}`} className="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700">{item}</Link>)}
-      </nav>
-      <button type="button" className="mt-auto rounded-lg bg-indigo-500 px-3 py-2 text-sm font-semibold text-white">Create New</button>
-    </aside>
-  );
-}
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+const items=[['Dashboard','/dashboard'],['My Tasks','/my-tasks'],['Calendar','/calendar'],['Time Tracking','/time-tracking'],['Projects','/projects'],['Templates','/templates'],['Reports','/reports'],['Archive','/archive'],['Settings','/settings']];
+export function AppSidebar(){const [open,setOpen]=useState(false); const navigation=<nav className="space-y-1">{items.map(([label,href])=><Link key={label} href={href} onClick={()=>setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-300 dark:hover:bg-slate-800">{label}</Link>)}</nav>; return <><Button aria-label="Open navigation" className="fixed left-3 top-3 z-40 md:hidden" onClick={()=>setOpen(true)}>Menu</Button><aside className="hidden h-screen w-64 flex-col border-r border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:flex" aria-label="Primary navigation"><Link href="/dashboard" className="mb-8 text-xl font-bold text-indigo-600">ClickFlow</Link>{navigation}<Button className="mt-auto">Create New</Button></aside>{open&&<div className="fixed inset-0 z-50 bg-slate-950/40 md:hidden"><aside className="h-full w-72 bg-white p-4 dark:bg-slate-900"><Button aria-label="Close navigation" variant="ghost" onClick={()=>setOpen(false)}>Close</Button><Link href="/dashboard" className="my-6 block text-xl font-bold text-indigo-600">ClickFlow</Link>{navigation}<Button className="mt-6 w-full">Create New</Button></aside></div>}</>}
