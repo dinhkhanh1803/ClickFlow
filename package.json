@@ -5,7 +5,7 @@
     "description": "ClickFlow product foundation; applications are not initialized in Phase 0.",
     "packageManager": "pnpm@10.24.0",
     "scripts": {
-        "dev": "turbo dev",
+        "dev": "pnpm --filter web dev",
         "build": "turbo build",
         "lint": "turbo lint",
         "typecheck": "turbo typecheck",

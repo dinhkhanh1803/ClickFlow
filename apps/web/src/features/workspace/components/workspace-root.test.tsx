@@ -68,6 +68,55 @@ describe('WorkspaceRoot', () => {
     expect(screen.getByRole('heading', { name: 'Space Board' })).toBeInTheDocument();
     expect(screen.getByText('ClickFlow Product')).toBeInTheDocument();
   });
+  it('renders the Space Board with ClickUp-style status controls and compact columns', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceRoot />);
+
+    await user.click(screen.getByRole('tab', { name: 'Board' }));
+
+    expect(screen.getByRole('button', { name: 'Status' })).toBeInTheDocument();
+    expect(screen.getByText('TO DO')).toBeInTheDocument();
+    expect(screen.getByText('IN PROGRESS')).toBeInTheDocument();
+    expect(screen.getByText('COMPLETE')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add group' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Add task in/ })).toHaveLength(3);
+  });
+  it('groups the Space List by project and status', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceRoot />);
+
+    await user.click(screen.getByRole('tab', { name: 'List' }));
+
+    expect(screen.getByRole('heading', { name: 'Space List' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Product launch' })).toBeInTheDocument();
+    expect(screen.getByText('Assignee')).toBeInTheDocument();
+    expect(screen.getByText('Due date')).toBeInTheDocument();
+    expect(screen.getByText('Priority')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Define information architecture' })).toBeInTheDocument();
+  });
+  it('opens a task detail modal from the Space List without navigating to the project workspace', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceRoot />);
+
+    await user.click(screen.getByRole('tab', { name: 'List' }));
+    await user.click(screen.getByRole('button', { name: 'Define information architecture' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByLabelText('Task title')).toHaveValue('Define information architecture');
+    await user.click(screen.getByRole('button', { name: 'Enter full screen' }));
+    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeInTheDocument();
+    expect(screen.queryByText('Project workspace')).not.toBeInTheDocument();
+  });
+  it('shows a ClickUp-style icon on every Space view tab in the expected order', () => {
+    render(<WorkspaceRoot />);
+
+    const expectedViews = ['Overview', 'Board', 'List', 'Calendar', 'Table', 'Gantt'];
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(expectedViews);
+
+    expectedViews.forEach((view) => {
+      expect(screen.getByRole('tab', { name: view }).querySelector('svg')).toBeInTheDocument();
+    });
+  });
   it('does not show Add Channel in the Space tab bar', () => {
     render(<WorkspaceRoot />);
 
