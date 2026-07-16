@@ -1,2 +1,0 @@
-﻿import { PlaceholderPage } from '@/components/placeholder-page';
-export default function Page(){ return <PlaceholderPage title='Archive' description='Restorable archived work.'/>; }

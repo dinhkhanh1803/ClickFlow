@@ -1,2 +1,0 @@
-﻿import { AppShell } from '@/components/app-shell';
-export function PageState({title,kind='empty'}:{title:string;kind?:'loading'|'empty'|'error'}){const copy={loading:'Loading workspace data…',empty:'Nothing here yet. Create your first item to begin.',error:'We could not load this view. Please try again.'}[kind];return <AppShell><section className="p-6"><h1 className="text-3xl font-bold">{title}</h1><div role={kind==='error'?'alert':'status'} className="mt-6 rounded-xl border border-dashed p-8 text-slate-500">{copy}</div></section></AppShell>}

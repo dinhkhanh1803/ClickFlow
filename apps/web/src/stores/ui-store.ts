@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 type UiState={isCreateTaskOpen:boolean;openCreateTask:()=>void;closeCreateTask:()=>void};
 export const useUiStore=create<UiState>((set)=>({
   isCreateTaskOpen:false,

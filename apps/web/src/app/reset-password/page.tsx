@@ -1,3 +1,0 @@
-import Link from 'next/link';
-import { PasswordRecoveryForm } from '@/components/password-recovery-form';
-export default function ResetPasswordPage(){return <main className="grid min-h-screen place-items-center bg-slate-50 p-6"><section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl"><h1 className="text-2xl font-bold">Choose a new password</h1><p className="mt-2 text-slate-500">Use a new password of at least eight characters.</p><div className="mt-6"><PasswordRecoveryForm mode="reset" /></div><Link className="mt-5 block text-center text-sm text-indigo-600" href="/login">Back to sign in</Link></section></main>}
