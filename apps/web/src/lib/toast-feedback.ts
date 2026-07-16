@@ -7,3 +7,6 @@ export function notifyTaskCreation() {
 export function notifyMockSignIn() {
   toast.success('Signed in successfully', { description: 'Welcome back to ClickFlow.' });
 }
+export function notifyToastPreview() {
+  toast.success('ClickFlow notifications are working', { description: 'This is a safe preview toast.' });
+}
