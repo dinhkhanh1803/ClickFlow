@@ -1,0 +1,20 @@
+name: Feature request
+description: Đề xuất giá trị sản phẩm
+title: "feat: "
+labels: [feature]
+body:
+  - type: textarea
+    attributes: { label: Problem }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Proposed solution }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Alternatives }
+  - type: textarea
+    attributes: { label: User value }
+  - type: textarea
+    attributes: { label: Scope }
+  - type: textarea
+    attributes: { label: Acceptance criteria }
+    validations: { required: true }

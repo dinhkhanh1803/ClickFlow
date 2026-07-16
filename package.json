@@ -1,0 +1,8 @@
+{
+  "name": "clickflow",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ClickFlow product foundation; applications are not initialized in Phase 0.",
+  "packageManager": "pnpm@9",
+  "scripts": {}
+}

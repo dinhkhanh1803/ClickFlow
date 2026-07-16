@@ -1,0 +1,25 @@
+name: Bug report
+description: Báo lỗi có thể tái hiện
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes: { label: Description }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Expected behavior }
+  - type: textarea
+    attributes: { label: Actual behavior }
+  - type: input
+    attributes: { label: Environment }
+  - type: textarea
+    attributes: { label: Logs }
+  - type: textarea
+    attributes: { label: Screenshots }
+  - type: dropdown
+    attributes:
+      label: Severity
+      options: [Low, Medium, High, Critical]

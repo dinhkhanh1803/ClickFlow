@@ -1,0 +1,23 @@
+name: Technical task
+description: Công việc kỹ thuật có thể xác minh
+title: "tech: "
+labels: [technical]
+body:
+  - type: textarea
+    attributes: { label: Context }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Technical objective }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Proposed implementation }
+  - type: textarea
+    attributes: { label: Dependencies }
+  - type: textarea
+    attributes: { label: Risks }
+  - type: textarea
+    attributes: { label: Validation }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Definition of Done }
+    validations: { required: true }
