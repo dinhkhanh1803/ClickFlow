@@ -1,4 +1,5 @@
 export type LocalSpaceItemKind = 'folder' | 'list' | 'doc' | 'dashboard' | 'whiteboard' | 'form';
+export type LocalDocumentBlockStyle = 'normal' | 'heading-1' | 'heading-2' | 'heading-3' | 'checklist' | 'bulleted' | 'numbered' | 'toggle' | 'banner' | 'code' | 'quote';
 
 export type LocalTaskStatus = string;
 export type LocalStatusScope = 'list' | 'folder' | 'space';
@@ -29,6 +30,7 @@ export type LocalListTask = {
   id: string;
   title: string;
   status: LocalTaskStatus;
+  statusGroupId?: string;
   priority: LocalTaskPriority;
   assignee: string;
   startDate: string;
@@ -51,6 +53,7 @@ export type LocalSpaceItem = {
   tasks?: LocalListTask[];
   statusGroups?: LocalStatusGroup[];
   statusOverrides?: LocalStatusOverride[];
+  document?: { content: string; updatedAt: string; style?: LocalDocumentBlockStyle; };
 };
 
 export type LocalSpace = {
@@ -88,7 +91,7 @@ export function loadLocalSpaces() {
   }
 }
 
-export function saveLocalSpaces(spaces: LocalSpace[]) {
+export function saveLocalSpaces(spaces: LocalSpace[], announce = true) {
   window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify(spaces));
-  window.dispatchEvent(new Event('clickflow:local-spaces-changed'));
+  if (announce) window.dispatchEvent(new Event('clickflow:local-spaces-changed'));
 }
