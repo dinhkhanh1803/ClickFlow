@@ -679,6 +679,8 @@ describe('WorkspaceRoot', () => {
     expect(await screen.findByText('Local product overview task')).toBeInTheDocument();
     expect(screen.getByText('Local marketing overview task')).toBeInTheDocument();
     expect(screen.getByText('Local product brief')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Task status' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Task status chart' })).toBeInTheDocument();
 
     result.unmount();
     window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-a');
@@ -686,6 +688,8 @@ describe('WorkspaceRoot', () => {
     expect(await screen.findByText('Local product overview task')).toBeInTheDocument();
     expect(screen.queryByText('Local marketing overview task')).not.toBeInTheDocument();
     expect(screen.getByText('Local product brief')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Task status' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Task status chart' })).toBeInTheDocument();
   });
   it('opens a local Doc workspace and persists its editor content', async () => {
     const user = userEvent.setup();
