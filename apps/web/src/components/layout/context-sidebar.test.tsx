@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LOCAL_SPACES_STORAGE_KEY } from '@/features/workspace/model/local-navigation';
 vi.mock('next/navigation', () => ({ usePathname: () => '/calendar' }));
 import { ContextSidebar } from '@/components/layout/context-sidebar';
 
 describe('ContextSidebar', () => {
-  afterEach(() => window.localStorage.clear());
+  afterEach(() => { cleanup(); window.localStorage.clear(); });
 
   it('renders Planner-specific navigation for the active global module', () => {
     render(<ContextSidebar />);
@@ -21,11 +21,11 @@ describe('ContextSidebar', () => {
     render(<ContextSidebar modulePath="/projects" />);
 
     await user.click(screen.getByLabelText('Create space'));
-    await user.click(screen.getByRole('menuitem', { name: /Space Organize your team work/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'SpaceOrganize your team work' }));
     await user.type(screen.getByLabelText('Space name'), 'Marketing');
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByRole('link', { name: 'Marketing Private' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Marketing\s*Private/ })).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Marketing');
   });
 
@@ -33,7 +33,8 @@ describe('ContextSidebar', () => {
     const user = userEvent.setup();
     render(<ContextSidebar modulePath="/projects" />);
 
-    await user.click(screen.getByRole('button', { name: 'Create list in Projects' }));
+    await user.click(screen.getByRole('button', { name: 'Create in Projects' }));
+    await user.click(screen.getByRole('menuitem', { name: 'List' }));
     await user.type(screen.getByLabelText('list name'), 'Sprint planning');
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
@@ -50,5 +51,17 @@ describe('ContextSidebar', () => {
     expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Duplicate' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+  });
+  it('creates a Doc page from a Space plus menu', async () => {
+    const user = userEvent.setup();
+    render(<ContextSidebar modulePath="/projects" />);
+
+    await user.click(screen.getByRole('button', { name: 'Create in Space 1' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Doc' }));
+    await user.type(screen.getByLabelText('doc name'), 'Project notes');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(screen.getByRole('button', { name: 'Project notes' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Project notes');
   });
 });

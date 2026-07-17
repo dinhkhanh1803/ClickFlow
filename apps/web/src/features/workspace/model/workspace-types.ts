@@ -20,6 +20,7 @@ export type Task = {
 
 export type Project = {
   id: string;
+  folderId?: string;
   name: string;
   description: string;
   color: string;

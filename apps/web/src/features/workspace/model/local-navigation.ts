@@ -1,10 +1,56 @@
 export type LocalSpaceItemKind = 'folder' | 'list' | 'doc' | 'dashboard' | 'whiteboard' | 'form';
 
+export type LocalTaskStatus = string;
+export type LocalStatusScope = 'list' | 'folder' | 'space';
+export type LocalStatusColor = 'slate' | 'blue' | 'indigo' | 'violet' | 'teal' | 'emerald' | 'amber' | 'orange' | 'rose' | 'pink';
+export type LocalStatusGroup = { id: string; name: string; scope: LocalStatusScope; color?: LocalStatusColor; taskStatus?: LocalTaskStatus; };
+export type LocalStatusOverride = { status: LocalTaskStatus; name: string; color: LocalStatusColor; };
+export type LocalTaskPriority = 'Urgent' | 'High' | 'Normal' | 'Low';
+
+export type LocalTaskComment = {
+  id: string;
+  body: string;
+  createdAt: string;
+  attachments?: LocalTaskAttachment[];
+  links?: string[];
+  authorName?: string;
+};
+
+export type LocalTaskAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  dataUrl: string;
+  createdAt: string;
+};
+
+export type LocalListTask = {
+  id: string;
+  title: string;
+  status: LocalTaskStatus;
+  priority: LocalTaskPriority;
+  assignee: string;
+  startDate: string;
+  dueDate: string;
+  timeEstimate: string;
+  trackingStartedAt: string | null;
+  trackedSeconds: number;
+  tags: string[];
+  description: string;
+  comments: LocalTaskComment[];
+  attachments: LocalTaskAttachment[];
+  createdAt: string;
+};
+
 export type LocalSpaceItem = {
   id: string;
   name: string;
   kind: LocalSpaceItemKind;
   parentId?: string;
+  tasks?: LocalListTask[];
+  statusGroups?: LocalStatusGroup[];
+  statusOverrides?: LocalStatusOverride[];
 };
 
 export type LocalSpace = {
@@ -13,6 +59,8 @@ export type LocalSpace = {
   tone: string;
   private?: boolean;
   items: LocalSpaceItem[];
+  statusGroups?: LocalStatusGroup[];
+  statusOverrides?: LocalStatusOverride[];
 };
 
 export const LOCAL_SPACES_STORAGE_KEY = 'clickflow.local-spaces.v1';

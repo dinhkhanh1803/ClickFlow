@@ -2,19 +2,24 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WorkspaceRoot } from '@/features/workspace/components/workspace-root';
+import { LOCAL_SPACES_STORAGE_KEY } from '@/features/workspace/model/local-navigation';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
+  window.history.replaceState(null, '', '/projects');
+});
 
 describe('WorkspaceRoot', () => {
-  it('creates a project and opens it from the Space overview', async () => {
+  it('creates a Folder from the Space overview', async () => {
     const user = userEvent.setup();
     render(<WorkspaceRoot />);
 
-    await user.click(screen.getByRole('button', { name: 'New project' }));
-    await user.type(screen.getByLabelText('Project name'), 'Marketing launch');
-    await user.click(screen.getByRole('button', { name: 'Create project' }));
+    await user.click(screen.getByRole('button', { name: 'New folder' }));
+    await user.type(screen.getByLabelText('Folder name'), 'Marketing');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByRole('heading', { name: 'Marketing launch' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Marketing0 lists/ })).toBeInTheDocument();
   });
   it('edits a project from its workspace header', async () => {
     const user = userEvent.setup();
@@ -130,5 +135,435 @@ describe('WorkspaceRoot', () => {
     render(<WorkspaceRoot />);
 
     expect(screen.queryByRole('button', { name: 'Add Channel' })).not.toBeInTheDocument();
+  });
+  it('filters overview Docs and Lists to the selected Folder', async () => {
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-sprint', name: 'Sprint', kind: 'list', parentId: 'folder-projects' },
+        { id: 'doc-folder', name: 'Folder notes', kind: 'doc', parentId: 'folder-projects' },
+        { id: 'doc-space', name: 'Space notes', kind: 'doc' },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects');
+
+    render(<WorkspaceRoot />);
+
+    expect(await screen.findByRole('heading', { name: 'Lists' })).toBeInTheDocument();
+    expect(screen.getByText('Sprint')).toBeInTheDocument();
+    expect(screen.getByText('Folder notes')).toBeInTheDocument();
+    expect(screen.getByText('Define information architecture')).toBeInTheDocument();
+    expect(screen.queryByText('Outline activation interview')).not.toBeInTheDocument();
+    expect(screen.queryByText('Space notes')).not.toBeInTheDocument();
+  });  it('creates a List inside the selected Folder', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [{ id: 'folder-projects', name: 'Projects', kind: 'folder' }] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'New list' }));
+    await user.type(screen.getByLabelText('List name'), 'Roadmap');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(screen.getByRole('button', { name: 'Roadmap' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('folder-projects');
+  });  it('opens a selected List without an Overview tab', async () => {
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects' },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+
+    render(<WorkspaceRoot />);
+
+    expect(await screen.findByRole('tab', { name: 'List' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('tab', { name: 'Overview' })).not.toBeInTheDocument();
+  });  it('keeps Board and List empty for a selected List without tasks', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects' },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    expect(screen.queryByText('Define information architecture')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add task in TO DO' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'List' }));
+    expect(screen.getByText('New status')).toBeInTheDocument();
+  });  it('creates a task locally in the selected List', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects' },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Add Task' }));
+    await user.type(screen.getByLabelText('Task name'), 'Prepare kickoff');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+    expect(screen.getByText('Prepare kickoff')).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Prepare kickoff');
+  });
+  it('opens task detail after creating a local task', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects' },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Add Task' }));
+    await user.type(screen.getByLabelText('Task name'), 'Prepare kickoff');
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+    await user.click(screen.getByRole('button', { name: 'Prepare kickoff' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByLabelText('Task title')).toHaveValue('Prepare kickoff');
+  });
+  it('opens a searchable grouped status menu for a local task', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', dueDate: '', description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'TO DO' }));
+
+    expect(screen.getByPlaceholderText('Search statuses')).toBeInTheDocument();
+    expect(screen.getByText('Not started')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Closed')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('option', { name: 'IN PROGRESS' }));
+    expect(screen.getByRole('button', { name: 'IN PROGRESS' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('In progress');
+  });
+  it('persists extended local task metadata from the task detail', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', dueDate: '', description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    expect(screen.getByText('Time estimate')).toBeInTheDocument();
+    expect(screen.getByText('Track time')).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Edit time estimate' }));
+    await user.type(screen.getByLabelText('Estimate hours'), '2');
+    await user.click(screen.getByRole('button', { name: 'Save estimate' }));
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('timeEstimate');
+  });
+  it('edits priority, estimate, and tags with local task pickers', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'Normal' }));
+    await user.click(screen.getByRole('option', { name: 'High' }));
+    expect(screen.getByRole('button', { name: 'High' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Edit time estimate' }));
+    await user.clear(screen.getByLabelText('Estimate hours'));
+    await user.type(screen.getByLabelText('Estimate hours'), '1.5');
+    await user.click(screen.getByRole('button', { name: 'Save estimate' }));
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('1h 30m');
+
+    await user.click(screen.getByRole('button', { name: 'Edit tags' }));
+    await user.type(screen.getByLabelText('Tag name'), 'UI');
+    await user.click(screen.getByRole('button', { name: 'Create tag UI' }));
+    expect(screen.getByRole('option', { name: 'UI' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('tags');
+  });
+  it('sets local assignee and due date with task pickers', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'Edit assignee' }));
+    await user.click(screen.getByRole('option', { name: /Me/ }));
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"assignee":"Me"');
+
+    await user.click(screen.getByRole('button', { name: 'Edit dates' }));
+    await user.click(screen.getByRole('button', { name: /Tomorrow/ }));
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"dueDate"');
+  });
+  it('keeps only one task-detail picker open at a time', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'TO DO' }));
+    expect(screen.getByPlaceholderText('Search statuses')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Normal' }));
+    expect(screen.queryByPlaceholderText('Search statuses')).not.toBeInTheDocument();
+    expect(screen.getByRole('listbox', { name: 'Task priority choices' })).toBeInTheDocument();
+  });
+  it('stores task attachments locally and exposes an icon-only comment submit action', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.upload(screen.getByLabelText('Add attachment'), new File(['brief'], 'kickoff.txt', { type: 'text/plain' }));
+
+    expect(await screen.findByText('kickoff.txt')).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('kickoff.txt');
+    expect(screen.getByRole('button', { name: 'Send comment' })).toBeInTheDocument();
+  });
+  it('opens an image attachment in an expanded preview dialog', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [{ id: 'attachment-1', name: 'mockup.png', mimeType: 'image/png', size: 1024, dataUrl: 'data:image/png;base64,iVBORw0KGgo=', createdAt: '2026-07-17T00:00:00.000Z' }], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'Preview attachment mockup.png' }));
+
+    expect(screen.getByRole('dialog', { name: 'Attachment preview' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'mockup.png' })).toBeInTheDocument();
+  });
+
+  it('renders a resize handle for the Activity panel', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    expect(screen.getByRole('separator', { name: 'Resize activity panel' })).toBeInTheDocument();
+  });
+  it('sends a local comment with file and link attachments', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.upload(screen.getByLabelText('Attach file to comment'), new File(['brief'], 'launch-brief.pdf', { type: 'application/pdf' }));
+    await user.click(screen.getByRole('button', { name: 'Add link to comment' }));
+    await user.type(screen.getByLabelText('Comment link'), 'https://example.com/brief');
+    await user.click(screen.getByRole('button', { name: 'Attach link' }));
+    await user.type(screen.getByLabelText('Comment'), 'Here is the brief.');
+    await user.click(screen.getByRole('button', { name: 'Send comment' }));
+
+    expect(await screen.findByText('launch-brief.pdf')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'https://example.com/brief' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('launch-brief.pdf');
+  });
+  it('inserts an emoji from the chat composer picker', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'Add emoji to comment' }));
+    expect(screen.getByRole('dialog', { name: 'Emoji picker' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add ÃƒÂ°Ã…Â¸Ã‹Å“Ã¢â€šÂ¬ emoji' }));
+
+    expect(screen.getByLabelText('Comment')).toHaveValue('ÃƒÂ°Ã…Â¸Ã‹Å“Ã¢â€šÂ¬');
+  });
+  it('shows the mock sender name for a local comment', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.type(screen.getByLabelText('Comment'), 'Ready for review.');
+    await user.click(screen.getByRole('button', { name: 'Send comment' }));
+
+    expect(await screen.findByText('Khanh Tran')).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Khanh Tran');
+  });
+  it('creates a scoped status from Add group and persists it locally', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    await user.click(screen.getByRole('button', { name: 'Add group' }));
+    await user.type(screen.getByLabelText('Status name'), 'QA review');
+    await user.click(screen.getByRole('radio', { name: /Entire Space/ }));
+    await user.click(screen.getByRole('button', { name: 'Create status' }));
+
+    expect(screen.getByText('QA REVIEW')).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('QA review');
+  });  it('renames and recolors a scoped status from its group options', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    await user.click(screen.getByRole('button', { name: 'Add group' }));
+    await user.type(screen.getByLabelText('Status name'), 'QA review');
+    await user.click(screen.getByRole('button', { name: 'Create status' }));
+    await user.click(screen.getByRole('button', { name: 'Status options QA REVIEW' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Rename status' }));
+    await user.clear(screen.getByLabelText('Status name'));
+    await user.type(screen.getByLabelText('Status name'), 'Ready');
+    await user.click(screen.getByRole('button', { name: 'Status color rose' }));
+    await user.click(screen.getByRole('button', { name: 'Save status' }));
+
+    expect(screen.getByText('READY')).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"name":"Ready"');
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"color":"rose"');
+  });  it('keeps one status menu open and closes it on an outside click', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [], statusGroups: [{ id: 'status-done', name: 'Done', scope: 'list' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    await user.click(screen.getByRole('button', { name: 'Status options DONE' }));
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+
+    await user.click(document.body);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });  it('renders Board data from local Lists for a Space and Folder scope', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-a', name: 'Product', kind: 'folder' },
+        { id: 'folder-b', name: 'Marketing', kind: 'folder' },
+        { id: 'list-a', name: 'Roadmap', kind: 'list', parentId: 'folder-a', tasks: [{ id: 'task-a', title: 'Ship local product task', status: 'Backlog', priority: 'Normal', assignee: 'Me', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+        { id: 'list-b', name: 'Campaign', kind: 'list', parentId: 'folder-b', tasks: [{ id: 'task-b', title: 'Plan local campaign task', status: 'In progress', priority: 'High', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1');
+    const result = render(<WorkspaceRoot />);
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    expect(screen.getByRole('button', { name: 'Ship local product task' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Plan local campaign task' })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'List' }));
+    expect(screen.getByRole('button', { name: 'Ship local product task' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Plan local campaign task' })).toBeInTheDocument();
+
+    result.unmount();
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-a');
+    render(<WorkspaceRoot />);
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    expect(screen.getByRole('button', { name: 'Ship local product task' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Plan local campaign task' })).not.toBeInTheDocument();
+  });  it('renders Overview recent work and docs from local Space and Folder data', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-a', name: 'Product', kind: 'folder' },
+        { id: 'folder-b', name: 'Marketing', kind: 'folder' },
+        { id: 'list-a', name: 'Roadmap', kind: 'list', parentId: 'folder-a', tasks: [{ id: 'task-a', title: 'Local product overview task', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+        { id: 'list-b', name: 'Campaign', kind: 'list', parentId: 'folder-b', tasks: [{ id: 'task-b', title: 'Local marketing overview task', status: 'In progress', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+        { id: 'doc-a', name: 'Local product brief', kind: 'doc', parentId: 'folder-a' },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1');
+    const result = render(<WorkspaceRoot />);
+    expect(await screen.findByText('Local product overview task')).toBeInTheDocument();
+    expect(screen.getByText('Local marketing overview task')).toBeInTheDocument();
+    expect(screen.getByText('Local product brief')).toBeInTheDocument();
+
+    result.unmount();
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-a');
+    render(<WorkspaceRoot />);
+    expect(await screen.findByText('Local product overview task')).toBeInTheDocument();
+    expect(screen.queryByText('Local marketing overview task')).not.toBeInTheDocument();
+    expect(screen.getByText('Local product brief')).toBeInTheDocument();
   });
 });

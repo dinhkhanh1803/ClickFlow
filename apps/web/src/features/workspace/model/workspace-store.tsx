@@ -14,7 +14,7 @@ const seedSpace: Space = {
   ],
   projects: [
     {
-      id: 'project-product-launch', name: 'Product launch', description: 'Shape the first ClickFlow release and its core work loops.', color: 'indigo', archived: false,
+      id: 'project-product-launch', folderId: 'folder-projects', name: 'Product launch', description: 'Shape the first ClickFlow release and its core work loops.', color: 'indigo', archived: false,
       tasks: [
         { id: 'task-architecture', title: 'Define information architecture', status: 'In progress', priority: 'High', assignee: 'KD', dueDate: '2026-07-18', description: 'Establish the navigation model and the first execution loop for product teams.', checklist: [{ id: 'check-navigation', label: 'Map navigation hierarchy', completed: false }, { id: 'check-projects', label: 'Define project boundaries', completed: true }], comments: [], activity: [{ id: 'activity-1', message: 'Task created for the product launch.', createdAt: 'Just now' }] },
         { id: 'task-workspace', title: 'Design the Space command surface', status: 'Backlog', priority: 'Normal', assignee: 'LM', dueDate: '2026-07-21', description: 'Make the Space useful before a team opens a project.', checklist: [], comments: [], activity: [] },
@@ -35,8 +35,8 @@ type WorkspaceContextValue = {
   space: Space;
   activeProjectId: string | null;
   selectProject: (projectId: string | null) => void;
-  createProject: (input: Pick<Project, 'name' | 'description'>) => void;
-  updateProject: (projectId: string, patch: Partial<Pick<Project, 'name' | 'description'>>) => void;
+  createProject: (input: Pick<Project, 'name' | 'description' | 'folderId'>) => void;
+  updateProject: (projectId: string, patch: Partial<Pick<Project, 'name' | 'description' | 'folderId'>>) => void;
   archiveProject: (projectId: string) => void;
   createTask: (projectId: string, title: string) => void;
   updateTask: (projectId: string, taskId: string, patch: Partial<Pick<Task, 'title' | 'status' | 'priority' | 'assignee' | 'dueDate' | 'description'>>) => void;
@@ -56,7 +56,7 @@ export function WorkspaceProvider({ children, initialProjectId }: { children: Re
   const updateTask = (projectId: string, taskId: string, patch: Partial<Pick<Task, 'title' | 'status' | 'priority' | 'assignee' | 'dueDate' | 'description'>>) => mutateProject(projectId, (project) => ({ ...project, tasks: project.tasks.map((task) => task.id === taskId ? { ...task, ...patch, activity: [...task.activity, { id: id('activity'), message: 'Task details updated.', createdAt: now() }] } : task) }));
   const value = useMemo<WorkspaceContextValue>(() => ({
     space, activeProjectId, selectProject,
-    createProject: ({ name, description }) => { const project = { id: id('project'), name, description, color: 'sky', archived: false, tasks: [] }; setSpace((current) => ({ ...current, projects: [...current.projects, project] })); selectProject(project.id); },
+    createProject: ({ name, description, folderId }) => { const project = { id: id('project'), name, description, folderId, color: 'sky', archived: false, tasks: [] }; setSpace((current) => ({ ...current, projects: [...current.projects, project] })); selectProject(project.id); },
     updateProject: (projectId, patch) => mutateProject(projectId, (project) => ({ ...project, ...patch })),
     archiveProject: (projectId) => { mutateProject(projectId, (project) => ({ ...project, archived: true })); selectProject(null); },
     createTask: (projectId, title) => mutateProject(projectId, (project) => ({ ...project, tasks: [...project.tasks, { id: id('task'), title, status: 'Backlog' as TaskStatus, priority: 'Normal' as TaskPriority, assignee: 'KD', dueDate: '', description: '', checklist: [], comments: [], activity: [{ id: id('activity'), message: 'Task created.', createdAt: now() }] }] })),
