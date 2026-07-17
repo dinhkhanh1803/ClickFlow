@@ -9,6 +9,11 @@ import { AppHeader, AppShell } from '@/components/layout/app-shell';
 afterEach(cleanup);
 
 describe('AppHeader', () => {
+  it('pins the application header above scrolling content', () => {
+    render(<AppHeader />);
+
+    expect(screen.getByRole('banner')).toHaveClass('sticky', 'top-0', 'z-30');
+  });
   it('opens the avatar menu', async () => {
     const user = userEvent.setup();
     render(<AppHeader />);
@@ -53,5 +58,10 @@ describe('AppHeader', () => {
 
     await user.click(planner);
     expect(screen.getByRole('complementary', { name: 'Home navigation' })).toBeInTheDocument();
+  });
+  it('pins the Space navigation panel while workspace content scrolls', () => {
+    render(<AppShell><div className="min-h-[200vh]">Long workspace content</div></AppShell>);
+
+    expect(screen.getByRole('complementary', { name: 'Home navigation' }).parentElement).toHaveClass('sticky', 'top-0', 'self-start');
   });
 });
