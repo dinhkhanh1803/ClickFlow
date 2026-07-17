@@ -136,6 +136,77 @@ describe('WorkspaceRoot', () => {
 
     expect(screen.queryByRole('button', { name: 'Add Channel' })).not.toBeInTheDocument();
   });
+  it('renders locally persisted due tasks in Calendar and opens task detail', async () => {
+    const user = userEvent.setup();
+
+    window.localStorage.setItem(
+      LOCAL_SPACES_STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: 'space-1',
+          name: 'Space 1',
+          tone: 'bg-indigo-500',
+          items: [
+            {
+              id: 'folder-projects',
+              kind: 'folder',
+              name: 'Projects',
+            },
+            {
+              id: 'list-roadmap',
+              kind: 'list',
+              name: 'Roadmap',
+              parentId: 'folder-projects',
+              tasks: [
+                {
+                  id: 'task-calendar',
+                  title: 'Ship calendar workflow',
+                  status: 'In progress',
+                  priority: 'High',
+                  assignee: 'Khanh Tran',
+                  startDate: '2026-07-15',
+                  dueDate: '2026-07-17',
+                  timeEstimate: '',
+                  trackingStartedAt: null,
+                  trackedSeconds: 0,
+                  tags: [],
+                  description: '',
+                  comments: [],
+                  attachments: [],
+                  createdAt: '2026-07-15T00:00:00.000Z',
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+    window.history.replaceState({}, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+
+    render(<WorkspaceRoot />);
+    await user.click(screen.getByRole('tab', { name: 'Calendar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Task calendar' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ship calendar workflow' }));
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByLabelText('Task title')).toHaveValue('Ship calendar workflow');
+    await user.click(screen.getAllByRole('button', { name: 'Close task detail' })[1]);
+    await user.click(screen.getByRole('tab', { name: 'Table' }));
+    expect(await screen.findByRole('heading', { name: 'Task table' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ship calendar workflow' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Status for Ship calendar workflow' }));
+    expect(screen.getByRole('listbox', { name: 'Task status choices' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'TO DO' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Edit assignee' }));
+    expect(screen.queryByRole('listbox', { name: 'Task status choices' })).not.toBeInTheDocument();
+    expect(screen.getByRole('listbox', { name: 'Task assignees' })).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('listbox', { name: 'Task assignees' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Gantt' }));
+    expect(await screen.findByRole('heading', { name: 'Task timeline' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Ship calendar workflow' })).not.toHaveLength(0);
+  });
   it('filters overview Docs and Lists to the selected Folder', async () => {
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
       { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
@@ -255,7 +326,7 @@ describe('WorkspaceRoot', () => {
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
       { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
         { id: 'folder-projects', name: 'Projects', kind: 'folder' },
-        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', statusGroups: [{ id: 'status-done', name: 'Done', taskStatus: 'Done', color: 'indigo', scope: 'list' }] },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', statusGroups: [{ id: 'status-done', name: 'Done', taskStatus: 'Done', tone: 'bg-indigo-500', scope: 'list' }] },
       ] },
     ]));
     window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
@@ -299,7 +370,7 @@ describe('WorkspaceRoot', () => {
     render(<WorkspaceRoot />);
 
     await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
-    await user.click(screen.getByRole('button', { name: 'TO DO' }));
+    await user.click(screen.getByRole('option', { name: 'TO DO' }));
 
     expect(screen.getByPlaceholderText('Search statuses')).toBeInTheDocument();
     expect(screen.getByText('Not started')).toBeInTheDocument();
@@ -391,7 +462,7 @@ describe('WorkspaceRoot', () => {
     render(<WorkspaceRoot />);
 
     await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
-    await user.click(screen.getByRole('button', { name: 'TO DO' }));
+    await user.click(screen.getByRole('option', { name: 'TO DO' }));
     expect(screen.getByPlaceholderText('Search statuses')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Normal' }));
