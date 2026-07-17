@@ -16,6 +16,27 @@ describe('ContextSidebar', () => {
     expect(screen.getByRole('link', { name: 'Focus' })).toBeInTheDocument();
   });
 
+  it('filters the Spaces tree from the header search and removes the unused options button', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-product', name: 'Product Space', tone: 'bg-indigo-500', items: [
+        { id: 'folder-launch', name: 'Launch', kind: 'folder' },
+        { id: 'list-release', name: 'Release checklist', kind: 'list', parentId: 'folder-launch' },
+        { id: 'folder-archive', name: 'Archive', kind: 'folder' },
+        { id: 'list-legacy', name: 'Legacy work', kind: 'list', parentId: 'folder-archive' },
+      ] },
+    ]));
+    render(<ContextSidebar modulePath="/projects" />);
+
+    expect(screen.queryByLabelText('Spaces options')).not.toBeInTheDocument();
+    await user.click(await screen.findByLabelText('Search Spaces'));
+    await user.type(screen.getByLabelText('Search Spaces tree'), 'release');
+
+    expect(screen.getByRole('link', { name: 'Product Space' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Launch' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Release checklist' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Archive' })).not.toBeInTheDocument();
+  });
   it('creates a Space locally from the Spaces menu', async () => {
     const user = userEvent.setup();
     render(<ContextSidebar modulePath="/projects" />);
@@ -27,6 +48,21 @@ describe('ContextSidebar', () => {
 
     expect(screen.getByRole('link', { name: /Marketing\s*Private/ })).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Marketing');
+  });
+
+  it('keeps the global Create menu focused on local workspace items', async () => {
+    const user = userEvent.setup();
+    render(<ContextSidebar modulePath="/projects" />);
+
+    await user.click(screen.getByLabelText('Create space'));
+
+    expect(screen.getByRole('menuitem', { name: 'SpaceOrganize your team work' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'FolderGroup Lists, Docs and more' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'ListTrack tasks and projects' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'DocCreate shared documentation' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Dashboard/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Whiteboard/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Form/ })).not.toBeInTheDocument();
   });
 
   it('creates a List inside a Project folder from its plus button', async () => {
