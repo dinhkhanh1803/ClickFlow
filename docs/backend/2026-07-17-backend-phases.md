@@ -178,3 +178,26 @@ Hoàn thiện các workflow MVP quanh task sau khi core model ổn định.
 
 Chỉ bắt đầu BE-02 khi BE-01 hoàn thành. BE-03 mở khóa mọi module có ownership; BE-04 trước BE-05 để giữ domain core ổn định. BE-06 diễn ra xuyên suốt ở mức tối thiểu nhưng chỉ chốt release sau khi các phase chức năng hoàn tất.
 
+Phạm vi Phase 0
+Chỉ khởi tạo nền NestJS hay gồm cả database, auth, Swagger, logging và Docker/dev environment? Theo roadmap hiện tại, các phần này thuộc “Backend Foundation”.
+
+API contract
+Prefix/version (/api/v1), định dạng response/error thống nhất, phân trang, filtering/sorting, quy ước DTO và OpenAPI có được generate từ code không.
+
+Data & database
+PostgreSQL/Prisma đã được chọn theo ADR, nhưng cần chốt: dùng UUID hay CUID, timezone UTC, soft-delete, audit fields, migration/seed strategy và môi trường local.
+
+Authentication & authorization
+Provider (email/password, Google, …), JWT access/refresh token hay session cookie, thời hạn token, password reset/email verification, và MVP là single-user hay đã có workspace/member role.
+
+Module boundaries
+Thứ tự module: auth, users, projects, tasks, time, attachments, comments, reports. Cần xác định module nào nằm trong Phase đầu tiên để tránh scaffold quá nhiều.
+
+Storage & uploads
+Lưu file ở đâu (local dev + S3/R2/Cloudinary ở production), giới hạn loại/kích thước file, và API upload trực tiếp hay presigned URL.
+
+Security & operations
+CORS origins, rate limit, validation/sanitization, secret/env conventions, structured logging, health/readiness endpoint, error monitoring.
+
+Testing & delivery
+Unit/integration/e2e coverage mong muốn, test database strategy, CI checks, Docker Compose có cần cho dev không, target deploy Render cụ thể thế nào.
