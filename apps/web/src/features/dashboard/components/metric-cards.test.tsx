@@ -4,8 +4,8 @@ import { MetricCards } from '@/features/dashboard/components/metric-cards';
 
 describe('MetricCards', () => {
   it('renders typed dashboard metrics', () => {
-    render(<MetricCards metrics={[{ label: 'Active Projects', value: '4', tone: 'indigo' }]} />);
-    expect(screen.getByText('Active Projects')).toBeInTheDocument();
+    render(<MetricCards metrics={[{ label: 'Open tasks', value: '4' }]} />);
+    expect(screen.getByText('Open tasks')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
   });
 });
