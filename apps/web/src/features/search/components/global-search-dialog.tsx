@@ -1,0 +1,50 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { CheckSquare2, FileText, Folder, LayoutList, Search, Sparkles, X } from 'lucide-react';
+import { Dialog, DialogTitle } from '@/components/ui/dialog';
+import { loadLocalSpaces, type LocalSpace } from '@/features/workspace/model/local-navigation';
+import { searchLocalWorkspace, type WorkspaceSearchFilter, type WorkspaceSearchKind } from '@/features/search/model/local-workspace-search';
+
+const filters: Array<{ id: WorkspaceSearchFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'docs', label: 'Docs' },
+  { id: 'workspace', label: 'Workspace' },
+];
+
+const resultIcon: Record<WorkspaceSearchKind, typeof Sparkles> = {
+  space: Sparkles,
+  folder: Folder,
+  list: LayoutList,
+  doc: FileText,
+  task: CheckSquare2,
+};
+
+type GlobalSearchDialogProps = { open: boolean; onOpenChange: (open: boolean) => void };
+
+export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<WorkspaceSearchFilter>('all');
+  const [spaces, setSpaces] = useState<LocalSpace[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    const sync = () => setSpaces(loadLocalSpaces());
+    sync();
+    window.addEventListener('clickflow:local-spaces-changed', sync);
+    return () => window.removeEventListener('clickflow:local-spaces-changed', sync);
+  }, [open]);
+
+  const results = useMemo(() => searchLocalWorkspace(spaces, query, filter), [filter, query, spaces]);
+
+  return <Dialog open={open} onOpenChange={onOpenChange} ariaLabel="Search ClickFlow" contentClassName="max-w-3xl overflow-hidden p-0 shadow-2xl shadow-slate-950/35">
+    <div className="border-b border-slate-200 p-4 dark:border-slate-800">
+      <div className="flex items-center gap-3"><Search aria-hidden="true" size={20} className="text-slate-400" /><label className="sr-only" htmlFor="global-search-query">Search ClickFlow</label><input id="global-search-query" autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tasks, docs, Spaces..." className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-400" /><button type="button" aria-label="Close search" onClick={() => onOpenChange(false)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"><X size={17} /></button></div>
+      <div role="tablist" aria-label="Search categories" className="mt-4 flex flex-wrap gap-2">{filters.map((item) => <button key={item.id} type="button" role="tab" aria-selected={filter === item.id} onClick={() => setFilter(item.id)} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === item.id ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'}`}>{item.label}</button>)}</div>
+    </div>
+    <div className="max-h-[min(60vh,32rem)] overflow-y-auto p-2"><DialogTitle className="sr-only">Search ClickFlow</DialogTitle>{!query.trim() ? <p className="px-3 py-12 text-center text-sm text-slate-500">Search your Spaces, folders, lists, tasks, and docs.</p> : results.length === 0 ? <p className="px-3 py-12 text-center text-sm text-slate-500">No matching ClickFlow items.</p> : <ul aria-label="Search results" className="space-y-1">{results.map((result) => { const Icon = resultIcon[result.kind]; return <li key={result.id}><Link href={result.href} onClick={() => onOpenChange(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 transition hover:bg-slate-100 dark:hover:bg-slate-800"><span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300"><Icon aria-hidden="true" size={16} /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{result.label}</span><span className="mt-0.5 block truncate text-xs text-slate-500">{result.context}</span></span><span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-800">{result.kind}</span></Link></li>; })}</ul>}</div>
+    <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-500 dark:border-slate-800"><span>Only your ClickFlow workspace data is searched.</span><span>Esc to close</span></div>
+  </Dialog>;
+}

@@ -14,11 +14,39 @@ describe('AppHeader', () => {
 
     expect(screen.getByRole('banner')).toHaveClass('sticky', 'top-0', 'z-30');
   });
+  it('opens the ClickFlow command palette from the search control', async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    await user.click(screen.getByRole('button', { name: 'Search ClickFlow' }));
+
+    expect(screen.getByRole('dialog', { name: 'Search ClickFlow' })).toBeInTheDocument();
+  });
   it('opens the avatar menu', async () => {
     const user = userEvent.setup();
     render(<AppHeader />);
     await user.click(screen.getByRole('button', { name: 'Open account menu' }));
     expect(screen.getByRole('menu')).toHaveTextContent('Profile');
+  });
+
+  it('links account menu entries to Profile and Workspace settings and dismisses on outside press', async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profile');
+    expect(screen.getByRole('link', { name: 'Workspace settings' })).toHaveAttribute('href', '/workspace-settings');
+
+    await user.pointer({ keys: '[MouseLeft]', target: document.body });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+  it('offers a logout link to the mock sign-in screen', async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+
+    expect(screen.getByRole('link', { name: 'Log out' })).toHaveAttribute('href', '/login');
   });
 
   it('overlays a preview panel on hover without replacing the route panel', async () => {
