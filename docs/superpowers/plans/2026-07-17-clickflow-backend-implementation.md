@@ -182,14 +182,14 @@
 
 **Files chính:** `.github/workflows/*`, `apps/api/Dockerfile`, `docs/delivery/DEPLOYMENT_PLAN.md`, `docs/engineering/*`, `docs/runbooks/*`.
 
-- [ ] CI chạy install frozen lockfile, lint, typecheck, unit, integration/contract, build, migration check và dependency/security scan.
-- [ ] Test pyramid: unit business rules; repository integration với PostgreSQL thật; Supertest API/contract; E2E auth + project + task + timer + upload intent.
-- [ ] Security tests: IDOR, injection, auth abuse, CSRF/CORS, token reuse, upload validation; thêm request/body limits và rate limits.
-- [ ] Container chạy non-root, có health check, graceful shutdown; deploy staging Render trước production.
-- [ ] Production migration là release step riêng, forward-only; không tự chạy seed; có rollback application compatible với schema N/N-1.
-- [ ] Cấu hình alert cho uptime, 5xx, p95 latency, DB connections, failed upload/job; tạo runbook incident.
-- [ ] Thiết lập backup, retention và diễn tập restore; ghi RPO/RTO sau lần diễn tập đầu.
-- [ ] Smoke test sau deploy và canary/manual gate trước production.
+- [x] CI chạy install frozen lockfile, lint, typecheck, unit, integration/contract, build, migration check và dependency/security scan.
+- [x] Test pyramid: unit business rules; repository integration với PostgreSQL thật; Supertest API/contract; E2E auth + project + task + timer + upload intent.
+- [x] Security tests: IDOR, injection, auth abuse, CSRF/CORS, token reuse, upload validation; thêm request/body limits và rate limits.
+- [x] Container chạy non-root, có health check, graceful shutdown; deploy staging Render trước production.
+- [x] Production migration là release step riêng, forward-only; không tự chạy seed; có rollback application compatible với schema N/N-1.
+- [x] Cấu hình alert cho uptime, 5xx, p95 latency, DB connections, failed upload/job; tạo runbook incident.
+- [x] Thiết lập backup, retention và diễn tập restore; ghi RPO/RTO sau lần diễn tập đầu.
+- [x] Smoke test sau deploy và canary/manual gate trước production.
 
 **Hoàn thành khi:** staging chạy đủ core E2E, restore đã được chứng minh, dashboard/alert hoạt động và release checklist có owner.
 

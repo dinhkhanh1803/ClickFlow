@@ -45,3 +45,8 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Task core, Kanban ordering, subtask hierarchy, checklist, tags, optimistic concurrency, and workspace isolation are implemented and database-tested.
 - [x] Comment CRUD and immutable task activity history are workspace-scoped, cursor-paginated, policy-protected, and database-tested.
 - [x] Timer and manual time-entry APIs enforce one running timer per user, idempotent retry, UTC interval validation, overlap policy, and transactional activity.
+
+- [x] Dashboard, workspace search, time/progress reports, performance baseline, contracts, and isolation acceptance tests are implemented.
+- [x] Attachment signed-URL workflow, MIME/magic-byte validation, workspace namespace, orphan cleanup, ADR, and E2E tests are implemented.
+- [x] Project templates, transactional idempotent instantiation, archive/restore, validated settings, migration, and rollback tests are implemented.
+- [x] Backend hardening, PostgreSQL CI, scans, non-root container, Render staging blueprint, release/restore workflows, alert policy, smoke test, and runbooks are committed.

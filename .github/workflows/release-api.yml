@@ -1,0 +1,49 @@
+name: Release API
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to release
+        required: true
+        type: choice
+        options: [staging, production]
+      staging_evidence:
+        description: Required successful staging run URL/SHA for production
+        required: false
+        type: string
+jobs:
+  validate-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require staging evidence before production
+        if: inputs.target == 'production' && inputs.staging_evidence == ''
+        run: exit 1
+  migrate:
+    needs: validate-gate
+    environment: ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.24.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api exec prisma migrate deploy
+      - run: pnpm --filter api exec prisma migrate status
+  deploy-and-smoke:
+    needs: migrate
+    environment: ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger immutable Render deployment
+        env: { RENDER_DEPLOY_HOOK: "${{ secrets.RENDER_DEPLOY_HOOK }}" }
+        run: curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK"
+      - name: Wait for readiness and smoke
+        env: { SMOKE_BASE_URL: "${{ vars.API_BASE_URL }}" }
+        run: |
+          for attempt in $(seq 1 30); do node apps/api/scripts/smoke.mjs && exit 0; sleep 10; done
+          exit 1

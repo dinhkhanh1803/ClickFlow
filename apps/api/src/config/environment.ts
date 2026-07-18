@@ -12,6 +12,8 @@ const environmentSchema = z.object({
   JWT_REFRESH_EXPIRES_IN_SECONDS: z.coerce.number().int().min(300).max(31_536_000).default(604_800),
   PASSWORD_RESET_EXPIRES_IN_SECONDS: z.coerce.number().int().min(300).max(86_400).default(1_800),
   AUTH_RATE_LIMIT: z.coerce.number().int().min(1).max(100).default(5),
+  API_RATE_LIMIT: z.coerce.number().int().min(10).max(100_000).default(300),
+  API_RATE_WINDOW_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(60_000),
   AUTH_RATE_WINDOW_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(900_000)
 }).superRefine((value, context) => {
   if (value.NODE_ENV === 'staging' || value.NODE_ENV === 'production') {

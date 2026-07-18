@@ -17,6 +17,7 @@ const HTTP_CODES: Record<number, string> = {
   404: 'NOT_FOUND',
   408: 'REQUEST_TIMEOUT',
   409: 'CONFLICT',
+  413: 'PAYLOAD_TOO_LARGE',
   422: 'VALIDATION_ERROR',
   429: 'RATE_LIMITED',
   503: 'SERVICE_UNAVAILABLE'
@@ -34,6 +35,9 @@ export function mapException(exception: unknown): MappedException {
   }
   if (databaseCode === 'P2025') {
     return { status: 404, code: 'NOT_FOUND', message: 'Resource not found', details: undefined };
+  }
+  if (exception && typeof exception === 'object' && 'status' in exception && exception.status === 413) {
+    return { status: 413, code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large', details: undefined };
   }
   if (!(exception instanceof HttpException)) {
     return { status: 500, code: 'INTERNAL_ERROR', message: 'Internal server error', details: undefined };

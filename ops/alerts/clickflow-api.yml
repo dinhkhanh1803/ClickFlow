@@ -1,0 +1,29 @@
+owner: backend-on-call
+evaluation_window_minutes: 5
+alerts:
+  - name: api-uptime
+    signal: health_ready_success_ratio
+    condition: less_than
+    threshold: 0.999
+    severity: critical
+  - name: api-5xx
+    signal: http_5xx_ratio
+    condition: greater_than
+    threshold: 0.02
+    severity: critical
+  - name: api-p95-read-latency
+    signal: http_read_p95_ms
+    condition: greater_than
+    threshold: 300
+    severity: warning
+  - name: database-connections
+    signal: database_connection_ratio
+    condition: greater_than
+    threshold: 0.8
+    severity: warning
+  - name: attachment-job-failures
+    signal: attachment_job_failures_10m
+    condition: greater_than
+    threshold: 5
+    severity: warning
+runbook: docs/runbooks/INCIDENT_RESPONSE.md
