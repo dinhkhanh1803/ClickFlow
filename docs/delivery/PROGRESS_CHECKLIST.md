@@ -40,3 +40,5 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Swagger UI and deterministic committed OpenAPI JSON are available and checked in CI.
 - [x] API lint, typecheck, unit tests, integration tests, and build pass.
 - [x] Prisma/PostgreSQL schema, migration, seed, and workspace-isolated repositories are implemented.
+- [x] Cross-cutting authorization, observability, authentication, and rotating session lifecycle are implemented.
+- [x] Workspace, member, project, project-status, and section APIs pass workspace-isolated HTTP/database tests.

@@ -96,12 +96,12 @@
 
 **Endpoints chính:** `/workspaces`, `/workspaces/:id/members`, `/projects`, `/projects/:id`, `/projects/:id/statuses`, `/projects/:id/sections`.
 
-- [ ] Bootstrap workspace cho user đầu tiên và chuẩn bị role `owner/member` dù MVP vận hành single-user.
-- [ ] CRUD/list/archive project; name bắt buộc, deadline optional, workspace ownership bắt buộc.
-- [ ] CRUD/reorder custom statuses và sections; không cho xóa status đang được task dùng trừ khi có replacement status trong cùng transaction.
-- [ ] Tính progress/health qua query service có test rõ quy tắc deadline, completed task và overdue task.
-- [ ] List API hỗ trợ pagination, archived filter, search và stable sort.
-- [ ] Mỗi mutation quan trọng ghi `ActivityLog` trong cùng transaction.
+- [x] Bootstrap workspace cho user đầu tiên và chuẩn bị role `owner/member` dù MVP vận hành single-user.
+- [x] CRUD/list/archive project; name bắt buộc, deadline optional, workspace ownership bắt buộc.
+- [x] CRUD/reorder custom statuses và sections; không cho xóa status đang được task dùng trừ khi có replacement status trong cùng transaction.
+- [x] Tính progress/health qua query service có test rõ quy tắc deadline, completed task và overdue task.
+- [x] List API hỗ trợ pagination, archived filter, search và stable sort.
+- [x] Mỗi mutation quan trọng ghi `ActivityLog` trong cùng transaction.
 
 **Hoàn thành khi:** project flows và invariants có unit + integration + HTTP tests; không thể tham chiếu status/section từ project khác.
 
