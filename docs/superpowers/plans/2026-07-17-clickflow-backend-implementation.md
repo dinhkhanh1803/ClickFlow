@@ -158,11 +158,11 @@
 
 **Endpoints chính:** `POST /attachments/upload-intents`, `POST /attachments/complete`, `GET /attachments/:id/download-url`, `DELETE /attachments/:id`.
 
-- [ ] Định nghĩa `StorageProvider` cho signed upload/download, metadata lookup và delete; fake/local provider dùng trong test.
-- [ ] Chọn provider production bằng ADR dựa trên cost, signed URL, size limit, malware scanning và Render compatibility.
-- [ ] Validate MIME bằng allowlist và magic bytes khi complete; giới hạn size; storage key phải namespaced theo workspace và không dùng filename người dùng làm path.
-- [ ] Chỉ ghi attachment active sau khi verify upload; job/command cleanup orphan; delete metadata + object có retry an toàn.
-- [ ] Authorization trước mọi signed URL; URL TTL ngắn; không proxy file lớn qua API nếu không cần.
+- [x] Định nghĩa `StorageProvider` cho signed upload/download, metadata lookup và delete; fake/local provider dùng trong test.
+- [x] Chọn provider production bằng ADR dựa trên cost, signed URL, size limit, malware scanning và Render compatibility.
+- [x] Validate MIME bằng allowlist và magic bytes khi complete; giới hạn size; storage key phải namespaced theo workspace và không dùng filename người dùng làm path.
+- [x] Chỉ ghi attachment active sau khi verify upload; job/command cleanup orphan; delete metadata + object có retry an toàn.
+- [x] Authorization trước mọi signed URL; URL TTL ngắn; không proxy file lớn qua API nếu không cần.
 
 **Hoàn thành khi:** upload/download/delete E2E chạy với test provider; cross-workspace access và spoofed MIME bị chặn.
 

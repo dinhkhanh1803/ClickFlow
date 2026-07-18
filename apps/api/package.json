@@ -14,6 +14,7 @@
     "prisma:seed": "prisma db seed",
     "openapi:generate": "pnpm build && node dist/src/openapi/export-openapi.js",
     "openapi:check": "pnpm build && node dist/src/openapi/export-openapi.js --check",
+    "cleanup:attachments": "tsx src/attachments/cleanup-orphans.ts",
     "test:database": "vitest run --config vitest.database.config.ts"
   },
   "dependencies": {

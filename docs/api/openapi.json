@@ -155,6 +155,38 @@
         ],
         "type": "object"
       },
+      "AttachmentResponseDto": {
+        "properties": {
+          "byteSize": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "fileName",
+          "mimeType",
+          "byteSize",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "AttachTagRequestDto": {
         "properties": {
           "tagId": {
@@ -326,6 +358,36 @@
           "author",
           "createdAt",
           "updatedAt"
+        ],
+        "type": "object"
+      },
+      "CompleteAttachmentRequestDto": {
+        "properties": {
+          "byteSize": {
+            "type": "number"
+          },
+          "checksum": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "storageKey": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "fileName",
+          "mimeType",
+          "byteSize",
+          "storageKey"
         ],
         "type": "object"
       },
@@ -591,6 +653,22 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "DownloadUrlResponseDto": {
+        "properties": {
+          "downloadUrl": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "downloadUrl",
+          "expiresAt"
+        ],
         "type": "object"
       },
       "ForgotPasswordRequestDto": {
@@ -1750,6 +1828,49 @@
         },
         "type": "object"
       },
+      "UploadIntentRequestDto": {
+        "properties": {
+          "byteSize": {
+            "type": "number"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "fileName",
+          "mimeType",
+          "byteSize"
+        ],
+        "type": "object"
+      },
+      "UploadIntentResponseDto": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "storageKey": {
+            "type": "string"
+          },
+          "uploadUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "storageKey",
+          "uploadUrl",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
       "UserResponseDto": {
         "properties": {
           "avatarUrl": {
@@ -2308,6 +2429,141 @@
         ],
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/attachments/{attachmentId}": {
+      "delete": {
+        "operationId": "AttachmentController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attachmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/attachments/{attachmentId}/download-url": {
+      "get": {
+        "operationId": "AttachmentController_download",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attachmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadUrlResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/attachments/complete": {
+      "post": {
+        "operationId": "AttachmentController_complete",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteAttachmentRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/attachments/upload-intents": {
+      "post": {
+        "operationId": "AttachmentController_intent",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadIntentRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadIntentResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "attachments"
         ]
       }
     },

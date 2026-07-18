@@ -3,6 +3,7 @@ export * from './comment-api-contract';
 export * from './task-api-contract';
 export * from './time-tracking-api-contract';
 export * from './analytics-api-contract';
+export * from './attachment-api-contract';
 
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type HealthStatus = 'on-track' | 'at-risk';
