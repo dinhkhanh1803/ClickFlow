@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  createTaskRequestExample,
-  createTaskRequestSchema,
   frontendBackendResourceMapping,
   legacyPriorityToApi,
   localPriorityToApi
 } from './domain-contract';
+import { taskCreateRequestSchema } from './task-api-contract';
 
 describe('frontend/backend domain contract', () => {
   it('locks stable resource names before Prisma', () => {
@@ -23,8 +22,16 @@ describe('frontend/backend domain contract', () => {
     expect(legacyPriorityToApi.medium).toBe('NORMAL');
   });
 
-  it('validates the create-task example and rejects free-text assignees', () => {
-    expect(createTaskRequestSchema.parse(createTaskRequestExample)).toEqual(createTaskRequestExample);
-    expect(createTaskRequestSchema.safeParse({ ...createTaskRequestExample, assigneeId: 'Khanh' }).success).toBe(false);
+  it('uses IDs instead of free-text assignees in task requests', () => {
+    const request = {
+      projectId: '10000000-0000-4000-8000-000000000001',
+      statusId: '20000000-0000-4000-8000-000000000001',
+      assigneeId: '30000000-0000-4000-8000-000000000001',
+      title: 'Draft launch brief',
+      priority: 'HIGH'
+    };
+
+    expect(taskCreateRequestSchema.safeParse(request).success).toBe(true);
+    expect(taskCreateRequestSchema.safeParse({ ...request, assigneeId: 'Khanh' }).success).toBe(false);
   });
 });

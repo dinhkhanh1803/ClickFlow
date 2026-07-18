@@ -28,15 +28,13 @@ Mutation dùng `assigneeId: UUID | null`. Response trả cả `assigneeId` và `
 
 Mọi datetime response dùng ISO 8601 UTC, ví dụ `2026-07-18T00:00:00.000Z`. Trường chỉ có ngày như `startDate`, `dueDate` dùng `YYYY-MM-DD`. Frontend chịu trách nhiệm format timezone/locale.
 
-## Ví dụ contract
+## Contract source
 
-`packages/contracts/src/domain-contract.ts` chứa schema/type và ba fixture chuẩn:
+`packages/contracts/src/domain-contract.ts` chỉ giữ enum và mapping xuyên feature. Request/response schema nằm trong các file
+`*-api-contract.ts`; runtime DTO và `docs/api/openapi.json` là nguồn chính xác cho HTTP payload.
 
-- `workspaceTreeResponseExample`
-- `createTaskRequestExample`
-- `taskResponseExample`
-
-Các fixture tương ứng cũng được publish trong OpenAPI `components.examples`. Đây là contract trước Prisma; migration và controller phải tương thích với tên resource và enum đã khóa ở đây.
+Không duy trì fixture hoặc schema OpenAPI thủ công song song với DTO vì chúng dễ lệch khi endpoint phát triển. Migration,
+controller và frontend adapter phải tương thích với tên resource và enum đã khóa ở đây.
 
 ## Kế hoạch bỏ model frontend trùng
 
