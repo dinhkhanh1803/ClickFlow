@@ -155,6 +155,34 @@
         ],
         "type": "object"
       },
+      "ArchiveResponseDto": {
+        "properties": {
+          "projects": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "tasks": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "templates": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "projects",
+          "tasks",
+          "templates"
+        ],
+        "type": "object"
+      },
       "AttachmentResponseDto": {
         "properties": {
           "byteSize": {
@@ -546,6 +574,24 @@
         ],
         "type": "object"
       },
+      "CreateTemplateRequestDto": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sourceProjectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceProjectId",
+          "name"
+        ],
+        "type": "object"
+      },
       "CreateTimeEntryRequestDto": {
         "properties": {
           "endedAt": {
@@ -696,6 +742,14 @@
         "required": [
           "status"
         ],
+        "type": "object"
+      },
+      "InstantiateTemplateRequestDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "LoginRequestDto": {
@@ -1182,6 +1236,25 @@
         ],
         "type": "object"
       },
+      "SettingsResponseDto": {
+        "properties": {
+          "locale": {
+            "type": "string"
+          },
+          "preferences": {
+            "type": "object"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "timezone",
+          "locale",
+          "preferences"
+        ],
+        "type": "object"
+      },
       "StartTimerRequestDto": {
         "properties": {
           "note": {
@@ -1570,6 +1643,34 @@
         ],
         "type": "object"
       },
+      "TemplateResponseDto": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sourceProjectId": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "sourceProjectId",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "TimeEntryListResponseDto": {
         "properties": {
           "items": {
@@ -1732,6 +1833,20 @@
         "properties": {
           "name": {
             "maxLength": 160,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateSettingsRequestDto": {
+        "properties": {
+          "locale": {
+            "type": "string"
+          },
+          "preferences": {
+            "type": "object"
+          },
+          "timezone": {
             "type": "string"
           }
         },
@@ -2432,6 +2547,68 @@
         ]
       }
     },
+    "/api/v1/workspaces/{workspaceId}/archive": {
+      "get": {
+        "operationId": "ArchiveSettingsController_archive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "archive and settings"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/archive/{type}/{id}/restore": {
+      "post": {
+        "operationId": "ArchiveSettingsController_restore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "archive and settings"
+        ]
+      }
+    },
     "/api/v1/workspaces/{workspaceId}/attachments/{attachmentId}": {
       "delete": {
         "operationId": "AttachmentController_remove",
@@ -2619,6 +2796,150 @@
         ],
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/project-templates": {
+      "get": {
+        "operationId": "TemplateController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "templates"
+        ]
+      },
+      "post": {
+        "operationId": "TemplateController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/project-templates/{templateId}": {
+      "delete": {
+        "operationId": "TemplateController_archive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/project-templates/{templateId}/instantiate": {
+      "post": {
+        "operationId": "TemplateController_instantiate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstantiateTemplateRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "templates"
         ]
       }
     },
@@ -3367,6 +3688,66 @@
         ],
         "tags": [
           "analytics"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/settings": {
+      "get": {
+        "operationId": "ArchiveSettingsController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "archive and settings"
+        ]
+      },
+      "patch": {
+        "operationId": "ArchiveSettingsController_update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingsRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "archive and settings"
         ]
       }
     },

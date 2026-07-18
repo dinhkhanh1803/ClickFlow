@@ -170,11 +170,11 @@
 
 **Endpoints chính:** `/project-templates`, `/project-templates/:id/instantiate`, `/archive`, `/archive/:type/:id/restore`, `/settings`.
 
-- [ ] Template lưu/copy structure (statuses, sections, task mẫu, checklist) nhưng không copy activity, comment, attachment hoặc time history.
-- [ ] Instantiate template chạy trong transaction và idempotent khi client retry.
-- [ ] Archive là soft state; default queries loại archived; restore kiểm tra parent/status còn hợp lệ.
-- [ ] Permanent delete là endpoint/action riêng, yêu cầu xác nhận explicit và audit; chỉ thêm nếu MVP UI thật sự cần.
-- [ ] Settings validate timezone, locale và workspace preferences; không lưu secret tùy ý.
+- [x] Template lưu/copy structure (statuses, sections, task mẫu, checklist) nhưng không copy activity, comment, attachment hoặc time history.
+- [x] Instantiate template chạy trong transaction và idempotent khi client retry.
+- [x] Archive là soft state; default queries loại archived; restore kiểm tra parent/status còn hợp lệ.
+- [x] Permanent delete là endpoint/action riêng, yêu cầu xác nhận explicit và audit; chỉ thêm nếu MVP UI thật sự cần.
+- [x] Settings validate timezone, locale và workspace preferences; không lưu secret tùy ý.
 
 **Hoàn thành khi:** template clone rollback toàn bộ nếu một bước lỗi; archive/restore nhất quán trên project/task/search/report.
 
