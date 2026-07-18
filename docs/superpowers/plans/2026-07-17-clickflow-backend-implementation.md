@@ -134,11 +134,11 @@
 
 **Endpoints chính:** `POST /timers/start`, `/timers/stop`; `GET /timers/current`; CRUD `/time-entries`.
 
-- [ ] Dùng partial unique index/transaction/locking để đảm bảo mỗi user chỉ có một timer `RUNNING` kể cả hai request đồng thời.
-- [ ] Stop timer tính duration server-side, bắt buộc dương; start/stop idempotent có semantics rõ.
-- [ ] Manual entry validate `startedAt < endedAt`, duration, workspace/task ownership và overlap policy.
-- [ ] List/filter theo task/project/date range; report query dùng UTC và trả timezone-neutral timestamps.
-- [ ] Test concurrent start, double stop, retry có idempotency key và boundary qua ngày/timezone.
+- [x] Dùng partial unique index/transaction/locking để đảm bảo mỗi user chỉ có một timer `RUNNING` kể cả hai request đồng thời.
+- [x] Stop timer tính duration server-side, bắt buộc dương; start/stop idempotent có semantics rõ.
+- [x] Manual entry validate `startedAt < endedAt`, duration, workspace/task ownership và overlap policy.
+- [x] List/filter theo task/project/date range; report query dùng UTC và trả timezone-neutral timestamps.
+- [x] Test concurrent start, double stop, retry có idempotency key và boundary qua ngày/timezone.
 
 **Hoàn thành khi:** invariant “một timer đang chạy/user” được bảo vệ ở cả DB và service; dữ liệu report khớp time entries.
 

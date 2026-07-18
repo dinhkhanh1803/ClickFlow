@@ -484,6 +484,49 @@
         ],
         "type": "object"
       },
+      "CreateTimeEntryRequestDto": {
+        "properties": {
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "startedAt",
+          "endedAt"
+        ],
+        "type": "object"
+      },
+      "CurrentTimerResponseDto": {
+        "properties": {
+          "timer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeEntryResponseDto"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "timer"
+        ],
+        "type": "object"
+      },
       "DeleteStatusRequestDto": {
         "properties": {
           "replacementStatusId": {
@@ -871,6 +914,23 @@
         ],
         "type": "object"
       },
+      "StartTimerRequestDto": {
+        "properties": {
+          "note": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId"
+        ],
+        "type": "object"
+      },
       "StatusDefinition": {
         "properties": {
           "category": {
@@ -1242,6 +1302,100 @@
         ],
         "type": "object"
       },
+      "TimeEntryListResponseDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TimeEntryResponseDto"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalDurationSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total",
+          "totalDurationSeconds"
+        ],
+        "type": "object"
+      },
+      "TimeEntryResponseDto": {
+        "properties": {
+          "archivedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationSeconds": {
+            "nullable": true,
+            "type": "number"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "taskId",
+          "userId",
+          "startedAt",
+          "endedAt",
+          "durationSeconds",
+          "note",
+          "createdAt",
+          "updatedAt",
+          "archivedAt"
+        ],
+        "type": "object"
+      },
       "UpdateChecklistItemRequestDto": {
         "properties": {
           "completed": {
@@ -1357,6 +1511,24 @@
         "required": [
           "version"
         ],
+        "type": "object"
+      },
+      "UpdateTimeEntryRequestDto": {
+        "properties": {
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "nullable": true,
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "UserResponseDto": {
@@ -3500,6 +3672,313 @@
         ],
         "tags": [
           "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/time-entries": {
+      "get": {
+        "operationId": "TimeEntryController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "taskId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeEntryListResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "time entries"
+        ]
+      },
+      "post": {
+        "operationId": "TimeEntryController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTimeEntryRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeEntryResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "time entries"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/time-entries/{entryId}": {
+      "delete": {
+        "operationId": "TimeEntryController_archive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "time entries"
+        ]
+      },
+      "get": {
+        "operationId": "TimeEntryController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeEntryResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "time entries"
+        ]
+      },
+      "patch": {
+        "operationId": "TimeEntryController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTimeEntryRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeEntryResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "time entries"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/timers/current": {
+      "get": {
+        "operationId": "TimerController_current",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentTimerResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "timers"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/timers/start": {
+      "post": {
+        "operationId": "TimerController_start",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartTimerRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeEntryResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "timers"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/timers/stop": {
+      "post": {
+        "operationId": "TimerController_stop",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeEntryResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "timers"
         ]
       }
     }
