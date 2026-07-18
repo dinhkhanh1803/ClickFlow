@@ -1,3 +1,5 @@
+export * from './domain-contract';
+
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type HealthStatus = 'on-track' | 'at-risk';
 export interface NavigationItem { label: string; href: string; }

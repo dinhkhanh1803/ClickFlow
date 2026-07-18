@@ -34,7 +34,7 @@
 ## Definition of Ready
 
 - [ ] Phase 2 chốt schema Zod và repository interface của các flow sẽ tích hợp.
-- [ ] Mapping `Space` UI → `Workspace` API và mapping status (`Backlog`, `In progress`, `Done`) được ghi thành contract.
+- [x] Mapping `Space` UI → `Workspace` API và mapping status (`Backlog`, `In progress`, `Done`) được ghi thành contract.
 - [ ] PostgreSQL cho local/test/staging sẵn sàng; secret không nằm trong source hoặc fixture.
 - [ ] Quyết định object storage được ghi bằng ADR trước Task 10; local fake provider được phép dùng trước đó.
 - [ ] Acceptance criteria và response examples của từng endpoint được review trước khi code module.

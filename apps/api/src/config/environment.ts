@@ -17,7 +17,7 @@ export type Environment = z.infer<typeof environmentSchema>;
 
 export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): Environment {
   const result = environmentSchema.safeParse(source);
-  if (!result.success) throw new Error(`Invalid environment configuration: ${z.prettifyError(result.error)}`);
+  if (!result.success) throw new Error(`Invalid environment configuration: ${result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ')}`);
   return result.data;
 }
 

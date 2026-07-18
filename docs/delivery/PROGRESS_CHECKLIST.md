@@ -32,6 +32,8 @@
 - [ ] Documentation and this checklist reflect the delivered scope.
 ## Backend Phase 1 — API Foundation
 
+Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment checklist](./BACKEND_FE_ALIGNMENT_CHECKLIST.md).
+
 - [x] NestJS strict TypeScript application is wired into pnpm and Turborepo.
 - [x] URI-versioned health/readiness endpoints and standard request ID error envelope are implemented.
 - [x] Environment validation, CORS allowlist, security headers, validation, and graceful shutdown are enabled.
