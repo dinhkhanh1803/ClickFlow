@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { AnalyticsModule } from './analytics/analytics.module';
+
 import { AuthModule } from './auth/auth.module';
 import { CommentModule } from './comments/comment.module';
 import { AuthorizationModule } from './authorization/authorization.module';
@@ -12,7 +14,7 @@ import { TimeTrackingModule } from './time-tracking/time-tracking.module';
 import { WorkspaceModule } from './workspaces/workspace.module';
 
 @Module({
-  imports: [DatabaseModule, ObservabilityModule, AuthModule, AuthorizationModule, WorkspaceModule, ProjectModule, TaskModule, CommentModule, TimeTrackingModule],
+  imports: [AnalyticsModule, DatabaseModule, ObservabilityModule, AuthModule, AuthorizationModule, WorkspaceModule, ProjectModule, TaskModule, CommentModule, TimeTrackingModule],
   controllers: [HealthController]
 })
 export class AppModule {}

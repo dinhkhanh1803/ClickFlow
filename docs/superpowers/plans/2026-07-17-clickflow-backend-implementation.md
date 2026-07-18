@@ -146,11 +146,11 @@
 
 **Endpoints chính:** `GET /dashboard`, `/search`, `/reports/time`, `/reports/progress`.
 
-- [ ] Dashboard trả active projects, due today, overdue, weekly hours, deadlines và project health bằng một response contract phù hợp UI.
-- [ ] Search giới hạn theo workspace, loại archived mặc định, hỗ trợ project/task, rank và pagination; escape/sanitize search input.
-- [ ] Reports tổng hợp time/progress theo date range/project; định nghĩa rõ inclusive/exclusive boundary và timezone hiển thị.
-- [ ] Chạy `EXPLAIN ANALYZE` trên seed dataset đại diện; thêm index/caching chỉ theo bottleneck đo được.
-- [ ] Đặt latency budget ban đầu: p95 read < 300 ms và mutation < 500 ms ở staging không cold-start; ghi benchmark để hiệu chỉnh.
+- [x] Dashboard trả active projects, due today, overdue, weekly hours, deadlines và project health bằng một response contract phù hợp UI.
+- [x] Search giới hạn theo workspace, loại archived mặc định, hỗ trợ project/task, rank và pagination; escape/sanitize search input.
+- [x] Reports tổng hợp time/progress theo date range/project; định nghĩa rõ inclusive/exclusive boundary và timezone hiển thị.
+- [x] Chạy `EXPLAIN ANALYZE` trên seed dataset đại diện; thêm index/caching chỉ theo bottleneck đo được.
+- [x] Đặt latency budget ban đầu: p95 read < 300 ms và mutation < 500 ms ở staging không cold-start; ghi benchmark để hiệu chỉnh.
 
 **Hoàn thành khi:** số liệu dashboard/report được đối soát với truy vấn fixture; search không rò dữ liệu workspace khác.
 
