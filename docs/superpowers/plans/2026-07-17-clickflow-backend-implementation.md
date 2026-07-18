@@ -71,11 +71,11 @@
 
 **Files chính:** `apps/api/src/common/*`, `apps/api/src/authorization/*`, `apps/api/src/observability/*`.
 
-- [ ] Tạo request ID middleware/interceptor, structured logger và redaction password/token/cookie/PII nhạy cảm.
-- [ ] Tạo exception filter ánh xạ validation, auth, conflict, not-found và unexpected error sang error envelope.
-- [ ] Tạo `CurrentUser`, workspace membership guard/policy và helper query bắt buộc `workspaceId`; test IDOR cho mọi pattern resource lồng nhau.
-- [ ] Thêm pagination/filter/sort DTO dùng allowlist, giới hạn page size, query timeout và idempotency key cho mutation nhạy cảm.
-- [ ] Thêm `/health/live`, `/health/ready`, DB check, metrics cơ bản: request count, latency, error rate, connection pool.
+- [x] Tạo request ID middleware/interceptor, structured logger và redaction password/token/cookie/PII nhạy cảm.
+- [x] Tạo exception filter ánh xạ validation, auth, conflict, not-found và unexpected error sang error envelope.
+- [x] Tạo `CurrentUser`, workspace membership guard/policy và helper query bắt buộc `workspaceId`; test IDOR cho mọi pattern resource lồng nhau.
+- [x] Thêm pagination/filter/sort DTO dùng allowlist, giới hạn page size, query timeout và idempotency key cho mutation nhạy cảm.
+- [x] Thêm `/health/live`, `/health/ready`, DB check, metrics cơ bản: request count, latency, error rate, connection pool.
 
 **Hoàn thành khi:** controller mới có thể dùng chung authz/error/logging; log có requestId nhưng không chứa secret; test IDOR nền xanh.
 

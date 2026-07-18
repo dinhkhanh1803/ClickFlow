@@ -178,6 +178,43 @@
         ],
         "type": "object"
       },
+      "MetricsResponseDto": {
+        "properties": {
+          "activeRequests": {
+            "type": "number"
+          },
+          "averageLatencyMs": {
+            "type": "number"
+          },
+          "databaseConnectionLimit": {
+            "nullable": true,
+            "type": "number"
+          },
+          "databaseConnections": {
+            "nullable": true,
+            "type": "number"
+          },
+          "errorRate": {
+            "type": "number"
+          },
+          "errorsTotal": {
+            "type": "number"
+          },
+          "requestsTotal": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "requestsTotal",
+          "errorsTotal",
+          "errorRate",
+          "averageLatencyMs",
+          "activeRequests",
+          "databaseConnections",
+          "databaseConnectionLimit"
+        ],
+        "type": "object"
+      },
       "StatusDefinition": {
         "properties": {
           "category": {
@@ -476,6 +513,28 @@
         "summary": "Check whether the API is ready to serve traffic",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/metrics": {
+      "get": {
+        "operationId": "MetricsController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Get basic process and PostgreSQL metrics",
+        "tags": [
+          "observability"
         ]
       }
     }

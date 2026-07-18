@@ -5,6 +5,7 @@ const environmentSchema = z.object({
   PORT: z.coerce.number().int().positive().max(65_535).default(3001),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
   DATABASE_URL: z.string().url().optional(),
+  QUERY_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(10_000),
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
   JWT_REFRESH_SECRET: z.string().min(32).optional()
 }).superRefine((value, context) => {
