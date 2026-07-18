@@ -2,6 +2,7 @@ import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 
+import { Public } from '../auth/public.decorator';
 import { PrismaService } from '../database/prisma.service';
 import { MetricsService, type MetricsSnapshot } from './metrics.service';
 
@@ -15,6 +16,7 @@ class MetricsResponseDto {
   @ApiProperty({ type: Number, nullable: true }) databaseConnectionLimit!: number | null;
 }
 
+@Public()
 @ApiTags('observability')
 @Controller('metrics')
 export class MetricsController {

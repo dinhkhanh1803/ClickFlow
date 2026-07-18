@@ -59,6 +59,9 @@ describe('API bootstrap', () => {
     expect(document.info.version).toBe('1.0.0');
     expect(document.paths).toHaveProperty('/api/v1/health/live');
     expect(document.paths).toHaveProperty('/api/v1/health/ready');
+    expect(document.paths).toHaveProperty('/api/v1/auth/login');
+    expect(document.paths).toHaveProperty('/api/v1/auth/refresh');
+    expect(document.paths).toHaveProperty('/api/v1/users/me');
     expect(document.components?.schemas).toHaveProperty('WorkspaceTreeResponse');
     expect(document.components?.schemas).toHaveProperty('CreateTaskRequest');
     expect(document.components?.examples).toHaveProperty('TaskResponse');

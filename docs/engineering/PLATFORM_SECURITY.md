@@ -22,9 +22,9 @@ Use `@CurrentUser()` to read the authenticated principal and `withWorkspaceScope
 
 ## Shared API controls
 
-- Extend `PaginationQueryDto` and call `buildPagination()` with an explicit sort allowlist. Page size is capped at 100 and a deterministic ID tie-breaker is added.
+- Extend `PaginationQueryDto` and call `buildPaginationQuery()` with an explicit sort allowlist. Page size is capped at 100 and a deterministic ID tie-breaker is added.
 - Mark retry-sensitive mutations with `@RequireIdempotencyKey()`. Clients must send a 16-128 character `Idempotency-Key` value.
 - `/api/v1/metrics` reports request count, average latency, error rate, active requests and PostgreSQL connection usage.
 - `/api/v1/health/live` checks the process; `/api/v1/health/ready` checks database readiness.
 
-Authentication will populate `request.user` in Task 4. Until then, workspace-protected routes correctly return unauthorized instead of accepting caller-provided identity data.
+The global access-token guard now verifies the bearer token, checks that the user remains active and populates `request.user` before workspace authorization runs.

@@ -1,6 +1,7 @@
 import { ValidationPipe, VersioningType, type INestApplication } from '@nestjs/common';
 import helmet from 'helmet';
 
+import { AccessTokenGuard } from '../auth/access-token.guard';
 import { WorkspaceMembershipGuard } from '../authorization/workspace-membership.guard';
 import { HttpExceptionFilter } from '../common/http-exception.filter';
 import { IdempotencyKeyGuard } from '../common/idempotency-key';
@@ -16,7 +17,7 @@ export function configureApp(app: INestApplication, configuration: { corsOrigins
   app.use(requestIdMiddleware, helmet());
   app.enableCors({ origin: configuration.corsOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  app.useGlobalGuards(app.get(IdempotencyKeyGuard), app.get(WorkspaceMembershipGuard));
+  app.useGlobalGuards(app.get(AccessTokenGuard), app.get(IdempotencyKeyGuard), app.get(WorkspaceMembershipGuard));
   app.useGlobalInterceptors(app.get(QueryTimeoutInterceptor), app.get(RequestLoggingInterceptor));
   app.useGlobalFilters(app.get(HttpExceptionFilter));
   app.enableShutdownHooks();

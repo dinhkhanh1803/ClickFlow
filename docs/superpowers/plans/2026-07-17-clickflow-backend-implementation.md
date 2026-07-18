@@ -83,12 +83,12 @@
 
 **Endpoints chính:** `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/forgot-password`, `/auth/reset-password`; `GET /users/me`.
 
-- [ ] Viết unit tests cho password policy, credential failure, expiry, refresh reuse detection và reset token one-time use.
-- [ ] Hash password bằng Argon2id; access token ngắn hạn; refresh token opaque hoặc JWT được hash trong `Session`, rotation mỗi lần refresh và revoke token family khi reuse.
-- [ ] Đặt refresh token trong cookie `HttpOnly`, `Secure` ở production, `SameSite` phù hợp; thêm CSRF protection cho cookie mutation và CORS allowlist.
-- [ ] Rate-limit login/forgot/reset theo IP + identity; response forgot-password không làm lộ email tồn tại.
-- [ ] Tạo mail adapter với fake implementation cho local/test; production provider là cấu hình thay thế, không chặn core auth implementation.
-- [ ] Ghi audit event cho login success/failure, refresh reuse, logout và password reset; không ghi token.
+- [x] Viết unit tests cho password policy, credential failure, expiry, refresh reuse detection và reset token one-time use.
+- [x] Hash password bằng Argon2id; access token ngắn hạn; refresh token opaque hoặc JWT được hash trong `Session`, rotation mỗi lần refresh và revoke token family khi reuse.
+- [x] Đặt refresh token trong cookie `HttpOnly`, `Secure` ở production, `SameSite` phù hợp; thêm CSRF protection cho cookie mutation và CORS allowlist.
+- [x] Rate-limit login/forgot/reset theo IP + identity; response forgot-password không làm lộ email tồn tại.
+- [x] Tạo mail adapter với fake implementation cho local/test; production provider là cấu hình thay thế, không chặn core auth implementation.
+- [x] Ghi audit event cho login success/failure, refresh reuse, logout và password reset; không ghi token.
 
 **Hoàn thành khi:** auth E2E cover login → refresh → logout, session revoke, expired/reset/reused token và brute-force limit.
 

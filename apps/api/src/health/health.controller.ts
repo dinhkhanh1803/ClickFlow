@@ -1,6 +1,7 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiProperty, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 
+import { Public } from '../auth/public.decorator';
 import { DatabaseHealthService } from '../database/database-health.service';
 
 export class HealthResponseDto {
@@ -8,6 +9,7 @@ export class HealthResponseDto {
   status!: string;
 }
 
+@Public()
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
