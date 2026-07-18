@@ -30,3 +30,11 @@
 - [ ] New UI uses design tokens and shared primitives.
 - [ ] Lint, typecheck, unit tests, build, accessibility, and visual checks pass.
 - [ ] Documentation and this checklist reflect the delivered scope.
+## Backend Phase 1 — API Foundation
+
+- [x] NestJS strict TypeScript application is wired into pnpm and Turborepo.
+- [x] URI-versioned health/readiness endpoints and standard request ID error envelope are implemented.
+- [x] Environment validation, CORS allowlist, security headers, validation, and graceful shutdown are enabled.
+- [x] Swagger UI and deterministic committed OpenAPI JSON are available and checked in CI.
+- [x] API lint, typecheck, unit tests, integration tests, and build pass.
+- [ ] Prisma/PostgreSQL schema, migration, seed, and workspace-isolated repositories are implemented.

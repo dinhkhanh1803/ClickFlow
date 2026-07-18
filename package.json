@@ -1,17 +1,28 @@
 {
-    "name": "clickflow",
-    "version": "0.0.0",
-    "private": true,
-    "description": "ClickFlow product foundation; applications are not initialized in Phase 0.",
-    "packageManager": "pnpm@10.24.0",
-    "scripts": {
-        "dev": "pnpm --filter web dev",
-        "build": "turbo build",
-        "lint": "turbo lint",
-        "typecheck": "turbo typecheck",
-        "test": "turbo test"
-    },
-    "devDependencies": {
-        "turbo": "^2.10.5"
+  "name": "clickflow",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ClickFlow product foundation; applications are not initialized in Phase 0.",
+  "packageManager": "pnpm@10.24.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:integration": "turbo test:integration"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "es-object-atoms": "1.1.1",
+      "@humanfs/node": "0.16.6",
+      "hasown": "2.0.2",
+      "@humanfs/core": "0.19.1",
+      "semver": "7.7.2"
     }
+  }
 }

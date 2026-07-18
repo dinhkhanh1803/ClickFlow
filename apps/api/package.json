@@ -1,0 +1,48 @@
+{
+    "name":  "api",
+    "version":  "0.0.0",
+    "private":  true,
+    "scripts":  {
+                    "dev":  "nest start --watch",
+                    "build":  "nest build",
+                    "lint":  "eslint \"{src,test}/**/*.ts\"",
+                    "typecheck":  "tsc --noEmit",
+                    "test":  "vitest run",
+                    "test:integration":  "vitest run --config vitest.integration.config.ts",
+                    "prisma:generate":  "prisma generate",
+                    "prisma:migrate":  "prisma migrate dev",
+                    "prisma:seed":  "prisma db seed",
+                    "openapi:generate":  "pnpm build \u0026\u0026 node dist/src/openapi/export-openapi.js",
+                    "openapi:check":  "pnpm build \u0026\u0026 node dist/src/openapi/export-openapi.js --check"
+                },
+    "dependencies":  {
+                         "@nestjs/common":  "^11.1.6",
+                         "@nestjs/core":  "^11.1.6",
+                         "@nestjs/platform-express":  "^11.1.6",
+                         "@clickflow/contracts":  "workspace:*",
+                         "helmet":  "^8.1.0",
+                         "reflect-metadata":  "^0.2.2",
+                         "rxjs":  "^7.8.2",
+                         "zod":  "4.0.17",
+                         "@nestjs/swagger":  "^11.2.0",
+                         "swagger-ui-express":  "^5.0.1",
+                         "class-transformer":  "^0.5.1",
+                         "class-validator":  "^0.14.2"
+                     },
+    "devDependencies":  {
+                            "@eslint/js":  "^9.34.0",
+                            "@nestjs/cli":  "^11.0.10",
+                            "@nestjs/testing":  "^11.1.6",
+                            "@types/express":  "^5.0.3",
+                            "@types/node":  "^22.18.0",
+                            "@types/supertest":  "^6.0.3",
+                            "eslint":  "^9.34.0",
+                            "globals":  "^16.3.0",
+                            "supertest":  "^7.1.4",
+                            "typescript":  "^5.9.2",
+                            "typescript-eslint":  "8.41.0",
+                            "vitest":  "^3.2.4",
+                            "@typescript-eslint/eslint-plugin":  "8.41.0",
+                            "@typescript-eslint/parser":  "8.41.0"
+                        }
+}

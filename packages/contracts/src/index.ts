@@ -11,3 +11,36 @@ export const todayTasks: TaskSummary[] = [{id:'t1',title:'Complete portfolio her
 export const weeklyHours = [6, 8, 10, 12, 7, 4, 2];
 export const upcomingDeadlines: Deadline[] = [{ id:'d1', title:'Client demo: Portfolio', due:'Today, 6:00 PM', tone:'urgent' }, { id:'d2', title:'Submit E-commerce Wireframes', due:'Tomorrow, 2:00 PM', tone:'upcoming' }, { id:'d3', title:'Publish Game Level Design Review', due:'Oct 28', tone:'planned' }];
 export const projectHealth: ProjectSummary[] = [{ id:'p1', name:'Freelancer Portfolio', progress:65, health:'on-track' }, { id:'p2', name:'E-commerce Electronics', progress:82, health:'at-risk' }];
+export interface ApiErrorResponse {
+  code: string;
+  message: string;
+  details?: unknown;
+  requestId: string;
+}
+
+export interface PageMeta {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PageMeta;
+}
+
+export interface HealthResponse {
+  status: 'ok';
+}
+
+export const apiContract = {
+  version: 'v1',
+  workspaceResource: 'Workspace',
+  workspaceUiLabel: 'Space',
+  taskStatuses: {
+    backlog: 'Backlog',
+    inProgress: 'In progress',
+    done: 'Done'
+  }
+} as const;
