@@ -468,6 +468,9 @@
               }
             },
             "description": ""
+          },
+          "503": {
+            "description": "PostgreSQL is unavailable"
           }
         },
         "summary": "Check whether the API is ready to serve traffic",

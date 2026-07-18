@@ -4,12 +4,17 @@ const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().max(65_535).default(3001),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+  DATABASE_URL: z.string().url().optional(),
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
   JWT_REFRESH_SECRET: z.string().min(32).optional()
 }).superRefine((value, context) => {
-  if (value.NODE_ENV !== 'production') return;
-  for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
-    if (!value[key]) context.addIssue({ code: 'custom', path: [key], message: 'Required in production' });
+  if (value.NODE_ENV === 'staging' || value.NODE_ENV === 'production') {
+    if (!value.DATABASE_URL) context.addIssue({ code: 'custom', path: ['DATABASE_URL'], message: `Required in ${value.NODE_ENV}` });
+  }
+  if (value.NODE_ENV === 'production') {
+    for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+      if (!value[key]) context.addIssue({ code: 'custom', path: [key], message: 'Required in production' });
+    }
   }
 });
 

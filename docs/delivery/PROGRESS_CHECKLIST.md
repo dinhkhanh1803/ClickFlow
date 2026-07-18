@@ -39,4 +39,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Environment validation, CORS allowlist, security headers, validation, and graceful shutdown are enabled.
 - [x] Swagger UI and deterministic committed OpenAPI JSON are available and checked in CI.
 - [x] API lint, typecheck, unit tests, integration tests, and build pass.
-- [ ] Prisma/PostgreSQL schema, migration, seed, and workspace-isolated repositories are implemented.
+- [x] Prisma/PostgreSQL schema, migration, seed, and workspace-isolated repositories are implemented.

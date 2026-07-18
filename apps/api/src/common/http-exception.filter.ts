@@ -9,7 +9,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const raw = exception instanceof HttpException ? exception.getResponse() : undefined;
     const message = typeof raw === 'string' ? raw : raw && typeof raw === 'object' && 'message' in raw && typeof raw.message === 'string' ? raw.message : status === 500 ? 'Internal server error' : 'Request failed';
     response.status(status).json({
-      code: status === 404 ? 'NOT_FOUND' : status === 400 ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR',
+      code: status === 404 ? 'NOT_FOUND' : status === 400 ? 'VALIDATION_ERROR' : status === 503 ? 'SERVICE_UNAVAILABLE' : 'INTERNAL_ERROR',
       message,
       details: raw && typeof raw === 'object' && 'message' in raw && Array.isArray(raw.message) ? raw.message : undefined,
       requestId: String(response.locals.requestId ?? 'unknown')

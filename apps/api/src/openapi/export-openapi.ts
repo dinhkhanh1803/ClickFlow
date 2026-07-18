@@ -19,6 +19,8 @@ function sortDeep(value: unknown): unknown {
 }
 
 async function exportOpenApi(): Promise<void> {
+  process.env.DATABASE_URL ??= 'postgresql://openapi:openapi@localhost:5432/openapi?schema=public';
+
   const app = await NestFactory.create(AppModule, { logger: false });
   configureApp(app, { corsOrigins: ['http://localhost:3000'] });
   await app.init();
@@ -39,4 +41,7 @@ async function exportOpenApi(): Promise<void> {
   await app.close();
 }
 
-void exportOpenApi();
+void exportOpenApi().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

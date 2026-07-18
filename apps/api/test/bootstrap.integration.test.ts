@@ -3,10 +3,14 @@ import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap/configure-app';
+import { DatabaseHealthService } from '../src/database/database-health.service';
 import { createOpenApiDocument } from '../src/openapi/openapi';
 
 async function createTestApp() {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(DatabaseHealthService)
+    .useValue({ assertReady: vi.fn().mockResolvedValue(undefined) })
+    .compile();
   const app = moduleRef.createNestApplication();
   configureApp(app, { corsOrigins: ['http://localhost:3000'] });
   await app.init();

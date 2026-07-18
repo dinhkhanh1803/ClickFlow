@@ -58,12 +58,12 @@
 
 **Files chính:** `apps/api/prisma/schema.prisma`, `apps/api/prisma/migrations/*`, `apps/api/prisma/seed.ts`, `apps/api/src/database/*`, `docs/engineering/DATABASE_DESIGN_PLAN.md`.
 
-- [ ] Mô hình hóa `User`, `Session`, `PasswordResetToken`, `Workspace`, `WorkspaceMember`, `Project`, `ProjectStatus`, `Section`, `Task`, `ChecklistItem`, `Tag`, `TaskTag`, `Comment`, `Attachment`, `TimeEntry`, `ActivityLog`, `ProjectTemplate` và settings.
-- [ ] Dùng UUID, timestamp UTC, `createdAt`, `updatedAt`, `archivedAt`; chỉ thêm `deletedAt` cho resource thực sự có soft-delete.
-- [ ] Thêm unique constraints: `(workspaceId,userId)`, `(taskId,tagId)`, status name/order trong project; FK và delete policy phải explicit.
-- [ ] Thêm index theo workspace/project/status/assignee/due date/time range; chuẩn bị PostgreSQL full-text/trigram index cho search nếu benchmark cần.
-- [ ] Viết migration đầu tiên và deterministic seed tạo một user/workspace/project/status/task phục vụ dev/E2E; password seed lấy từ env test/dev.
-- [ ] Viết integration tests cho constraints, transaction rollback và workspace isolation ở repository layer.
+- [x] Mô hình hóa `User`, `Session`, `PasswordResetToken`, `Workspace`, `WorkspaceMember`, `Project`, `ProjectStatus`, `Section`, `Task`, `ChecklistItem`, `Tag`, `TaskTag`, `Comment`, `Attachment`, `TimeEntry`, `ActivityLog`, `ProjectTemplate` và settings.
+- [x] Dùng UUID, timestamp UTC, `createdAt`, `updatedAt`, `archivedAt`; chỉ thêm `deletedAt` cho resource thực sự có soft-delete.
+- [x] Thêm unique constraints: `(workspaceId,userId)`, `(taskId,tagId)`, status name/order trong project; FK và delete policy phải explicit.
+- [x] Thêm index theo workspace/project/status/assignee/due date/time range; chuẩn bị PostgreSQL full-text/trigram index cho search nếu benchmark cần.
+- [x] Viết migration đầu tiên và deterministic seed tạo một user/workspace/project/status/task phục vụ dev/E2E; password seed lấy từ env test/dev.
+- [x] Viết integration tests cho constraints, transaction rollback và workspace isolation ở repository layer.
 
 **Hoàn thành khi:** database trống migrate/seed được; migration rollback/restore strategy được ghi lại; không có orphan FK hoặc cross-workspace read.
 

@@ -17,13 +17,13 @@ Checklist này chuyển hành vi mock/local hiện có của `apps/web` thành t
 
 ## 1. Prisma foundation và workspace isolation — P0
 
-- [ ] Tạo `User`, `Session`, `Workspace`, `WorkspaceMember`, `Project`, `Section/List`, `Document`, `Task`, `TaskStatus`, `Comment`, `Attachment`, `TimeEntry`, `Tag`, `TaskTag`, `ActivityLog`.
-- [ ] Mọi resource nghiệp vụ có `workspaceId` trực tiếp hoặc có đường FK bắt buộc về workspace.
-- [ ] Dùng UUID, `createdAt`, `updatedAt`, `archivedAt`; khai báo delete/cascade policy rõ cho từng FK.
-- [ ] Thêm index cho workspace tree, project/list, task status, assignee, due date, updated date và search.
-- [ ] Migration đầu tiên chạy được trên database rỗng; seed deterministic tạo một user, workspace, folder/project, list, doc và task.
-- [ ] Repository integration test chứng minh không đọc/sửa được resource của workspace khác.
-- [ ] Readiness probe kiểm tra kết nối database; liveness không phụ thuộc database.
+- [x] Tạo `User`, `Session`, `Workspace`, `WorkspaceMember`, `Project`, `Section/List`, `Document`, `Task`, `TaskStatus`, `Comment`, `Attachment`, `TimeEntry`, `Tag`, `TaskTag`, `ActivityLog`.
+- [x] Mọi resource nghiệp vụ có `workspaceId` trực tiếp hoặc có đường FK bắt buộc về workspace.
+- [x] Dùng UUID, `createdAt`, `updatedAt`, `archivedAt`; khai báo delete/cascade policy rõ cho từng FK.
+- [x] Thêm index cho workspace tree, project/list, task status, assignee, due date, updated date và search.
+- [x] Migration đầu tiên chạy được trên database rỗng; seed deterministic tạo một user, workspace, folder/project, list, doc và task.
+- [x] Repository integration test chứng minh không đọc/sửa được resource của workspace khác.
+- [x] Readiness probe kiểm tra kết nối database; liveness không phụ thuộc database.
 
 ## 2. Auth và current user — P0
 

@@ -1,5 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Inject } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiProperty, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
+
+import { DatabaseHealthService } from '../database/database-health.service';
 
 export class HealthResponseDto {
   @ApiProperty({ type: String, enum: ['ok'], example: 'ok' })
@@ -9,6 +11,8 @@ export class HealthResponseDto {
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
+  constructor(@Inject(DatabaseHealthService) private readonly databaseHealth: DatabaseHealthService) {}
+
   @Get('live')
   @ApiOperation({ summary: 'Check whether the API process is alive' })
   @ApiOkResponse({ type: HealthResponseDto })
@@ -19,7 +23,9 @@ export class HealthController {
   @Get('ready')
   @ApiOperation({ summary: 'Check whether the API is ready to serve traffic' })
   @ApiOkResponse({ type: HealthResponseDto })
-  ready(): { status: 'ok' } {
+  @ApiServiceUnavailableResponse({ description: 'PostgreSQL is unavailable' })
+  async ready(): Promise<{ status: 'ok' }> {
+    await this.databaseHealth.assertReady();
     return { status: 'ok' };
   }
 }
