@@ -93,6 +93,18 @@
         ],
         "type": "object"
       },
+      "AttachTagRequestDto": {
+        "properties": {
+          "tagId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tagId"
+        ],
+        "type": "object"
+      },
       "AuthResponseDto": {
         "properties": {
           "accessToken": {
@@ -119,6 +131,63 @@
           "expiresIn",
           "csrfToken",
           "user"
+        ],
+        "type": "object"
+      },
+      "ChecklistItemRequestDto": {
+        "properties": {
+          "label": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "type": "object"
+      },
+      "ChecklistItemResponseDto": {
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "position": {
+            "type": "number"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "label",
+          "completed",
+          "position"
+        ],
+        "type": "object"
+      },
+      "CompleteTaskRequestDto": {
+        "properties": {
+          "statusId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "statusId"
         ],
         "type": "object"
       },
@@ -204,6 +273,63 @@
         ],
         "type": "object"
       },
+      "CreateTaskRequestDto": {
+        "properties": {
+          "assigneeId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 20000,
+            "nullable": true,
+            "type": "string"
+          },
+          "dueAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "parentTaskId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "priority": {
+            "default": "NORMAL",
+            "enum": [
+              "URGENT",
+              "HIGH",
+              "NORMAL",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sectionId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "statusId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "statusId",
+          "title"
+        ],
+        "type": "object"
+      },
       "DeleteStatusRequestDto": {
         "properties": {
           "replacementStatusId": {
@@ -283,6 +409,31 @@
         ],
         "type": "object"
       },
+      "MemberSummaryDto": {
+        "properties": {
+          "avatarUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "initials",
+          "avatarUrl"
+        ],
+        "type": "object"
+      },
       "MetricsResponseDto": {
         "properties": {
           "activeRequests": {
@@ -317,6 +468,35 @@
           "activeRequests",
           "databaseConnections",
           "databaseConnectionLimit"
+        ],
+        "type": "object"
+      },
+      "MoveTaskRequestDto": {
+        "properties": {
+          "afterTaskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "beforeTaskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sectionId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "statusId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "statusId"
         ],
         "type": "object"
       },
@@ -651,6 +831,68 @@
         ],
         "type": "object"
       },
+      "TagRequestDto": {
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "color"
+        ],
+        "type": "object"
+      },
+      "TagResponseDto": {
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color"
+        ],
+        "type": "object"
+      },
+      "TaskListResponseDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskResponseDto"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object"
+      },
       "TaskResponse": {
         "properties": {
           "assignee": {
@@ -737,6 +979,127 @@
         ],
         "type": "object"
       },
+      "TaskResponseDto": {
+        "properties": {
+          "archivedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "assignee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberSummaryDto"
+              }
+            ],
+            "nullable": true
+          },
+          "assigneeId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "dueAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "parentTaskId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "position": {
+            "type": "number"
+          },
+          "priority": {
+            "enum": [
+              "URGENT",
+              "HIGH",
+              "NORMAL",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sectionId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "statusId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "projectId",
+          "sectionId",
+          "statusId",
+          "assigneeId",
+          "parentTaskId",
+          "title",
+          "description",
+          "priority",
+          "position",
+          "dueAt",
+          "completedAt",
+          "version",
+          "createdAt",
+          "updatedAt",
+          "archivedAt",
+          "assignee"
+        ],
+        "type": "object"
+      },
+      "UpdateChecklistItemRequestDto": {
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdateProjectRequestDto": {
         "properties": {
           "deadline": {
@@ -789,6 +1152,59 @@
         },
         "type": "object"
       },
+      "UpdateTaskRequestDto": {
+        "properties": {
+          "assigneeId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 20000,
+            "nullable": true,
+            "type": "string"
+          },
+          "dueAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "parentTaskId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "priority": {
+            "enum": [
+              "URGENT",
+              "HIGH",
+              "NORMAL",
+              "LOW"
+            ],
+            "type": "string"
+          },
+          "sectionId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "statusId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
       "UserResponseDto": {
         "properties": {
           "avatarUrl": {
@@ -820,6 +1236,17 @@
           "avatarUrl",
           "timezone",
           "locale"
+        ],
+        "type": "object"
+      },
+      "VersionRequestDto": {
+        "properties": {
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "version"
         ],
         "type": "object"
       },
@@ -2035,6 +2462,651 @@
         ],
         "tags": [
           "projects"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tags": {
+      "get": {
+        "operationId": "TagController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TagResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tags"
+        ]
+      },
+      "post": {
+        "operationId": "TagController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tags"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks": {
+      "get": {
+        "operationId": "TaskController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assigneeId",
+            "required": false,
+            "schema": {
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "post": {
+        "operationId": "TaskController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}": {
+      "delete": {
+        "operationId": "TaskController_archive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "get": {
+        "operationId": "TaskController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "patch": {
+        "operationId": "TaskController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/checklist-items": {
+      "get": {
+        "operationId": "TaskController_checklist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChecklistItemResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "post": {
+        "operationId": "TaskController_createChecklist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChecklistItemRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistItemResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/checklist-items/{itemId}": {
+      "delete": {
+        "operationId": "TaskController_deleteChecklist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "patch": {
+        "operationId": "TaskController_updateChecklist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChecklistItemRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistItemResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/complete": {
+      "post": {
+        "operationId": "TaskController_complete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTaskRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/move": {
+      "post": {
+        "operationId": "TaskController_move",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveTaskRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/restore": {
+      "post": {
+        "operationId": "TaskController_restore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/tags": {
+      "post": {
+        "operationId": "TaskController_attachTag",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachTagRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/tags/{tagId}": {
+      "delete": {
+        "operationId": "TaskController_detachTag",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tagId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "tasks"
         ]
       }
     }

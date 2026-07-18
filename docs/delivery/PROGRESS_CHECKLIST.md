@@ -42,3 +42,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Prisma/PostgreSQL schema, migration, seed, and workspace-isolated repositories are implemented.
 - [x] Cross-cutting authorization, observability, authentication, and rotating session lifecycle are implemented.
 - [x] Workspace, member, project, project-status, and section APIs pass workspace-isolated HTTP/database tests.
+- [x] Task core, Kanban ordering, subtask hierarchy, checklist, tags, optimistic concurrency, and workspace isolation are implemented and database-tested.

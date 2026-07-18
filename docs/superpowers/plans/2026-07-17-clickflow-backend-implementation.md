@@ -109,13 +109,13 @@
 
 **Endpoints chính:** `/tasks`, `/tasks/:id`, `/tasks/:id/move`, `/tasks/:id/checklist-items`, `/tags`, `/tasks/:id/tags`; query `/tasks?projectId=&assigneeId=&from=&to=`.
 
-- [ ] Tạo/update/complete/archive/restore task; task thuộc đúng một project và đúng một status của project đó.
-- [ ] Khi status hoàn thành: set `completedAt`; khi rời status hoàn thành: clear theo business rule đã chốt.
-- [ ] Subtask dùng `parentTaskId`; chặn self-parent, cycle và cross-project parent; quy định depth tối đa trước khi public API.
-- [ ] Checklist CRUD/toggle và tag attach/detach với unique `(taskId,tagId)`.
-- [ ] Kanban move cập nhật status + thứ tự bằng transaction; dùng fractional/rank ordering hoặc rebalance có kiểm soát, tránh rewrite toàn board mỗi lần kéo.
-- [ ] Thêm optimistic concurrency (`version`/ETag hoặc `updatedAt`) cho task mutations để phát hiện lost update.
-- [ ] Cung cấp query cho My Tasks và Calendar, mặc định loại archived records.
+- [x] Tạo/update/complete/archive/restore task; task thuộc đúng một project và đúng một status của project đó.
+- [x] Khi status hoàn thành: set `completedAt`; khi rời status hoàn thành: clear theo business rule đã chốt.
+- [x] Subtask dùng `parentTaskId`; chặn self-parent, cycle và cross-project parent; quy định depth tối đa trước khi public API.
+- [x] Checklist CRUD/toggle và tag attach/detach với unique `(taskId,tagId)`.
+- [x] Kanban move cập nhật status + thứ tự bằng transaction; dùng fractional/rank ordering hoặc rebalance có kiểm soát, tránh rewrite toàn board mỗi lần kéo.
+- [x] Thêm optimistic concurrency (`version`/ETag hoặc `updatedAt`) cho task mutations để phát hiện lost update.
+- [x] Cung cấp query cho My Tasks và Calendar, mặc định loại archived records.
 
 **Hoàn thành khi:** các business rule task có unit tests; concurrent move không làm trùng/mất order; activity ghi đúng trong transaction.
 
