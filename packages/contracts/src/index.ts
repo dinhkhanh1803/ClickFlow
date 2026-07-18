@@ -1,4 +1,5 @@
 export * from './domain-contract';
+export * from './comment-api-contract';
 export * from './task-api-contract';
 
 export type TaskStatus = 'todo' | 'in-progress' | 'done';

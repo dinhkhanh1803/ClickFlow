@@ -93,6 +93,68 @@
         ],
         "type": "object"
       },
+      "ActivityListResponseDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityResponseDto"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ActivityResponseDto": {
+        "properties": {
+          "actor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommentAuthorDto"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "subjectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "subjectType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "eventType",
+          "subjectType",
+          "subjectId",
+          "metadata",
+          "actor",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "AttachTagRequestDto": {
         "properties": {
           "tagId": {
@@ -172,6 +234,98 @@
           "label",
           "completed",
           "position"
+        ],
+        "type": "object"
+      },
+      "CommentAuthorDto": {
+        "properties": {
+          "avatarUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "initials",
+          "avatarUrl"
+        ],
+        "type": "object"
+      },
+      "CommentListResponseDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CommentResponseDto"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "CommentRequestDto": {
+        "properties": {
+          "body": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object"
+      },
+      "CommentResponseDto": {
+        "properties": {
+          "author": {
+            "$ref": "#/components/schemas/CommentAuthorDto"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "body",
+          "author",
+          "createdAt",
+          "updatedAt"
         ],
         "type": "object"
       },
@@ -2733,6 +2887,59 @@
         ]
       }
     },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/activity": {
+      "get": {
+        "operationId": "CommentController_activity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityListResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "comments",
+          "activity"
+        ]
+      }
+    },
     "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/checklist-items": {
       "get": {
         "operationId": "TaskController_checklist",
@@ -2898,6 +3105,192 @@
         ],
         "tags": [
           "tasks"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/comments": {
+      "get": {
+        "operationId": "CommentController_list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentListResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "comments",
+          "activity"
+        ]
+      },
+      "post": {
+        "operationId": "CommentController_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "comments",
+          "activity"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/tasks/{taskId}/comments/{commentId}": {
+      "delete": {
+        "operationId": "CommentController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "comments",
+          "activity"
+        ]
+      },
+      "patch": {
+        "operationId": "CommentController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "comments",
+          "activity"
         ]
       }
     },

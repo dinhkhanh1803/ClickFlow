@@ -123,10 +123,10 @@
 
 **Endpoints chính:** `/tasks/:id/comments`, `/tasks/:id/activity`.
 
-- [ ] Comment create/list/update/delete theo policy; body được validate độ dài và lưu plain text/format được allowlist.
-- [ ] Activity log chỉ hệ thống ghi, client không có create/update/delete endpoint.
-- [ ] Chuẩn hóa event type + metadata không chứa snapshot nhạy cảm; pagination theo cursor để history ổn định.
-- [ ] Test authorization, ordering, archived task behavior và immutability.
+- [x] Comment create/list/update/delete theo policy; body được validate độ dài và lưu plain text/format được allowlist.
+- [x] Activity log chỉ hệ thống ghi, client không có create/update/delete endpoint.
+- [x] Chuẩn hóa event type + metadata không chứa snapshot nhạy cảm; pagination theo cursor để history ổn định.
+- [x] Test authorization, ordering, archived task behavior và immutability.
 
 **Hoàn thành khi:** frontend task detail lấy được comment/activity thật với response ổn định và không sửa được audit history.
 

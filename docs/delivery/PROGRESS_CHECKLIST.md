@@ -43,3 +43,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Cross-cutting authorization, observability, authentication, and rotating session lifecycle are implemented.
 - [x] Workspace, member, project, project-status, and section APIs pass workspace-isolated HTTP/database tests.
 - [x] Task core, Kanban ordering, subtask hierarchy, checklist, tags, optimistic concurrency, and workspace isolation are implemented and database-tested.
+- [x] Comment CRUD and immutable task activity history are workspace-scoped, cursor-paginated, policy-protected, and database-tested.
