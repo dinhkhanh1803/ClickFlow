@@ -64,3 +64,5 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.
 - [x] Task timers and the Time Tracking overview use backend APIs.
 - [x] Dashboard, global search, and reports use workspace-scoped analytics APIs.
+- [x] Task attachment mutations use the signed object-storage API.
+- [ ] Document editing awaits a backend Document CRUD/import/export contract and remains local.

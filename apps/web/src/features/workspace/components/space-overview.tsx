@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Bookmark, CalendarDays, ChevronDown, Columns3, FileText, Folder, GanttChartSquare, LayoutDashboard, LayoutList, Link2, ListChecks, LockKeyhole, Plus, RefreshCw, Settings2, Table2, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRemoveAttachmentMutation, useUploadAttachmentMutation } from '@/features/attachments/data/attachment-queries';
 import { Dialog, DialogTitle } from '@/components/ui/dialog';
 import { PageState } from '@/components/states/page-state';
 import { toast } from 'sonner';
@@ -54,6 +55,8 @@ export function SpaceOverview() {
   const effectiveLocalSpaces = navigationQuery.data ?? localSpaces;
   const projects = space.projects.filter((project) => !project.archived);
   const createCommentMutation = useCreateCommentMutation();
+  const uploadAttachmentMutation = useUploadAttachmentMutation();
+  const removeAttachmentMutation = useRemoveAttachmentMutation();
   const query = new URLSearchParams(locationQuery);
   const startTimerMutation = useStartTimerMutation();
   const stopTimerMutation = useStopTimerMutation();
@@ -212,6 +215,29 @@ export function SpaceOverview() {
         if (body.trim()) {
           try { await createCommentMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, taskId, body }); }
           catch { toast.error('Unable to post the comment.'); }
+        }
+        return;
+      }
+      if (patch.attachments) {
+        const current = task.attachments ?? [];
+        const added = patch.attachments.find((attachment) => !current.some((item) => item.id === attachment.id));
+        const removed = current.find((attachment) => !patch.attachments?.some((item) => item.id === attachment.id));
+        try {
+          if (added) {
+            if (!['application/pdf', 'image/jpeg', 'image/png'].includes(added.mimeType) || !added.dataUrl) {
+              toast.error('Attachments must be PDF, JPEG, or PNG files.');
+              return;
+            }
+            const blob = await fetch(added.dataUrl).then((response) => response.blob());
+            const file = new File([blob], added.name, { type: added.mimeType });
+            await uploadAttachmentMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, taskId, file });
+            toast.success('Attachment uploaded.');
+          } else if (removed && !removed.id.startsWith('attachment-')) {
+            await removeAttachmentMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, attachmentId: removed.id });
+            toast.success('Attachment removed.');
+          }
+        } catch {
+          toast.error('Unable to update the attachment.');
         }
         return;
       }
