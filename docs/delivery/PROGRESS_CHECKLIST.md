@@ -66,3 +66,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Dashboard, global search, and reports use workspace-scoped analytics APIs.
 - [x] Task attachment mutations use the signed object-storage API.
 - [ ] Document editing awaits a backend Document CRUD/import/export contract and remains local.
+- [x] Templates, Archive, and Workspace Settings use persisted productivity APIs.

@@ -1,2 +1,2 @@
-import { PlaceholderPage } from '@/components/states/placeholder-page';
-export default function Page(){ return <PlaceholderPage title='Templates' description='Reusable project structures.'/>; }
+import { TemplatesClient } from '@/features/productivity/components/templates-client';
+export default function Page(){ return <TemplatesClient />; }
