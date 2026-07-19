@@ -12,7 +12,7 @@ vi.mock('@/features/workspace/data/workspace-queries', async (importOriginal) =>
       { id: 'activity-1', eventType: 'COMMENT_CREATED', subjectType: 'TASK', subjectId: 'task-1', metadata: {}, actor: { id: 'user-2', displayName: 'Minh', initials: 'M', avatarUrl: null }, createdAt: '2026-07-19T02:55:00.000Z' },
       { id: 'activity-2', eventType: 'TASK_UPDATED', subjectType: 'TASK', subjectId: 'task-1', metadata: {}, actor: null, createdAt: '2026-07-19T02:50:00.000Z' },
     ],
-    tasks: [{ id: 'task-1', workspaceId: 'workspace-1', projectId: 'project-1', title: 'Launch checklist' }],
+    tasks: [{ id: 'task-1', workspaceId: 'workspace-1', projectId: 'project-1', title: 'Launch checklist', assigneeId: 'anonymous' }],
     isLoading: false,
   }),
 }; });
