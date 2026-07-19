@@ -44,9 +44,9 @@ describe('ContextSidebar', () => {
     await user.click(screen.getByLabelText('Create space'));
     await user.click(screen.getByRole('menuitem', { name: 'SpaceOrganize your team work' }));
     await user.type(screen.getByLabelText('Space name'), 'Marketing');
-    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await user.click(screen.getByRole('button', { name: 'Create Space' }));
 
-    expect(screen.getByRole('link', { name: /Marketing\s*Private/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Marketing' })).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Marketing');
   });
 
@@ -159,6 +159,41 @@ describe('ContextSidebar', () => {
     expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Duplicate' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+  });
+  it('deletes a local Space from the confirmation modal and selects the next Space', async () => {
+    const user = userEvent.setup();
+    render(<ContextSidebar modulePath="/projects" />);
+
+    await user.click(screen.getByRole('button', { name: 'More options for Space 1' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    expect(screen.getByRole('dialog', { name: 'Delete Space 1' })).toBeInTheDocument();
+    expect(screen.getByText('The Space and all of its content will be archived and removed from active views.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete Space' }));
+
+    expect(screen.queryByRole('link', { name: 'Space 1' })).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY) ?? '[]')).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'space-1' })])
+    );
+    expect(new URLSearchParams(window.location.search).get('space')).toBe('space-2');
+  });
+  it('lets a Space owner update its name, access, icon, and color', async () => {
+    const user = userEvent.setup();
+    render(<ContextSidebar modulePath="/projects" />);
+
+    await user.click(screen.getByRole('button', { name: 'More options for Space 1' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Space settings' }));
+    const name = screen.getByLabelText('Space settings name');
+    await user.clear(name);
+    await user.type(name, 'Design team');
+    await user.click(screen.getByRole('button', { name: 'Private' }));
+    await user.click(screen.getByRole('button', { name: 'Space icon 🎯' }));
+    await user.click(screen.getByRole('button', { name: 'Space color emerald-500' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(screen.getByRole('link', { name: /Design team\s*Private/ })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('🎯');
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('bg-emerald-500');
   });
   it('keeps folder options focused on actions that work locally', async () => {
     const user = userEvent.setup();

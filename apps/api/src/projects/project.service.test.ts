@@ -33,9 +33,9 @@ describe('ProjectService', () => {
     expect(transaction.taskStatus.createMany).toHaveBeenCalledWith({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       data: expect.arrayContaining([
-        expect.objectContaining({ name: 'Open', position: 0, projectId: created.id }),
-        expect.objectContaining({ name: 'In progress', position: 1, projectId: created.id }),
-        expect.objectContaining({ name: 'Complete', position: 2, projectId: created.id, completed: true })
+        expect.objectContaining({ name: 'Open', isSystem: true, position: 0, projectId: created.id }),
+        expect.objectContaining({ name: 'In progress', isSystem: true, position: 1, projectId: created.id }),
+        expect.objectContaining({ name: 'Complete', isSystem: true, position: 2, projectId: created.id, completed: true })
       ])
     });
   });

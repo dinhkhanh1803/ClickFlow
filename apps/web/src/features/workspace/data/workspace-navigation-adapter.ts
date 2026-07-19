@@ -3,8 +3,9 @@ import type { LocalListTask, LocalSpace, LocalStatusColor, LocalTaskPriority } f
 
 const fallbackTones = ['bg-indigo-500', 'bg-orange-500', 'bg-pink-500', 'bg-emerald-500', 'bg-violet-500', 'bg-cyan-500'];
 
-function safeTone(tone: string | null, index: number): string {
-  return tone?.startsWith('bg-') ? tone : fallbackTones[index % fallbackTones.length];
+function workspaceAppearance(tone: string | null, index: number) {
+  const [icon, savedTone] = tone?.startsWith('appearance:') ? tone.slice(11).split('|') : [undefined, tone];
+  return { icon: icon || undefined, tone: savedTone?.startsWith('bg-') ? savedTone : fallbackTones[index % fallbackTones.length] };
 }
 
 const statusColors: Record<string, LocalStatusColor> = {
@@ -88,7 +89,8 @@ export function mapWorkspaceTree(
     return {
       id: workspace.id,
       name: workspace.name,
-      tone: safeTone(workspace.tone, index),
+      ...workspaceAppearance(workspace.tone, index),
+      role: workspace.role,
       private: workspace.private,
       items: [
         ...visibleProjects.map((project) => ({
@@ -98,7 +100,7 @@ export function mapWorkspaceTree(
           statusGroups: statuses
             .filter((status) => status.projectId === project.id)
             .sort((left, right) => left.position - right.position)
-            .map((status) => ({ id: status.id, name: status.name, taskStatus: status.name, scope: 'folder' as const, color: statusColor(status), source: 'api' as const }))
+            .map((status) => ({ id: status.id, name: status.name, taskStatus: status.name, scope: 'folder' as const, color: statusColor(status), source: 'api' as const, isSystem: status.isSystem }))
         })),
         ...sections
           .filter((section) => projectIds.has(section.projectId))
@@ -115,7 +117,7 @@ export function mapWorkspaceTree(
                 statusGroups: statuses
                   .filter((status) => status.projectId === section.projectId)
                   .sort((left, right) => left.position - right.position)
-                  .map((status) => ({ id: status.id, name: status.name, taskStatus: status.name, scope: 'list' as const, color: statusColor(status), source: 'api' as const }))
+                  .map((status) => ({ id: status.id, name: status.name, taskStatus: status.name, scope: 'list' as const, color: statusColor(status), source: 'api' as const, isSystem: status.isSystem }))
               } : {}),
               tasks: tasks.filter((task) => task.sectionId === section.id && task.archivedAt === null).map((task) => mapTask(task, statuses, comments, activities, timeEntries))
             };

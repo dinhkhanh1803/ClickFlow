@@ -8,6 +8,7 @@ import type {
   ProjectStatusResponse,
   SectionResponse,
   UpdateProjectStatusRequest,
+  UpdateWorkspaceRequest,
   UpdateProjectRequest,
   UpdateSectionRequest,
   WorkspaceResponse
@@ -22,6 +23,12 @@ const authorized = (accessToken: string) => ({ accessToken });
 export const workspaceApi = {
   createWorkspace(accessToken: string, input: CreateWorkspaceRequest): Promise<WorkspaceResponse> {
     return client.post('/workspaces', input, authorized(accessToken));
+  },
+  updateWorkspace(accessToken: string, workspaceId: string, input: UpdateWorkspaceRequest): Promise<WorkspaceResponse> {
+    return client.patch('/workspaces/' + workspaceId, input, authorized(accessToken));
+  },
+  archiveWorkspace(accessToken: string, workspaceId: string): Promise<void> {
+    return client.delete('/workspaces/' + workspaceId, authorized(accessToken));
   },
   listWorkspaces(accessToken: string): Promise<WorkspaceResponse[]> {
     return client.get('/workspaces', authorized(accessToken));
@@ -49,6 +56,9 @@ export const workspaceApi = {
   },
   updateStatus(accessToken: string, workspaceId: string, projectId: string, statusId: string, input: UpdateProjectStatusRequest): Promise<ProjectStatusResponse> {
     return client.patch(`/workspaces/${workspaceId}/projects/${projectId}/statuses/${statusId}`, input, authorized(accessToken));
+  },
+  deleteStatus(accessToken: string, workspaceId: string, projectId: string, statusId: string, replacementStatusId?: string): Promise<void> {
+    return client.delete(`/workspaces/${workspaceId}/projects/${projectId}/statuses/${statusId}`, { ...authorized(accessToken), body: replacementStatusId ? { replacementStatusId } : {} });
   },
   createSection(accessToken: string, workspaceId: string, projectId: string, input: CreateSectionRequest): Promise<SectionResponse> {
     return client.post(`/workspaces/${workspaceId}/projects/${projectId}/sections`, input, authorized(accessToken));

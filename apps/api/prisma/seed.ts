@@ -22,7 +22,7 @@ async function main(): Promise<void> {
   await prisma.$transaction(async (transaction) => {
     await transaction.user.upsert({
       where: { id: ids.user },
-      update: { displayName: 'ClickFlow Demo', passwordHash },
+      update: { displayName: 'ClickFlow Demo', passwordHash, emailVerifiedAt: new Date() },
       create: {
         id: ids.user,
         email: process.env.SEED_USER_EMAIL ?? 'demo@clickflow.local',
@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     });
     await transaction.taskStatus.upsert({
       where: { id: ids.statusOpen },
-      update: { name: 'Open', color: '#64748b' },
+      update: { name: 'Open', color: '#64748b', isSystem: true },
       create: {
         id: ids.statusOpen,
         workspaceId: ids.workspace,
@@ -65,12 +65,13 @@ async function main(): Promise<void> {
         name: 'Open',
         color: '#64748b',
         category: StatusCategory.NOT_STARTED,
+        isSystem: true,
         position: 0
       }
     });
     await transaction.taskStatus.upsert({
       where: { id: ids.statusInProgress },
-      update: { name: 'In progress', color: '#3b82f6' },
+      update: { name: 'In progress', color: '#3b82f6', isSystem: true },
       create: {
         id: ids.statusInProgress,
         workspaceId: ids.workspace,
@@ -81,12 +82,13 @@ async function main(): Promise<void> {
         name: 'In progress',
         color: '#3b82f6',
         category: StatusCategory.IN_PROGRESS,
+        isSystem: true,
         position: 1
       }
     });
     await transaction.taskStatus.upsert({
       where: { id: ids.statusComplete },
-      update: { name: 'Complete', color: '#10b981', completed: true },
+      update: { name: 'Complete', color: '#10b981', completed: true, isSystem: true },
       create: {
         id: ids.statusComplete,
         workspaceId: ids.workspace,
@@ -98,6 +100,7 @@ async function main(): Promise<void> {
         color: '#10b981',
         category: StatusCategory.COMPLETED,
         completed: true,
+        isSystem: true,
         position: 2
       }
     });

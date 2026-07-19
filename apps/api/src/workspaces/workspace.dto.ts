@@ -9,6 +9,11 @@ export class CreateWorkspaceRequestDto {
 }
 
 
+export class UpdateWorkspaceRequestDto {
+  @ApiPropertyOptional({ type: String, maxLength: 160 }) name?: string;
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 40 }) tone?: string | null;
+  @ApiPropertyOptional({ type: Boolean }) private?: boolean;
+}
 export class WorkspaceResponseDto {
   @ApiProperty({ type: String, format: 'uuid' }) id!: string;
   @ApiProperty({ type: String }) name!: string;

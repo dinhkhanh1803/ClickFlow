@@ -54,6 +54,7 @@ export class StatusResponseDto {
   @ApiProperty({ type: String }) category!: string;
   @ApiProperty({ type: Boolean }) completed!: boolean;
   @ApiProperty({ type: Number }) position!: number;
+  @ApiProperty({ type: Boolean }) isSystem!: boolean;
 }
 
 export class SectionRequestDto {

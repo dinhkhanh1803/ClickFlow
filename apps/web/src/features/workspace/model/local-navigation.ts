@@ -4,7 +4,7 @@ export type LocalDocumentBlockStyle = 'normal' | 'heading-1' | 'heading-2' | 'he
 export type LocalTaskStatus = string;
 export type LocalStatusScope = 'list' | 'folder' | 'space';
 export type LocalStatusColor = 'slate' | 'blue' | 'indigo' | 'violet' | 'teal' | 'emerald' | 'amber' | 'orange' | 'rose' | 'pink';
-export type LocalStatusGroup = { id: string; name: string; scope: LocalStatusScope; color?: LocalStatusColor; taskStatus?: LocalTaskStatus; source?: 'api'; };
+export type LocalStatusGroup = { id: string; name: string; scope: LocalStatusScope; color?: LocalStatusColor; taskStatus?: LocalTaskStatus; source?: 'api'; isSystem?: boolean; };
 export type LocalStatusOverride = { status: LocalTaskStatus; name: string; color: LocalStatusColor; };
 export type LocalTaskPriority = 'Urgent' | 'High' | 'Normal' | 'Low';
 
@@ -72,6 +72,8 @@ export type LocalSpace = {
   id: string;
   name: string;
   tone: string;
+  icon?: string;
+  role?: 'OWNER' | 'MEMBER';
   private?: boolean;
   items: LocalSpaceItem[];
   statusGroups?: LocalStatusGroup[];

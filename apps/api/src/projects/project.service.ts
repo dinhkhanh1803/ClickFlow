@@ -86,7 +86,8 @@ export class ProjectService {
             color: '#64748b',
             category: StatusCategory.NOT_STARTED,
             completed: false,
-            position: 0
+            position: 0,
+            isSystem: true
           },
           {
             workspaceId,
@@ -97,7 +98,8 @@ export class ProjectService {
             color: '#3b82f6',
             category: StatusCategory.ACTIVE,
             completed: false,
-            position: 1
+            position: 1,
+            isSystem: true
           },
           {
             workspaceId,
@@ -108,7 +110,8 @@ export class ProjectService {
             color: '#10b981',
             category: StatusCategory.CLOSED,
             completed: true,
-            position: 2
+            position: 2,
+            isSystem: true
           }
         ]
       });

@@ -1,8 +1,8 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { WorkspaceRole } from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
-import type { CreateWorkspaceInput } from './workspace.schemas';
+import type { CreateWorkspaceInput, UpdateWorkspaceInput } from './workspace.schemas';
 
 function initials(displayName: string): string {
   return displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
@@ -39,7 +39,7 @@ export class WorkspaceService {
   listForUser(userId: string) {
     return this.prisma.workspaceMember.findMany({
       where: { userId, workspace: { archivedAt: null } },
-      orderBy: [{ workspace: { updatedAt: 'desc' } }, { workspaceId: 'asc' }],
+      orderBy: [{ workspace: { createdAt: 'asc' } }, { workspaceId: 'asc' }],
       select: {
         role: true,
         workspace: {
@@ -61,6 +61,36 @@ export class WorkspaceService {
     });
     if (!membership) throw new NotFoundException('Workspace not found');
     return { ...membership.workspace, role: membership.role };
+  }
+
+  async update(workspaceId: string, userId: string, input: UpdateWorkspaceInput) {
+    const membership = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+      select: { role: true }
+    });
+    if (!membership) throw new NotFoundException('Workspace not found');
+    if (membership.role !== WorkspaceRole.OWNER) throw new ForbiddenException('Only the Workspace owner can update settings');
+    const workspace = await this.prisma.workspace.update({
+      where: { id: workspaceId, archivedAt: null },
+      data: input,
+      select: { id: true, name: true, tone: true, private: true, timezone: true, locale: true, createdAt: true, updatedAt: true }
+    });
+    return { ...workspace, role: membership.role };
+  }
+
+  async archive(workspaceId: string, userId: string): Promise<void> {
+    const membership = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+      select: { role: true }
+    });
+    if (!membership) throw new NotFoundException('Workspace not found');
+    if (membership.role !== WorkspaceRole.OWNER) throw new ForbiddenException('Only the Workspace owner can delete it');
+
+    const archived = await this.prisma.workspace.updateMany({
+      where: { id: workspaceId, archivedAt: null },
+      data: { archivedAt: new Date() }
+    });
+    if (archived.count !== 1) throw new NotFoundException('Active Workspace not found');
   }
 
   async listMembers(workspaceId: string) {

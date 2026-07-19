@@ -2,7 +2,7 @@
 
 import { SPACE_ROOT_PROJECT_TONE, type CreateProjectRequest, type CreateProjectStatusRequest, type CreateSectionRequest, type CreateWorkspaceRequest, type DocumentResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TaskCreateRequest, type TaskUpdateRequest, type UpdateProjectStatusRequest } from '@clickflow/contracts';
 import { QueryClient, QueryClientContext, useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import { useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { taskApi } from './task-api';
@@ -91,8 +91,27 @@ export function useWorkspaceNavigationQuery(enabled = true) {
   const pending = authenticated && (workspacesQuery.isPending || allQueries.some((query) => query.isPending));
   const error = authenticated ? workspacesQuery.error ?? allQueries.find((query) => query.error)?.error ?? null : null;
   const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks, comments, activities, timeEntries, documents) : undefined;
+  const isFetching = authenticated && (workspacesQuery.isFetching || allQueries.some((query) => query.isFetching));
+  const refetch = useCallback(() => queryClient.refetchQueries({ queryKey: workspaceKeys.all }), [queryClient]);
 
-  return { data, projects, sections, statuses, tasks, comments, activities, timeEntries, documents, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
+  return { data, projects, sections, statuses, tasks, comments, activities, timeEntries, documents, isLoading: pending, isFetching, isError: Boolean(error), error, usesApi: authenticated, refetch };
+}
+
+export function useUpdateWorkspaceMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, input }: { workspaceId: string; input: import('@clickflow/contracts').UpdateWorkspaceRequest }) => workspaceApi.updateWorkspace(requireToken(accessToken), workspaceId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspaceKeys.all })
+  }, queryClient);
+}
+export function useArchiveWorkspaceMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: (workspaceId: string) => workspaceApi.archiveWorkspace(requireToken(accessToken), workspaceId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspaceKeys.all })
+  }, queryClient);
 }
 
 export function useCreateWorkspaceMutation() {
@@ -256,5 +275,14 @@ export function useUpdateStatusMutation() {
   return useMutation({
     mutationFn: ({ workspaceId, projectId, statusId, input }: { workspaceId: string; projectId: string; statusId: string; input: UpdateProjectStatusRequest }) => workspaceApi.updateStatus(requireToken(accessToken), workspaceId, projectId, statusId, input),
     onSuccess: (_status, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.statuses(variables.workspaceId, variables.projectId) })
+  }, queryClient);
+}
+
+export function useDeleteStatusMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, projectId, statusId, replacementStatusId }: { workspaceId: string; projectId: string; statusId: string; replacementStatusId?: string }) => workspaceApi.deleteStatus(requireToken(accessToken), workspaceId, projectId, statusId, replacementStatusId),
+    onSuccess: (_result, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.statuses(variables.workspaceId, variables.projectId) })
   }, queryClient);
 }

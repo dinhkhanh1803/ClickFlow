@@ -63,6 +63,41 @@ describe('WorkspaceRoot', () => {
     expect(screen.getByRole('heading', { name: 'Bookmarks' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Folders' })).toBeInTheDocument();
   });
+  it('controls overview auto refresh and its refresh interval', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceRoot />);
+
+    const autoRefresh = screen.getByRole('button', { name: 'Auto refresh: On' });
+    expect(autoRefresh).toHaveAttribute('aria-pressed', 'true');
+    await user.click(autoRefresh);
+    expect(screen.getByRole('button', { name: 'Auto refresh: Off' })).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(screen.getByRole('button', { name: 'Overview settings' }));
+    expect(screen.getByRole('menu', { name: 'Overview refresh settings' })).toBeInTheDocument();
+    await user.click(screen.getByRole('menuitemradio', { name: '60 seconds' }));
+    expect(screen.getByRole('menuitemradio', { name: '60 seconds' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('closes overview refresh settings when clicking outside', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceRoot />);
+
+    await user.click(screen.getByRole('button', { name: 'Overview settings' }));
+    await user.pointer({ keys: '[MouseLeft]', target: document.body });
+
+    expect(screen.queryByRole('menu', { name: 'Overview refresh settings' })).not.toBeInTheDocument();
+  });
+  it('shows Share only for a private Space', () => {
+    render(<WorkspaceRoot />);
+    expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
+
+    cleanup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([{ id: 'private-space', name: 'Private Space', tone: 'bg-indigo-500', private: true, items: [] }]));
+    window.history.replaceState(null, '', '/projects?space=private-space');
+    render(<WorkspaceRoot />);
+
+    expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
+  });
   it('opens task detail from Recent without leaving the Space overview', async () => {
     const user = userEvent.setup();
     render(<WorkspaceRoot />);
@@ -281,9 +316,11 @@ describe('WorkspaceRoot', () => {
     window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
     render(<WorkspaceRoot />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add Task' }));
+    await user.click(await screen.findByRole('button', { name: 'Add task in TO DO' }));
     await user.type(screen.getByLabelText('Task name'), 'Prepare kickoff');
-    await user.click(screen.getByRole('button', { name: 'Create task' }));
+    expect(screen.getByRole('button', { name: 'Set assignee' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set due date' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save task' }));
 
     expect(screen.getByText('Prepare kickoff')).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Prepare kickoff');
@@ -318,10 +355,14 @@ describe('WorkspaceRoot', () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Select task Prepare kickoff' }));
     expect(screen.getByRole('toolbar', { name: 'Bulk task actions' })).toHaveTextContent('1 task selected');
     await user.click(screen.getByRole('button', { name: 'Delete selected tasks' }));
+    expect(screen.getByRole('dialog', { name: 'Delete 1 task' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete tasks' }));
 
     expect(screen.queryByRole('button', { name: 'Prepare kickoff' })).not.toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).not.toContain('Prepare kickoff');
-  });  it('creates a task in only the final status selected in the dialog', async () => {
+  });
+
+  it('creates a task only in the selected status row', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
       { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
@@ -335,11 +376,12 @@ describe('WorkspaceRoot', () => {
     await user.click(await screen.findByRole('tab', { name: 'Board' }));
     await user.click(screen.getByRole('button', { name: 'Add task in DONE' }));
     await user.type(screen.getByLabelText('Task name'), 'Ship release');
-    await user.selectOptions(screen.getByLabelText('Task status'), screen.getByRole('option', { name: 'COMPLETE' }));
-    await user.click(screen.getByRole('button', { name: 'Create task' }));
+    await user.click(screen.getByRole('button', { name: 'Save task' }));
 
     expect(screen.getAllByRole('button', { name: 'Ship release' })).toHaveLength(1);
-  });  it('opens task detail after creating a local task', async () => {
+  });
+
+  it('opens task detail after creating a local task', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
       { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
@@ -350,9 +392,9 @@ describe('WorkspaceRoot', () => {
     window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
     render(<WorkspaceRoot />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add Task' }));
+    await user.click(await screen.findByRole('button', { name: 'Add task in TO DO' }));
     await user.type(screen.getByLabelText('Task name'), 'Prepare kickoff');
-    await user.click(screen.getByRole('button', { name: 'Create task' }));
+    await user.click(screen.getByRole('button', { name: 'Save task' }));
     await user.click(screen.getByRole('button', { name: 'Prepare kickoff' }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -592,12 +634,40 @@ describe('WorkspaceRoot', () => {
     await user.click(await screen.findByRole('tab', { name: 'Board' }));
     await user.click(screen.getByRole('button', { name: 'Add group' }));
     await user.type(screen.getByLabelText('Status name'), 'QA review');
+    await user.click(screen.getByRole('button', { name: 'New status color rose' }));
     await user.click(screen.getByRole('radio', { name: /Entire Space/ }));
     await user.click(screen.getByRole('button', { name: 'Create status' }));
 
     expect(screen.getByText('QA REVIEW')).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('QA review');
-  });  it('renames and recolors a scoped status from its group options', async () => {
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"color":"rose"');
+  });
+  it('deletes a custom status, moves its tasks to Open, and protects defaults', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', statusGroups: [{ id: 'status-review', name: 'Review', scope: 'list', color: 'amber' }], tasks: [{ id: 'task-1', title: 'Review release', status: 'Review', statusGroupId: 'status-review', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    await user.click(screen.getByRole('button', { name: 'Status options REVIEW' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete status REVIEW' }));
+    expect(screen.getByRole('dialog', { name: 'Delete Review' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete status' }));
+
+    expect(screen.queryByText('REVIEW')).not.toBeInTheDocument();
+    const saved = window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY) ?? '';
+    expect(saved).not.toContain('status-review');
+    expect(saved).toContain('"status":"Backlog"');
+    await user.click(screen.getByRole('button', { name: 'Status options TO DO' }));
+    expect(screen.getByText('Default status cannot be deleted')).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Delete status TO DO/ })).not.toBeInTheDocument();
+  });
+  it('renames and recolors a scoped status from its group options', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
       { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [

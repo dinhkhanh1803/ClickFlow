@@ -14,7 +14,8 @@ const statusSelect = {
   color: true,
   category: true,
   completed: true,
-  position: true
+  position: true,
+  isSystem: true
 } as const;
 
 const sectionSelect = { id: true, projectId: true, name: true, position: true } as const;
@@ -101,9 +102,10 @@ export class ProjectStructureService {
   async deleteStatus(workspaceId: string, projectId: string, statusId: string, actorId: string, input: DeleteStatusInput, context: AuthClientContext): Promise<void> {
     const status = await this.prisma.taskStatus.findFirst({
       where: { id: statusId, workspaceId, projectId, scopeType: StatusScopeType.PROJECT, archivedAt: null },
-      select: { id: true }
+      select: { id: true, isSystem: true }
     });
     if (!status) throw new NotFoundException('Project status not found');
+    if (status.isSystem) throw new ConflictException('Default statuses cannot be deleted');
     const usedByTasks = await this.prisma.task.count({ where: { workspaceId, projectId, statusId } });
     if (usedByTasks > 0 && !input.replacementStatusId) {
       throw new ConflictException('A replacement status is required while tasks use this status');

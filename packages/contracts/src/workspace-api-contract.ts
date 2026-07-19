@@ -23,6 +23,7 @@ export interface CreateWorkspaceRequest {
   timezone?: string;
   locale?: string;
 }
+export type UpdateWorkspaceRequest = Partial<Pick<CreateWorkspaceRequest, 'name' | 'tone' | 'private'>>;
 
 
 export interface ProjectHealthResponse {
@@ -57,6 +58,7 @@ export interface ProjectStatusResponse {
   category: ProjectStatusCategory;
   completed: boolean;
   position: number;
+  isSystem: boolean;
 }
 
 export interface CreateProjectStatusRequest {

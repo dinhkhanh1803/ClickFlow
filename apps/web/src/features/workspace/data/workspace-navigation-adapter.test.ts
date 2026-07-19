@@ -19,7 +19,7 @@ describe('mapWorkspaceTree', () => {
   });
 
   it('maps API statuses and tasks into the selected List', () => {
-    const status = { id: 'status-1', projectId: project.id, name: 'In progress', color: '#3b82f6', category: 'IN_PROGRESS', completed: false, position: 0 } satisfies ProjectStatusResponse;
+    const status = { id: 'status-1', projectId: project.id, name: 'In progress', color: '#3b82f6', category: 'IN_PROGRESS', completed: false, isSystem: true, position: 0 } satisfies ProjectStatusResponse;
     const task = { id: 'task-1', workspaceId: workspace.id, projectId: project.id, sectionId: section.id, statusId: status.id, assigneeId: null, parentTaskId: null, title: 'Connect tasks', description: 'Use the API', priority: 'HIGH', position: 0, dueAt: '2026-07-20T00:00:00.000Z', completedAt: null, version: 2, archivedAt: null, createdAt: timestamp, updatedAt: timestamp } satisfies TaskApiResponse;
 
     const tree = mapWorkspaceTree([workspace], [project], [section], [status], [task]);
@@ -34,10 +34,10 @@ describe('mapWorkspaceTree', () => {
 
   it('preserves saved status colors and applies the three default status colors', () => {
     const statuses = [
-      { id: 'status-open', projectId: project.id, name: 'Open', color: '#64748b', category: 'OPEN', completed: false, position: 0 },
-      { id: 'status-progress', projectId: project.id, name: 'In progress', color: '#3b82f6', category: 'IN_PROGRESS', completed: false, position: 1 },
-      { id: 'status-complete', projectId: project.id, name: 'Complete', color: '#10b981', category: 'COMPLETED', completed: true, position: 2 },
-      { id: 'status-custom', projectId: project.id, name: 'Blocked', color: '#f43f5e', category: 'OPEN', completed: false, position: 3 },
+      { id: 'status-open', projectId: project.id, name: 'Open', color: '#64748b', category: 'OPEN', completed: false, isSystem: true, position: 0 },
+      { id: 'status-progress', projectId: project.id, name: 'In progress', color: '#3b82f6', category: 'IN_PROGRESS', completed: false, isSystem: true, position: 1 },
+      { id: 'status-complete', projectId: project.id, name: 'Complete', color: '#10b981', category: 'COMPLETED', completed: true, isSystem: true, position: 2 },
+      { id: 'status-custom', projectId: project.id, name: 'Blocked', color: '#f43f5e', category: 'OPEN', completed: false, isSystem: false, position: 3 },
     ] satisfies ProjectStatusResponse[];
 
     const tree = mapWorkspaceTree([workspace], [project], [section], statuses);
@@ -53,7 +53,7 @@ describe('mapWorkspaceTree', () => {
   it('maps Lists from the hidden Space container directly under the Workspace', () => {
     const rootProject = { ...project, id: 'project-root', name: 'Space Lists', tone: SPACE_ROOT_PROJECT_TONE, position: 1 };
     const rootSection = { id: 'section-root', projectId: rootProject.id, name: 'Inbox', position: 0 } satisfies SectionResponse;
-    const rootStatus = { id: 'status-open', projectId: rootProject.id, name: 'Open', color: '#64748b', category: 'OPEN', completed: false, position: 0 } satisfies ProjectStatusResponse;
+    const rootStatus = { id: 'status-open', projectId: rootProject.id, name: 'Open', color: '#64748b', category: 'OPEN', completed: false, isSystem: true, position: 0 } satisfies ProjectStatusResponse;
 
     const tree = mapWorkspaceTree([workspace], [project, rootProject], [section, rootSection], [rootStatus]);
     const rootList = tree[0].items.find((item) => item.id === rootSection.id);

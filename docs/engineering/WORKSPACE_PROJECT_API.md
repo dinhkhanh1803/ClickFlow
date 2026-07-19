@@ -6,6 +6,8 @@ Task 5 exposes the first workspace-owned resource slice. Every nested route requ
 
 - `GET /api/v1/workspaces` lists active workspaces for the current user.
 - `GET /api/v1/workspaces/:workspaceId` returns the current membership role and workspace summary.
+- `PATCH /api/v1/workspaces/:workspaceId` updates Space settings and is restricted to the Workspace owner.
+- `DELETE /api/v1/workspaces/:workspaceId` soft-deletes a Space by setting `archivedAt`; only the Workspace owner can perform it.
 - `GET /api/v1/workspaces/:workspaceId/members` returns member display summaries.
 - `/api/v1/workspaces/:workspaceId/projects` supports create and paginated list.
 - `/api/v1/workspaces/:workspaceId/projects/:projectId` supports read, partial update and archive.
@@ -23,7 +25,9 @@ Public status categories remain the locked contract from `@clickflow/contracts`:
 | `IN_PROGRESS` | `ACTIVE` |
 | `COMPLETED` | `DONE` or legacy `CLOSED` |
 
-Deleting a status used by tasks requires `replacementStatusId`. The replacement must be active and belong to the same workspace and project. Task reassignment, status deletion and activity creation occur in one transaction.
+Every new Project persists `Open`, `In progress`, and `Complete` with `isSystem=true`. Status responses expose this flag, and the API rejects deletion of these three defaults with `409 Conflict`.
+
+Deleting a custom status used by tasks requires `replacementStatusId`. The replacement must be active and belong to the same workspace and project. Task reassignment, status deletion and activity creation occur in one transaction.
 
 ## Project health
 
