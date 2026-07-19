@@ -19,6 +19,8 @@ afterEach(() => {
 
 describe('DashboardClient', () => {
   it('greets the authenticated user instead of a mock identity', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 19, 8));
     useAuthStore.getState().setSession({
       accessToken: 'access-token', tokenType: 'Bearer', expiresIn: 900, csrfToken: 'csrf-token',
       user: { id: 'user-1', email: 'demo@clickflow.local', displayName: 'ClickFlow Demo', avatarUrl: null, timezone: 'UTC', locale: 'en' }
@@ -28,5 +30,6 @@ describe('DashboardClient', () => {
 
     expect(screen.getByRole('heading', { name: 'Good morning, ClickFlow Demo' })).toBeInTheDocument();
     expect(screen.queryByText('Good morning, Khanh')).not.toBeInTheDocument();
+    vi.useRealTimers();
   });
 });

@@ -32,6 +32,14 @@ const taskSelect = {
 
 type TaskRecord = Prisma.TaskGetPayload<{ select: typeof taskSelect }>;
 
+export function buildTaskUpdateActivityMetadata(input: UpdateTaskInput): Prisma.InputJsonObject {
+  return {
+    changedFields: Object.keys(input).filter((field) => field !== 'version'),
+    ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
+    ...(input.statusId !== undefined ? { statusId: input.statusId } : {})
+  };
+}
+
 function initials(displayName: string): string {
   return displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
 }
@@ -97,7 +105,7 @@ export class TaskService {
         },
         select: taskSelect
       });
-      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_CREATED', created.id, context.requestId);
+      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_CREATED', created.id, context.requestId, input.assigneeId ? { changedFields: ['assigneeId'], assigneeId: input.assigneeId } : {});
       return created;
     });
     return serializeTask(task);
@@ -121,7 +129,7 @@ export class TaskService {
         data: { ...fields, position, completedAt: resolveCompletedAt(status.completed, current.completedAt, new Date()), version: { increment: 1 } }
       });
       if (updated.count !== 1) throw new ConflictException('Task version conflict');
-      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_UPDATED', taskId, context.requestId);
+      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_UPDATED', taskId, context.requestId, buildTaskUpdateActivityMetadata(input));
       return transaction.task.findUniqueOrThrow({ where: { id: taskId }, select: taskSelect });
     });
     return serializeTask(task);
@@ -135,7 +143,7 @@ export class TaskService {
       if (!status.completed) throw new ConflictException('Completion requires a completed project status');
       const updated = await transaction.task.updateMany({ where: { id: taskId, workspaceId, archivedAt: null, version: input.version }, data: { statusId: input.statusId, completedAt: current.completedAt ?? new Date(), version: { increment: 1 } } });
       if (updated.count !== 1) throw new ConflictException('Task version conflict');
-      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_COMPLETED', taskId, context.requestId);
+      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_COMPLETED', taskId, context.requestId, { changedFields: ['statusId'], statusId: input.statusId });
       return transaction.task.findUniqueOrThrow({ where: { id: taskId }, select: taskSelect });
     });
     return serializeTask(task);
@@ -154,7 +162,7 @@ export class TaskService {
         data: { statusId: input.statusId, sectionId: input.sectionId, position, completedAt: resolveCompletedAt(status.completed, current.completedAt, new Date()), version: { increment: 1 } }
       });
       if (updated.count !== 1) throw new ConflictException('Task version conflict');
-      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_MOVED', taskId, context.requestId, { statusId: input.statusId, position });
+      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_MOVED', taskId, context.requestId, { changedFields: ['statusId', 'position'], statusId: input.statusId, position });
       return transaction.task.findUniqueOrThrow({ where: { id: taskId }, select: taskSelect });
     });
     return serializeTask(task);

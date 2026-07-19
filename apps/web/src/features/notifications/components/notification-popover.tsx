@@ -28,8 +28,8 @@ export function NotificationPopover() {
   const popoverRef = useRef<HTMLDivElement>(null);
   const navigation = useWorkspaceNavigationQuery();
   const notifications = useMemo(
-    () => mapActivityNotifications(navigation.activities, navigation.tasks, readIds),
-    [navigation.activities, navigation.tasks, readIds],
+    () => mapActivityNotifications(navigation.activities, navigation.tasks, userId, readIds),
+    [navigation.activities, navigation.tasks, userId, readIds],
   );
   const unreadCount = notifications.filter((notification) => !notification.read).length;
 
@@ -68,7 +68,7 @@ export function NotificationPopover() {
       </header>
       <div className="max-h-96 overflow-y-auto">
         {navigation.isLoading && <p className="flex items-center justify-center gap-2 px-4 py-10 text-sm text-slate-500"><LoaderCircle className="animate-spin" size={16} />Loading activity…</p>}
-        {!navigation.isLoading && notifications.length === 0 && <p className="px-4 py-10 text-center text-sm text-slate-500">No activity notifications yet.</p>}
+        {!navigation.isLoading && notifications.length === 0 && <p className="px-4 py-10 text-center text-sm text-slate-500">No personal notifications yet.</p>}
         {notifications.map((notification) => <Link key={notification.id} href={notification.href} onClick={() => markAsRead(notification.id)} className={`relative block border-b border-slate-100 px-4 py-3 transition last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/70 ${notification.read ? '' : 'bg-indigo-50/60 dark:bg-indigo-950/20'}`}>
           {!notification.read && <span aria-label="Unread" className="absolute right-4 top-4 h-2 w-2 rounded-full bg-indigo-500" />}
           <p className="pr-5 text-sm font-semibold text-slate-900 dark:text-white">{notification.title}</p>

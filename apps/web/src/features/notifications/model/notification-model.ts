@@ -9,10 +9,14 @@ export type ActivityNotification = {
   read: boolean;
 };
 
-const eventLabels: Record<string, { title: string; action: string }> = {
-  TASK_CREATED: { title: 'Task created', action: 'created' },
+type NotificationCopy = { title: string; action: string };
+
+const eventLabels: Record<string, NotificationCopy> = {
   TASK_UPDATED: { title: 'Task updated', action: 'updated' },
+  TASK_MOVED: { title: 'Status changed', action: 'changed the status of' },
+  TASK_COMPLETED: { title: 'Task completed', action: 'completed' },
   TASK_ARCHIVED: { title: 'Task archived', action: 'archived' },
+  TASK_RESTORED: { title: 'Task restored', action: 'restored' },
   COMMENT_CREATED: { title: 'New comment', action: 'commented on' },
   COMMENT_UPDATED: { title: 'Comment updated', action: 'updated a comment on' },
   COMMENT_DELETED: { title: 'Comment removed', action: 'removed a comment from' },
@@ -25,6 +29,22 @@ const eventLabels: Record<string, { title: string; action: string }> = {
 function sentenceCase(value: string): string {
   const words = value.toLowerCase().replaceAll('_', ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function changedFields(activity: ActivityApiResponse): string[] {
+  const value = activity.metadata.changedFields;
+  return Array.isArray(value) ? value.filter((field): field is string => typeof field === 'string') : [];
+}
+
+function notificationCopy(activity: ActivityApiResponse, currentUserId: string): NotificationCopy {
+  const fields = changedFields(activity);
+  if ((activity.eventType === 'TASK_CREATED' || fields.includes('assigneeId')) && activity.metadata.assigneeId === currentUserId) {
+    return { title: 'Assigned to you', action: 'assigned you to' };
+  }
+  if (activity.eventType === 'TASK_UPDATED' && fields.includes('statusId')) {
+    return { title: 'Status changed', action: 'changed the status of' };
+  }
+  return eventLabels[activity.eventType] ?? { title: sentenceCase(activity.eventType), action: 'changed' };
 }
 
 export function relativeTime(isoDate: string, now = new Date()): string {
@@ -42,27 +62,30 @@ export function relativeTime(isoDate: string, now = new Date()): string {
 export function mapActivityNotifications(
   activities: ActivityApiResponse[],
   tasks: TaskApiResponse[],
+  currentUserId: string,
   readIds: ReadonlySet<string>,
   now = new Date(),
 ): ActivityNotification[] {
   const tasksById = new Map(tasks.map((task) => [task.id, task]));
   return [...activities]
+    .filter((activity) => {
+      if (activity.subjectType !== 'TASK' || activity.actor?.id === currentUserId) return false;
+      const task = tasksById.get(activity.subjectId);
+      if (!task || task.assigneeId !== currentUserId) return false;
+      if (activity.eventType === 'TASK_CREATED') return activity.metadata.assigneeId === currentUserId;
+      return true;
+    })
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 30)
     .map((activity) => {
-      const task = tasksById.get(activity.subjectId);
-      const label = eventLabels[activity.eventType] ?? { title: sentenceCase(activity.eventType), action: 'changed' };
+      const task = tasksById.get(activity.subjectId)!;
+      const copy = notificationCopy(activity, currentUserId);
       const actor = activity.actor?.displayName ?? 'ClickFlow';
-      const taskTitle = task?.title ?? 'a task';
-      const parameters = new URLSearchParams({ task: activity.subjectId, view: 'Overview' });
-      if (task) {
-        parameters.set('space', task.workspaceId);
-        parameters.set('project', task.projectId);
-      }
+      const parameters = new URLSearchParams({ task: activity.subjectId, view: 'Overview', space: task.workspaceId, project: task.projectId });
       return {
         id: activity.id,
-        title: label.title,
-        description: `${actor} ${label.action} “${taskTitle}”.`,
+        title: copy.title,
+        description: `${actor} ${copy.action} "${task.title}".`,
         time: relativeTime(activity.createdAt, now),
         href: `/projects?${parameters.toString()}`,
         read: readIds.has(activity.id),
