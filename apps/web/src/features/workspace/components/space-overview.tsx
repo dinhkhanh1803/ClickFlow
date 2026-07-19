@@ -16,7 +16,7 @@ import { LocalGanttTaskSurface } from './local-gantt-task-surface';
 import { TaskStatusChart } from './task-status-chart';
 import { TaskAssignmentChart } from './task-assignment-chart';
 import { SpaceTabContent, SpaceTaskModal, type SpaceView } from './space-tab-content';
-import { useCreateProjectMutation, useCreateSectionMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
+import { useArchiveTaskMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useUpdateStatusMutation, useUpdateTaskMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
 
 const spaceViews: Array<{ name: SpaceView; icon: typeof Columns3; iconClassName: string }> = [
   { name: 'Overview', icon: LayoutDashboard, iconClassName: 'text-violet-500' },
@@ -45,6 +45,12 @@ export function SpaceOverview() {
   const navigationQuery = useWorkspaceNavigationQuery();
   const createProjectMutation = useCreateProjectMutation();
   const createSectionMutation = useCreateSectionMutation();
+  const createRootSectionMutation = useCreateRootSectionMutation();
+  const createTaskMutation = useCreateTaskMutation();
+  const updateTaskMutation = useUpdateTaskMutation();
+  const archiveTaskMutation = useArchiveTaskMutation();
+  const createStatusMutation = useCreateStatusMutation();
+  const updateStatusMutation = useUpdateStatusMutation();
   const effectiveLocalSpaces = navigationQuery.data ?? localSpaces;
   const projects = space.projects.filter((project) => !project.archived);
   const query = new URLSearchParams(locationQuery);
@@ -61,7 +67,12 @@ export function SpaceOverview() {
   const visibleLocalLists = selectedList ? [selectedList] : selectedFolder ? lists : spaceLists;
   const visibleLocalTasks = visibleLocalLists.flatMap((item) => item.tasks ?? []);
   const recentLocalTasks = visibleLocalLists.flatMap((list) => (list.tasks ?? []).map((task) => ({ list, task }))).slice(0, 4);
-  const scopedStatusGroups = [...(selectedLocalSpace?.statusGroups ?? []), ...(selectedFolder?.statusGroups ?? []), ...visibleLocalLists.flatMap((item) => item.statusGroups ?? [])];
+  const navigationStatusGroups = selectedList
+    ? [...(selectedFolder?.statusGroups ?? []), ...(selectedList.statusGroups ?? [])]
+    : selectedFolder
+      ? [...(selectedFolder.statusGroups ?? []), ...visibleLocalLists.flatMap((item) => item.statusGroups ?? [])]
+      : [...folders.flatMap((item) => item.statusGroups ?? []), ...visibleLocalLists.flatMap((item) => item.statusGroups ?? [])];
+  const scopedStatusGroups = Array.from(new Map([...(selectedLocalSpace?.statusGroups ?? []), ...navigationStatusGroups].map((group) => [group.id, group])).values());
   const scopedStatusOverrides = [...(selectedLocalSpace?.statusOverrides ?? []), ...(selectedFolder?.statusOverrides ?? []), ...visibleLocalLists.flatMap((item) => item.statusOverrides ?? [])];
   const title = selectedList ? `${selectedLocalSpace?.name} / ${selectedFolder?.name ?? 'Lists'} / ${selectedList.name}` : selectedFolder ? `${selectedLocalSpace?.name} / ${selectedFolder.name}` : selectedLocalSpace?.name ?? space.name;
   const availableViews = selectedList ? spaceViews.filter((view) => view.name !== 'Overview') : spaceViews;
@@ -155,15 +166,26 @@ export function SpaceOverview() {
         await createProjectMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { name: nextName } });
       } else if (selectedFolder) {
         await createSectionMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId: selectedFolder.id, input: { name: nextName } });
-      } else {
-        toast.error('Open a Project before creating a List.');
-        return;
-      }
+      } else await createRootSectionMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, name: nextName });
       setNavigationCreateKind(null);
     } catch { toast.error('Unable to create this item.'); }
   };
-  const createLocalListTask = (input: { title: string; status: LocalTaskStatus; statusGroupId?: string }) => {
+  const createLocalListTask = async (input: { title: string; status: LocalTaskStatus; statusGroupId?: string }) => {
     if (!selectedLocalSpace || !selectedList) return;
+    if (navigationQuery.usesApi) {
+      const projectId = selectedList.apiProjectId ?? selectedList.parentId;
+      if (!projectId || !input.statusGroupId) {
+        toast.error('This List needs an API Project and status before creating Tasks.');
+        return;
+      }
+      try {
+        await createTaskMutation.mutateAsync({
+          workspaceId: selectedLocalSpace.id,
+          input: { projectId, sectionId: selectedList.id, statusId: input.statusGroupId, title: input.title, priority: 'NORMAL' }
+        });
+      } catch { toast.error('Unable to create the Task.'); }
+      return;
+    }
     const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
       ...localSpace,
       items: localSpace.items.map((item) => item.id === selectedList.id ? {
@@ -174,8 +196,29 @@ export function SpaceOverview() {
     setLocalSpaces(nextSpaces);
     saveLocalSpaces(nextSpaces);
   };
-  const updateLocalListTask = (taskId: string, patch: Partial<Omit<import('../model/local-navigation').LocalListTask, 'id' | 'createdAt'>>) => {
+  const updateLocalListTask = async (taskId: string, patch: Partial<Omit<import('../model/local-navigation').LocalListTask, 'id' | 'createdAt'>>) => {
     if (!selectedLocalSpace) return;
+    if (navigationQuery.usesApi) {
+      const list = selectedLocalSpace.items.find((item) => (item.tasks ?? []).some((task) => task.id === taskId));
+      const task = list?.tasks?.find((item) => item.id === taskId);
+      const projectId = list?.apiProjectId ?? list?.parentId;
+      if (!projectId || !task?.version) return;
+      const input: import('@clickflow/contracts').TaskUpdateRequest = { version: task.version };
+      if (patch.title !== undefined) input.title = patch.title;
+      if (patch.description !== undefined) input.description = patch.description || null;
+      if (patch.statusGroupId !== undefined) input.statusId = patch.statusGroupId;
+      if (patch.priority !== undefined) input.priority = ({ Urgent: 'URGENT', High: 'HIGH', Normal: 'NORMAL', Low: 'LOW' } as const)[patch.priority];
+      if (patch.dueDate !== undefined) input.dueAt = patch.dueDate ? `${patch.dueDate}T00:00:00.000Z` : null;
+      if (patch.assignee === '') input.assigneeId = null;
+      if (Object.keys(input).length === 1) {
+        toast.info('This field will be connected in a later integration task.');
+        return;
+      }
+      try {
+        await updateTaskMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId, taskId, input });
+      } catch { toast.error('Unable to update the Task. Refresh and try again.'); }
+      return;
+    }
     const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
       ...localSpace,
       items: localSpace.items.map((item) => (item.tasks ?? []).some((task) => task.id === taskId) ? {
@@ -186,8 +229,17 @@ export function SpaceOverview() {
     setLocalSpaces(nextSpaces);
     saveLocalSpaces(nextSpaces);
   };
-  const deleteLocalListTasks = (taskIds: string[]) => {
+  const deleteLocalListTasks = async (taskIds: string[]) => {
     if (!selectedLocalSpace || !selectedList || !taskIds.length) return;
+    if (navigationQuery.usesApi) {
+      const projectId = selectedList.apiProjectId ?? selectedList.parentId;
+      if (!projectId) return;
+      const tasks = (selectedList.tasks ?? []).filter((task) => taskIds.includes(task.id) && task.version);
+      try {
+        await Promise.all(tasks.map((task) => archiveTaskMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId, taskId: task.id, version: task.version! })));
+      } catch { toast.error('Unable to archive one or more Tasks.'); }
+      return;
+    }
     const selectedIds = new Set(taskIds);
     const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
       ...localSpace,
@@ -195,8 +247,17 @@ export function SpaceOverview() {
     } : localSpace);
     setLocalSpaces(nextSpaces);
     saveLocalSpaces(nextSpaces);
-  };  const createScopedStatus = (input: { name: string; scope: LocalStatusScope }) => {
+  };
+  const createScopedStatus = async (input: { name: string; scope: LocalStatusScope }) => {
     if (!selectedLocalSpace || !selectedList) return;
+    if (navigationQuery.usesApi) {
+      const projectId = selectedList.apiProjectId ?? selectedList.parentId;
+      if (!projectId) return;
+      try {
+        await createStatusMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId, input: { name: input.name, color: '#6366f1', category: 'OPEN' } });
+      } catch { toast.error('Unable to create the status.'); }
+      return;
+    }
     const group = { id: localId('status'), taskStatus: localId('status-value'), name: input.name, color: 'indigo' as const, scope: input.scope };
     const nextSpaces = localSpaces.map((localSpace) => {
       if (localSpace.id !== selectedLocalSpace.id) return localSpace;
@@ -206,8 +267,17 @@ export function SpaceOverview() {
     setLocalSpaces(nextSpaces);
     saveLocalSpaces(nextSpaces);
   };
-  const updateScopedStatus = (input: { status: LocalTaskStatus; groupId?: string; name: string; color: LocalStatusColor }) => {
+  const updateScopedStatus = async (input: { status: LocalTaskStatus; groupId?: string; name: string; color: LocalStatusColor }) => {
     if (!selectedLocalSpace || !selectedList) return;
+    if (navigationQuery.usesApi) {
+      const projectId = selectedList.apiProjectId ?? selectedList.parentId;
+      if (!projectId || !input.groupId) return;
+      const colors: Record<LocalStatusColor, string> = { slate: '#64748b', blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', teal: '#14b8a6', emerald: '#10b981', amber: '#f59e0b', orange: '#f97316', rose: '#f43f5e', pink: '#ec4899' };
+      try {
+        await updateStatusMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId, statusId: input.groupId, input: { name: input.name, color: colors[input.color] } });
+      } catch { toast.error('Unable to update the status.'); }
+      return;
+    }
     const updateItem = (item: import('../model/local-navigation').LocalSpaceItem) => {
       if (input.groupId) return { ...item, statusGroups: (item.statusGroups ?? []).map((group) => group.id === input.groupId ? { ...group, name: input.name, color: input.color } : group) };
       if (item.id !== selectedList.id) return item;

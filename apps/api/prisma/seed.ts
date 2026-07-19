@@ -8,7 +8,9 @@ const ids = {
   member: '00000000-0000-4000-8000-000000000011',
   project: '00000000-0000-4000-8000-000000000020',
   section: '00000000-0000-4000-8000-000000000030',
-  status: '00000000-0000-4000-8000-000000000040',
+  statusOpen: '00000000-0000-4000-8000-000000000040',
+  statusInProgress: '00000000-0000-4000-8000-000000000041',
+  statusComplete: '00000000-0000-4000-8000-000000000042',
   document: '00000000-0000-4000-8000-000000000050',
   task: '00000000-0000-4000-8000-000000000060'
 } as const;
@@ -51,19 +53,52 @@ async function main(): Promise<void> {
       create: { id: ids.section, workspaceId: ids.workspace, projectId: ids.project, name: 'Backlog', position: 0 }
     });
     await transaction.taskStatus.upsert({
-      where: { id: ids.status },
-      update: { name: 'To do', color: '#64748b' },
+      where: { id: ids.statusOpen },
+      update: { name: 'Open', color: '#64748b' },
       create: {
-        id: ids.status,
+        id: ids.statusOpen,
         workspaceId: ids.workspace,
         projectId: ids.project,
         sectionId: ids.section,
         scopeType: StatusScopeType.SECTION,
         scopeId: ids.section,
-        name: 'To do',
+        name: 'Open',
         color: '#64748b',
         category: StatusCategory.NOT_STARTED,
         position: 0
+      }
+    });
+    await transaction.taskStatus.upsert({
+      where: { id: ids.statusInProgress },
+      update: { name: 'In progress', color: '#3b82f6' },
+      create: {
+        id: ids.statusInProgress,
+        workspaceId: ids.workspace,
+        projectId: ids.project,
+        sectionId: ids.section,
+        scopeType: StatusScopeType.SECTION,
+        scopeId: ids.section,
+        name: 'In progress',
+        color: '#3b82f6',
+        category: StatusCategory.IN_PROGRESS,
+        position: 1
+      }
+    });
+    await transaction.taskStatus.upsert({
+      where: { id: ids.statusComplete },
+      update: { name: 'Complete', color: '#10b981', completed: true },
+      create: {
+        id: ids.statusComplete,
+        workspaceId: ids.workspace,
+        projectId: ids.project,
+        sectionId: ids.section,
+        scopeType: StatusScopeType.SECTION,
+        scopeId: ids.section,
+        name: 'Complete',
+        color: '#10b981',
+        category: StatusCategory.COMPLETED,
+        completed: true,
+        position: 2
       }
     });
     await transaction.document.upsert({
@@ -86,7 +121,7 @@ async function main(): Promise<void> {
         workspaceId: ids.workspace,
         projectId: ids.project,
         sectionId: ids.section,
-        statusId: ids.status,
+        statusId: ids.statusOpen,
         assigneeId: ids.user,
         title: 'Review the ClickFlow demo task',
         priority: TaskPriority.NORMAL,

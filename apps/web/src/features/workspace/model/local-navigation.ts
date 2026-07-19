@@ -4,7 +4,7 @@ export type LocalDocumentBlockStyle = 'normal' | 'heading-1' | 'heading-2' | 'he
 export type LocalTaskStatus = string;
 export type LocalStatusScope = 'list' | 'folder' | 'space';
 export type LocalStatusColor = 'slate' | 'blue' | 'indigo' | 'violet' | 'teal' | 'emerald' | 'amber' | 'orange' | 'rose' | 'pink';
-export type LocalStatusGroup = { id: string; name: string; scope: LocalStatusScope; color?: LocalStatusColor; taskStatus?: LocalTaskStatus; };
+export type LocalStatusGroup = { id: string; name: string; scope: LocalStatusScope; color?: LocalStatusColor; taskStatus?: LocalTaskStatus; source?: 'api'; };
 export type LocalStatusOverride = { status: LocalTaskStatus; name: string; color: LocalStatusColor; };
 export type LocalTaskPriority = 'Urgent' | 'High' | 'Normal' | 'Low';
 
@@ -29,6 +29,8 @@ export type LocalTaskAttachment = {
 export type LocalListTask = {
   id: string;
   title: string;
+  version?: number;
+  assigneeId?: string | null;
   status: LocalTaskStatus;
   statusGroupId?: string;
   priority: LocalTaskPriority;
@@ -48,6 +50,7 @@ export type LocalListTask = {
 export type LocalSpaceItem = {
   id: string;
   name: string;
+  apiProjectId?: string;
   kind: LocalSpaceItemKind;
   parentId?: string;
   tasks?: LocalListTask[];

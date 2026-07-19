@@ -1,17 +1,20 @@
 'use client';
 
-import type { CreateProjectRequest, CreateSectionRequest, CreateWorkspaceRequest, ProjectResponse, SectionResponse } from '@clickflow/contracts';
+import { SPACE_ROOT_PROJECT_TONE, type CreateProjectRequest, type CreateProjectStatusRequest, type CreateSectionRequest, type CreateWorkspaceRequest, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TaskCreateRequest, type TaskUpdateRequest, type UpdateProjectStatusRequest } from '@clickflow/contracts';
 import { QueryClient, QueryClientContext, useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { useContext, useMemo } from 'react';
 
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { taskApi } from './task-api';
 import { workspaceApi } from './workspace-api';
 import { mapWorkspaceTree } from './workspace-navigation-adapter';
 
 export const workspaceKeys = {
   all: ['workspaces'] as const,
   projects: (workspaceId: string) => ['workspaces', workspaceId, 'projects'] as const,
-  sections: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'sections'] as const
+  sections: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'sections'] as const,
+  statuses: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'statuses'] as const,
+  tasks: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'tasks'] as const
 };
 
 function requireToken(accessToken: string | null): string {
@@ -46,11 +49,22 @@ export function useWorkspaceNavigationQuery(enabled = true) {
     queryFn: () => workspaceApi.listSections(requireToken(accessToken), project.workspaceId, project.id)
   })) }, queryClient);
   const sections = useMemo<SectionResponse[]>(() => sectionQueries.flatMap((query) => query.data ?? []), [sectionQueries]);
-  const pending = authenticated && (workspacesQuery.isPending || projectQueries.some((query) => query.isPending) || sectionQueries.some((query) => query.isPending));
-  const error = authenticated ? workspacesQuery.error ?? projectQueries.find((query) => query.error)?.error ?? sectionQueries.find((query) => query.error)?.error ?? null : null;
-  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections) : undefined;
+  const statusQueries = useQueries({ queries: projects.map((project) => ({
+    queryKey: workspaceKeys.statuses(project.workspaceId, project.id),
+    queryFn: () => workspaceApi.listStatuses(requireToken(accessToken), project.workspaceId, project.id)
+  })) }, queryClient);
+  const taskQueries = useQueries({ queries: projects.map((project) => ({
+    queryKey: workspaceKeys.tasks(project.workspaceId, project.id),
+    queryFn: () => taskApi.list(requireToken(accessToken), project.workspaceId, project.id)
+  })) }, queryClient);
+  const statuses = useMemo<ProjectStatusResponse[]>(() => statusQueries.flatMap((query) => query.data ?? []), [statusQueries]);
+  const tasks = useMemo<TaskApiResponse[]>(() => taskQueries.flatMap((query) => query.data?.items ?? []), [taskQueries]);
+  const allQueries = [...projectQueries, ...sectionQueries, ...statusQueries, ...taskQueries];
+  const pending = authenticated && (workspacesQuery.isPending || allQueries.some((query) => query.isPending));
+  const error = authenticated ? workspacesQuery.error ?? allQueries.find((query) => query.error)?.error ?? null : null;
+  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks) : undefined;
 
-  return { data, projects, sections, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
+  return { data, projects, sections, statuses, tasks, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
 }
 
 export function useCreateWorkspaceMutation() {
@@ -113,5 +127,70 @@ export function useArchiveSectionMutation() {
   return useMutation({
     mutationFn: ({ workspaceId, projectId, sectionId }: { workspaceId: string; projectId: string; sectionId: string }) => workspaceApi.archiveSection(requireToken(accessToken), workspaceId, projectId, sectionId),
     onSuccess: (_result, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.sections(variables.workspaceId, variables.projectId) })
+  }, queryClient);
+}
+
+export function useCreateRootSectionMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: async ({ workspaceId, name }: { workspaceId: string; name: string }) => {
+      const token = requireToken(accessToken);
+      const projects = await workspaceApi.listProjects(token, workspaceId);
+      let container = projects.items.find((project) => project.tone === SPACE_ROOT_PROJECT_TONE && project.archivedAt === null);
+      if (!container) {
+        container = await workspaceApi.createProject(token, workspaceId, { name: 'Space Lists', tone: SPACE_ROOT_PROJECT_TONE });
+      }
+      return workspaceApi.createSection(token, workspaceId, container.id, { name });
+    },
+    onSuccess: (section, variables) => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.projects(variables.workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.sections(variables.workspaceId, section.projectId) });
+    }
+  }, queryClient);
+}
+
+export function useCreateTaskMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, input }: { workspaceId: string; input: TaskCreateRequest }) => taskApi.create(requireToken(accessToken), workspaceId, input),
+    onSuccess: (_task, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.tasks(variables.workspaceId, variables.input.projectId) })
+  }, queryClient);
+}
+
+export function useUpdateTaskMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: (variables: { workspaceId: string; projectId: string; taskId: string; input: TaskUpdateRequest }) => taskApi.update(requireToken(accessToken), variables.workspaceId, variables.taskId, variables.input),
+    onSuccess: (_task, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.tasks(variables.workspaceId, variables.projectId) })
+  }, queryClient);
+}
+
+export function useArchiveTaskMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: (variables: { workspaceId: string; projectId: string; taskId: string; version: number }) => taskApi.archive(requireToken(accessToken), variables.workspaceId, variables.taskId, variables.version),
+    onSuccess: (_task, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.tasks(variables.workspaceId, variables.projectId) })
+  }, queryClient);
+}
+
+export function useCreateStatusMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, projectId, input }: { workspaceId: string; projectId: string; input: CreateProjectStatusRequest }) => workspaceApi.createStatus(requireToken(accessToken), workspaceId, projectId, input),
+    onSuccess: (_status, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.statuses(variables.workspaceId, variables.projectId) })
+  }, queryClient);
+}
+
+export function useUpdateStatusMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, projectId, statusId, input }: { workspaceId: string; projectId: string; statusId: string; input: UpdateProjectStatusRequest }) => workspaceApi.updateStatus(requireToken(accessToken), workspaceId, projectId, statusId, input),
+    onSuccess: (_status, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.statuses(variables.workspaceId, variables.projectId) })
   }, queryClient);
 }

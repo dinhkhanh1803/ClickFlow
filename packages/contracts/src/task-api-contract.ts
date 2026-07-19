@@ -28,7 +28,7 @@ export const taskMoveRequestSchema = z.object({
   afterTaskId: uuid.optional()
 }).strict().refine((value) => !(value.beforeTaskId && value.afterTaskId), 'Use at most one ordering anchor');
 
-export type TaskCreateRequest = z.infer<typeof taskCreateRequestSchema>;
+export type TaskCreateRequest = z.input<typeof taskCreateRequestSchema>;
 export type TaskMoveRequest = z.infer<typeof taskMoveRequestSchema>;
 
 export interface TaskApiResponse {
@@ -49,4 +49,23 @@ export interface TaskApiResponse {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TaskListResponse {
+  items: TaskApiResponse[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface TaskUpdateRequest {
+  version: number;
+  sectionId?: string | null;
+  statusId?: string;
+  assigneeId?: string | null;
+  parentTaskId?: string | null;
+  title?: string;
+  description?: string | null;
+  priority?: z.infer<typeof apiTaskPrioritySchema>;
+  dueAt?: string | null;
 }

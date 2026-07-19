@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, StatusCategory, StatusScopeType } from '@prisma/client';
 
 import { buildPaginationQuery } from '../common/pagination';
 import { PrismaService } from '../database/prisma.service';
@@ -74,6 +74,43 @@ export class ProjectService {
           position: (maximum._max.position ?? -1) + 1
         },
         select: projectSelect
+      });
+      await transaction.taskStatus.createMany({
+        data: [
+          {
+            workspaceId,
+            projectId: created.id,
+            scopeType: StatusScopeType.PROJECT,
+            scopeId: created.id,
+            name: 'Open',
+            color: '#64748b',
+            category: StatusCategory.NOT_STARTED,
+            completed: false,
+            position: 0
+          },
+          {
+            workspaceId,
+            projectId: created.id,
+            scopeType: StatusScopeType.PROJECT,
+            scopeId: created.id,
+            name: 'In progress',
+            color: '#3b82f6',
+            category: StatusCategory.ACTIVE,
+            completed: false,
+            position: 1
+          },
+          {
+            workspaceId,
+            projectId: created.id,
+            scopeType: StatusScopeType.PROJECT,
+            scopeId: created.id,
+            name: 'Complete',
+            color: '#10b981',
+            category: StatusCategory.CLOSED,
+            completed: true,
+            position: 2
+          }
+        ]
       });
       await this.recordActivity(transaction, workspaceId, actorId, 'PROJECT_CREATED', created.id, context.requestId);
       return created;

@@ -1,10 +1,13 @@
 import type {
   CreateProjectRequest,
+  CreateProjectStatusRequest,
   CreateWorkspaceRequest,
   CreateSectionRequest,
   ProjectListResponse,
   ProjectResponse,
+  ProjectStatusResponse,
   SectionResponse,
+  UpdateProjectStatusRequest,
   UpdateProjectRequest,
   UpdateSectionRequest,
   WorkspaceResponse
@@ -37,6 +40,15 @@ export const workspaceApi = {
   },
   listSections(accessToken: string, workspaceId: string, projectId: string): Promise<SectionResponse[]> {
     return client.get(`/workspaces/${workspaceId}/projects/${projectId}/sections`, authorized(accessToken));
+  },
+  listStatuses(accessToken: string, workspaceId: string, projectId: string): Promise<ProjectStatusResponse[]> {
+    return client.get(`/workspaces/${workspaceId}/projects/${projectId}/statuses`, authorized(accessToken));
+  },
+  createStatus(accessToken: string, workspaceId: string, projectId: string, input: CreateProjectStatusRequest): Promise<ProjectStatusResponse> {
+    return client.post(`/workspaces/${workspaceId}/projects/${projectId}/statuses`, input, authorized(accessToken));
+  },
+  updateStatus(accessToken: string, workspaceId: string, projectId: string, statusId: string, input: UpdateProjectStatusRequest): Promise<ProjectStatusResponse> {
+    return client.patch(`/workspaces/${workspaceId}/projects/${projectId}/statuses/${statusId}`, input, authorized(accessToken));
   },
   createSection(accessToken: string, workspaceId: string, projectId: string, input: CreateSectionRequest): Promise<SectionResponse> {
     return client.post(`/workspaces/${workspaceId}/projects/${projectId}/sections`, input, authorized(accessToken));

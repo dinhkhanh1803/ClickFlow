@@ -49,7 +49,14 @@ const statusColorClasses: Record<import('../model/local-navigation').LocalStatus
 const statusColorSwatches: Record<import('../model/local-navigation').LocalStatusColor, string> = { slate: '#64748b', blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', teal: '#14b8a6', emerald: '#10b981', amber: '#f59e0b', orange: '#f97316', rose: '#f43f5e', pink: '#ec4899' };
 const statusOptionKey = (item: Pick<StatusConfig, 'status' | 'groupId'>) => item.groupId ? `group:${item.groupId}` : `default:${item.status}`;
 const taskBelongsToStatus = (task: LocalListTask, item: Pick<StatusConfig, 'status' | 'groupId'>) => item.groupId ? task.statusGroupId === item.groupId : !task.statusGroupId && task.status === item.status;
-export const buildLocalTaskStatusOptions = (statusGroups: LocalStatusGroup[], statusOverrides: import('../model/local-navigation').LocalStatusOverride[]): LocalTaskStatusConfig[] => [...statuses.map((item) => { const override = statusOverrides.find((candidate) => candidate.status === item.status); return override ? { ...item, label: override.name.toUpperCase(), ...statusColorClasses[override.color] } : item; }), ...statusGroups.map((group) => ({ status: group.taskStatus ?? group.name, label: group.name.toUpperCase(), icon: Layers3, groupId: group.id, ...statusColorClasses[group.color ?? 'indigo'] }))];
+export const buildLocalTaskStatusOptions = (statusGroups: LocalStatusGroup[], statusOverrides: import('../model/local-navigation').LocalStatusOverride[]): LocalTaskStatusConfig[] => {
+  const includeLocalDefaults = !statusGroups.some((group) => group.source === 'api');
+  const defaultOptions = includeLocalDefaults ? statuses.map((item) => {
+    const override = statusOverrides.find((candidate) => candidate.status === item.status);
+    return override ? { ...item, label: override.name.toUpperCase(), ...statusColorClasses[override.color] } : item;
+  }) : [];
+  return [...defaultOptions, ...statusGroups.map((group) => ({ status: group.taskStatus ?? group.name, label: group.name.toUpperCase(), icon: Layers3, groupId: group.id, ...statusColorClasses[group.color ?? 'indigo'] }))];
+};
 function usePickerDismissal(open: boolean, onOpenChange: (open: boolean) => void) {
   const popoverRef = useRef<HTMLDivElement>(null);
 

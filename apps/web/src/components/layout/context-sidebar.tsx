@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { notifyToastPreview } from '@/lib/feedback/toast-feedback';
 import { defaultLocalSpaces, loadLocalSpaces, localId, nextSpaceTone, saveLocalSpaces, type LocalSpaceItemKind } from '@/features/workspace/model/local-navigation';
 import type { GlobalModulePath } from '@/components/layout/app-sidebar';
-import { useArchiveProjectMutation, useArchiveSectionMutation, useCreateProjectMutation, useCreateSectionMutation, useCreateWorkspaceMutation, useUpdateProjectMutation, useUpdateSectionMutation, useWorkspaceNavigationQuery } from '@/features/workspace/data/workspace-queries';
+import { useArchiveProjectMutation, useArchiveSectionMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateWorkspaceMutation, useUpdateProjectMutation, useUpdateSectionMutation, useWorkspaceNavigationQuery } from '@/features/workspace/data/workspace-queries';
 
 type ContextItem = { label: string; href: string };
 type ContextConfig = { title: string; items: ContextItem[]; section?: string };
@@ -70,6 +70,7 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
   const updateProjectMutation = useUpdateProjectMutation();
   const archiveProjectMutation = useArchiveProjectMutation();
   const createSectionMutation = useCreateSectionMutation();
+  const createRootSectionMutation = useCreateRootSectionMutation();
   const updateSectionMutation = useUpdateSectionMutation();
   const archiveSectionMutation = useArchiveSectionMutation();
 
@@ -172,16 +173,18 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
   const runListAction = (action: string, spaceId: string, listId: string) => {
     const space = effectiveSpaces.find((item) => item.id === spaceId);
     const list = space?.items.find((item) => item.id === listId);
-    if (!list?.parentId) return;
+    const projectId = list?.apiProjectId ?? list?.parentId;
+    if (!list || !projectId) return;
     if (action === 'rename') {
       const nextName = window.prompt('Rename List', list.name)?.trim();
-      if (nextName) void updateSectionMutation.mutateAsync({ workspaceId: spaceId, projectId: list.parentId, sectionId: listId, name: nextName }).catch(() => toast.error('Unable to rename this List.'));
+      if (nextName) void updateSectionMutation.mutateAsync({ workspaceId: spaceId, projectId, sectionId: listId, name: nextName }).catch(() => toast.error('Unable to rename this List.'));
     } else if (action === 'copy-link') {
-      void navigator.clipboard?.writeText(`${window.location.origin}/projects?space=${spaceId}&folder=${list.parentId}&list=${listId}`);
+      const folderQuery = list.parentId ? `&folder=${list.parentId}` : '';
+      void navigator.clipboard?.writeText(`${window.location.origin}/projects?space=${spaceId}${folderQuery}&list=${listId}`);
     } else if (action === 'duplicate') {
-      void createSectionMutation.mutateAsync({ workspaceId: spaceId, projectId: list.parentId, input: { name: `${list.name} copy` } }).catch(() => toast.error('Unable to duplicate this List.'));
+      void createSectionMutation.mutateAsync({ workspaceId: spaceId, projectId, input: { name: `${list.name} copy` } }).catch(() => toast.error('Unable to duplicate this List.'));
     } else if (action === 'delete') {
-      void archiveSectionMutation.mutateAsync({ workspaceId: spaceId, projectId: list.parentId, sectionId: listId }).catch(() => toast.error('Unable to archive this List.'));
+      void archiveSectionMutation.mutateAsync({ workspaceId: spaceId, projectId, sectionId: listId }).catch(() => toast.error('Unable to archive this List.'));
     }
     setListMenuId(null);
   };
@@ -210,7 +213,8 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     if (
       createWorkspaceMutation.isPending ||
       createProjectMutation.isPending ||
-      createSectionMutation.isPending
+      createSectionMutation.isPending ||
+      createRootSectionMutation.isPending
     ) return;
     if (!navigationQuery.usesApi) {
       if (createKind === 'space') {
@@ -243,8 +247,13 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
       void createSectionMutation.mutateAsync({ workspaceId: parentSpaceId, projectId: parentItemId, input: { name } }).catch(() => toast.error('Unable to create this List.'));
       setActiveSpaceId(parentSpaceId);
     } else if (createKind === 'list') {
-      toast.error('Choose a Project before creating a List.');
-      return;
+      try {
+        await createRootSectionMutation.mutateAsync({ workspaceId: parentSpaceId, name });
+        setActiveSpaceId(parentSpaceId);
+      } catch {
+        toast.error('Unable to create this List.');
+        return;
+      }
     } else {
       toast.info('Document creation will be connected in a later integration task.');
       return;

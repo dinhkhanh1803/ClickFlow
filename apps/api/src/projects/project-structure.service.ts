@@ -30,7 +30,7 @@ export class ProjectStructureService {
   async listStatuses(workspaceId: string, projectId: string) {
     await this.assertProject(workspaceId, projectId);
     const statuses = await this.prisma.taskStatus.findMany({
-      where: { workspaceId, projectId, scopeType: StatusScopeType.PROJECT, archivedAt: null },
+      where: { workspaceId, projectId, archivedAt: null },
       orderBy: [{ position: 'asc' }, { id: 'asc' }],
       select: statusSelect
     });
@@ -73,7 +73,7 @@ export class ProjectStructureService {
         completed: category ? category === 'COMPLETED' : undefined
       };
       const updated = await transaction.taskStatus.updateMany({
-        where: { id: statusId, workspaceId, projectId, scopeType: StatusScopeType.PROJECT, archivedAt: null },
+        where: { id: statusId, workspaceId, projectId, archivedAt: null },
         data
       });
       if (updated.count !== 1) throw new NotFoundException('Project status not found');

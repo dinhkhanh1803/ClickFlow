@@ -57,6 +57,8 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Login, session refresh, logout, forgot-password, and reset-password flows use the backend API.
 - [x] Protected workspace routes require an authenticated backend session.
 - [x] Workspace, project, and section navigation and CRUD use backend APIs.
-- [ ] Task screens use backend repositories instead of local data.
+- [x] Lists can be created directly under a Workspace or inside a Project without exposing the internal root container.
+- [x] New API Projects default to Open, In progress, and Complete; extra statuses remain user-created.
+- [x] Task screens load and mutate core Task fields through workspace-scoped backend APIs.
 - [ ] Comments, activity, time tracking, reports, attachments, templates, and settings use backend APIs.
 - [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.

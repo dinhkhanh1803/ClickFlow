@@ -28,8 +28,9 @@ const defaultStatuses: Array<{ status: string; label: string; color: LocalStatus
 ];
 
 export function TaskStatusChart({ tasks, statusGroups = [], statusOverrides = [] }: TaskStatusChartProps) {
+  const includeLocalDefaults = !statusGroups.some((group) => group.source === 'api') && !tasks.some((task) => task.statusGroupId);
   const configuredEntries: StatusEntry[] = [
-    ...defaultStatuses.map((item) => {
+    ...(includeLocalDefaults ? defaultStatuses : []).map((item) => {
       const override = statusOverrides.find((candidate) => candidate.status === item.status);
       return {
         key: `default:${item.status}`,

@@ -2,6 +2,8 @@ import type { UtcIsoTimestamp } from './domain-contract';
 
 export type WorkspaceRole = 'OWNER' | 'MEMBER';
 export type ProjectHealthStatus = 'ON_TRACK' | 'AT_RISK' | 'OVERDUE' | 'COMPLETED';
+export const SPACE_ROOT_PROJECT_TONE = 'system:space-root';
+
 
 export interface WorkspaceResponse {
   id: string;
@@ -44,6 +46,26 @@ export interface ProjectResponse {
   archivedAt: UtcIsoTimestamp | null;
   health: ProjectHealthResponse;
 }
+
+export type ProjectStatusCategory = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+
+export interface ProjectStatusResponse {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string;
+  category: ProjectStatusCategory;
+  completed: boolean;
+  position: number;
+}
+
+export interface CreateProjectStatusRequest {
+  name: string;
+  color: string;
+  category: ProjectStatusCategory;
+}
+
+export type UpdateProjectStatusRequest = Partial<CreateProjectStatusRequest>;
 
 export interface ProjectListResponse {
   items: ProjectResponse[];
