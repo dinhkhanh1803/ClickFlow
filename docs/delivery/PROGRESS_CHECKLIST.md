@@ -69,3 +69,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Documents support Workspace/Folder creation, versioned CRUD and archive APIs, sanitized editor autosave, rename, duplicate, browser import/export, navigation, and local fallback.
 - [x] Templates, Archive, and Workspace Settings use persisted productivity APIs.
 - [x] Space, Folder, and List creation use a centered shared modal; Space visibility persists as Public or Private and Private mode exposes invite input.
+- [x] Header notifications derive from authenticated task Activity History, deep-link to tasks, and retain per-user read state in the browser.
