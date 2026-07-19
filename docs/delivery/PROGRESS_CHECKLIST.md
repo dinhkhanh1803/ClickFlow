@@ -55,11 +55,16 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 
 - [x] Shared authentication contracts and a typed browser API client are implemented.
 - [x] Login, session refresh, logout, forgot-password, and reset-password flows use the backend API.
+- [x] Email registration requires a one-time email verification link; resend and SMTP delivery are wired end to end.
+- [x] Google Identity Services login verifies ID tokens server-side, persists provider subjects, applies safe account-linking rules, and issues the standard rotating session.
 - [x] Protected workspace routes require an authenticated backend session.
 - [x] Workspace, project, and section navigation and CRUD use backend APIs.
+- [x] Space creation, owner-only settings updates, and owner-only soft deletion are connected end to end.
+- [x] Workspace destructive actions use accessible in-app confirmation modals instead of browser alerts.
 - [x] Lists can be created directly under a Workspace or inside a Project without exposing the internal root container.
 - [x] New API Projects default to Open, In progress, and Complete; extra statuses remain user-created.
 - [x] Task screens load and mutate core Task fields through workspace-scoped backend APIs.
+- [x] List and Board views create tasks inline within the selected status; Save or Enter commits and Escape cancels.
 - [x] Comments and activity history use backend APIs.
 - [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.
 - [x] Task timers and the Time Tracking overview use backend APIs.
@@ -70,3 +75,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Templates, Archive, and Workspace Settings use persisted productivity APIs.
 - [x] Space, Folder, and List creation use a centered shared modal; Space visibility persists as Public or Private and Private mode exposes invite input.
 - [x] Header notifications derive from authenticated task Activity History, deep-link to tasks, and retain per-user read state in the browser.
+- [x] Custom statuses support color selection, rename/recolor, safe deletion with task fallback to Open, while Open/In progress/Complete are database-protected system statuses.

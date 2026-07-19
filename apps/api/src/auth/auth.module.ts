@@ -6,7 +6,8 @@ import { AuthController } from './auth.controller';
 import { AuthRateLimiterService } from './auth-rate-limiter.service';
 import { AuthService } from './auth.service';
 import { CsrfService } from './csrf.service';
-import { FakeMailAdapter, MailAdapter } from './mail.adapter';
+import { GoogleIdentityVerifier } from './google-identity.verifier';
+import { configuredMailAdapter, MailAdapter } from './mail.adapter';
 import { TokenService } from './token.service';
 import { UsersController } from './users.controller';
 
@@ -16,6 +17,7 @@ import { UsersController } from './users.controller';
   providers: [
     AuthService,
     AuthAuditService,
+    GoogleIdentityVerifier,
     AccessTokenGuard,
     { provide: TokenService, useFactory: () => new TokenService() },
     {
@@ -26,7 +28,7 @@ import { UsersController } from './users.controller';
       })
     },
     { provide: CsrfService, useFactory: () => new CsrfService() },
-    { provide: MailAdapter, useClass: FakeMailAdapter }
+    { provide: MailAdapter, useFactory: configuredMailAdapter }
   ],
   exports: [AuthService, AccessTokenGuard, TokenService, MailAdapter]
 })

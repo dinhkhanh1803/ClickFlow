@@ -4,11 +4,12 @@ import type { Request, Response } from 'express';
 
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { AuthRateLimiterService } from './auth-rate-limiter.service';
-import { AcceptedResponseDto, AuthResponseDto, ForgotPasswordRequestDto, LoginRequestDto, RegisterRequestDto, ResetPasswordRequestDto } from './auth.dto';
-import { forgotPasswordSchema, type ForgotPasswordInput, loginSchema, type LoginInput, registerSchema, type RegisterInput, resetPasswordSchema, type ResetPasswordInput } from './auth.schemas';
+import { AcceptedResponseDto, AuthResponseDto, EmailRegistrationResponseDto, ForgotPasswordRequestDto, GoogleLoginRequestDto, LoginRequestDto, RegisterRequestDto, ResendVerificationRequestDto, ResetPasswordRequestDto, VerifyEmailRequestDto } from './auth.dto';
+import { forgotPasswordSchema, type ForgotPasswordInput, googleLoginSchema, type GoogleLoginInput, loginSchema, type LoginInput, registerSchema, type RegisterInput, resendVerificationSchema, type ResendVerificationInput, resetPasswordSchema, type ResetPasswordInput, verifyEmailSchema, type VerifyEmailInput } from './auth.schemas';
 import { AuthService, type AuthClientContext, type AuthResult } from './auth.service';
 import { clearAuthCookies, CSRF_COOKIE, parseCookies, REFRESH_COOKIE, writeAuthCookies } from './cookies';
 import { CsrfService } from './csrf.service';
+import { GoogleIdentityVerifier } from './google-identity.verifier';
 import { Public } from './public.decorator';
 import { TokenService } from './token.service';
 
@@ -39,9 +40,38 @@ export class AuthController {
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject(AuthRateLimiterService) private readonly limiter: AuthRateLimiterService,
     @Inject(CsrfService) private readonly csrf: CsrfService,
-    @Inject(TokenService) private readonly tokens: TokenService
+    @Inject(TokenService) private readonly tokens: TokenService,
+    @Inject(GoogleIdentityVerifier) private readonly google: GoogleIdentityVerifier
   ) {}
 
+  @Post('register-email')
+  @ApiOperation({ summary: 'Create an email account pending verification' })
+  @ApiBody({ type: RegisterRequestDto })
+  @ApiCreatedResponse({ type: EmailRegistrationResponseDto })
+  async registerEmail(@Body(new ZodValidationPipe(registerSchema)) input: RegisterInput, @Req() request: Request, @Ip() ipAddress: string): Promise<EmailRegistrationResponseDto> {
+    this.limiter.consume('register-email', ipAddress, input.email);
+    return this.auth.registerEmail(input, clientContext(request, ipAddress));
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ type: VerifyEmailRequestDto })
+  @ApiOkResponse({ type: AcceptedResponseDto })
+  async verifyEmail(@Body(new ZodValidationPipe(verifyEmailSchema)) input: VerifyEmailInput, @Req() request: Request, @Ip() ipAddress: string): Promise<AcceptedResponseDto> {
+    this.limiter.consume('verify-email', ipAddress, this.tokens.hashOpaqueToken(input.token));
+    await this.auth.verifyEmail(input, clientContext(request, ipAddress));
+    return { accepted: true };
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiBody({ type: ResendVerificationRequestDto })
+  @ApiAcceptedResponse({ type: AcceptedResponseDto })
+  async resendVerification(@Body(new ZodValidationPipe(resendVerificationSchema)) input: ResendVerificationInput, @Req() request: Request, @Ip() ipAddress: string): Promise<AcceptedResponseDto> {
+    this.limiter.consume('resend-verification', ipAddress, input.email);
+    await this.auth.resendVerification(input, clientContext(request, ipAddress));
+    return { accepted: true };
+  }
   @Post('register')
   @ApiOperation({ summary: 'Create an account, workspace and initial session' })
   @ApiBody({ type: RegisterRequestDto })
@@ -76,6 +106,25 @@ export class AuthController {
     return publicResult(result);
   }
 
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Authenticate with a Google Identity Services ID token' })
+  @ApiBody({ type: GoogleLoginRequestDto })
+  @ApiOkResponse({ type: AuthResponseDto })
+  async googleLogin(
+    @Body(new ZodValidationPipe(googleLoginSchema)) input: GoogleLoginInput,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+    @Ip() ipAddress: string
+  ): Promise<AuthResponseDto> {
+    const rateLimitIdentity = this.tokens.hashOpaqueToken(input.credential);
+    this.limiter.consume('google', ipAddress, rateLimitIdentity);
+    const identity = await this.google.verify(input.credential);
+    const result = await this.auth.googleLogin(identity, clientContext(request, ipAddress));
+    this.limiter.reset('google', ipAddress, rateLimitIdentity);
+    writeAuthCookies(response, result.refreshToken, result.csrfToken, result.refreshExpiresAt);
+    return publicResult(result);
+  }
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: AuthResponseDto })

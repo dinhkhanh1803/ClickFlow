@@ -7,6 +7,11 @@ export interface AuthUserResponse {
   locale: string;
 }
 
+export interface UpdateProfileRequest {
+  displayName?: string;
+  avatarUrl?: string | null;
+}
+
 export interface AuthResponse {
   accessToken: string;
   tokenType: 'Bearer';
@@ -20,9 +25,19 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface GoogleLoginRequest {
+  credential: string;
+}
+
 export interface RegisterRequest extends LoginRequest {
   displayName: string;
 }
+
+export interface VerifyEmailRequest { token: string; }
+
+export interface ResendVerificationRequest { email: string; }
+
+export interface EmailRegistrationResponse extends AcceptedResponse { email: string; }
 
 export interface ForgotPasswordRequest {
   email: string;

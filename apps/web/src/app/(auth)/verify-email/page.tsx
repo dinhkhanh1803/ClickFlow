@@ -1,0 +1,2 @@
+import { VerifyEmailClient } from '@/features/auth/components/verify-email-client';
+export default async function VerifyEmailPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) { const { token } = await searchParams; return <main className="grid min-h-screen place-items-center bg-slate-950 p-6"><section className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl"><VerifyEmailClient token={token} /></section></main>; }

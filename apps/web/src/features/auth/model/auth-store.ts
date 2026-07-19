@@ -12,6 +12,7 @@ interface AuthState {
   user: AuthUserResponse | null;
   setLoading(): void;
   setSession(session: AuthResponse): void;
+  updateUser(user: AuthUserResponse): void;
   clearSession(): void;
 }
 
@@ -27,6 +28,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     csrfToken: session.csrfToken,
     user: session.user
   }),
+  updateUser: (user) => set({ user }),
   clearSession: () => set({
     status: 'unauthenticated',
     accessToken: null,

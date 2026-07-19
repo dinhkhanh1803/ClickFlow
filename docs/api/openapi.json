@@ -695,6 +695,23 @@
         ],
         "type": "object"
       },
+      "EmailRegistrationResponseDto": {
+        "properties": {
+          "accepted": {
+            "example": true,
+            "type": "boolean"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepted",
+          "email"
+        ],
+        "type": "object"
+      },
       "ForgotPasswordRequestDto": {
         "properties": {
           "email": {
@@ -704,6 +721,18 @@
         },
         "required": [
           "email"
+        ],
+        "type": "object"
+      },
+      "GoogleLoginRequestDto": {
+        "properties": {
+          "credential": {
+            "description": "Google Identity Services ID token credential",
+            "type": "string"
+          }
+        },
+        "required": [
+          "credential"
         ],
         "type": "object"
       },
@@ -1068,6 +1097,18 @@
         ],
         "type": "object"
       },
+      "ResendVerificationRequestDto": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
       "ResetPasswordRequestDto": {
         "properties": {
           "password": {
@@ -1264,6 +1305,9 @@
             "format": "uuid",
             "type": "string"
           },
+          "isSystem": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
           },
@@ -1282,7 +1326,8 @@
           "color",
           "category",
           "completed",
-          "position"
+          "position",
+          "isSystem"
         ],
         "type": "object"
       },
@@ -1774,6 +1819,23 @@
         },
         "type": "object"
       },
+      "UpdateWorkspaceRequestDto": {
+        "properties": {
+          "name": {
+            "maxLength": 160,
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "tone": {
+            "maxLength": 40,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UploadIntentRequestDto": {
         "properties": {
           "byteSize": {
@@ -1862,6 +1924,17 @@
           "avatarUrl",
           "timezone",
           "locale"
+        ],
+        "type": "object"
+      },
+      "VerifyEmailRequestDto": {
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ],
         "type": "object"
       },
@@ -2013,6 +2086,38 @@
         ]
       }
     },
+    "/api/v1/auth/google": {
+      "post": {
+        "operationId": "AuthController_googleLogin",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Authenticate with a Google Identity Services ID token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "AuthController_login",
@@ -2112,6 +2217,69 @@
         ]
       }
     },
+    "/api/v1/auth/register-email": {
+      "post": {
+        "operationId": "AuthController_registerEmail",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailRegistrationResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Create an email account pending verification",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "operationId": "AuthController_resendVerification",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/reset-password": {
       "post": {
         "operationId": "AuthController_resetPassword",
@@ -2121,6 +2289,37 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ResetPasswordRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "operationId": "AuthController_verifyEmail",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequestDto"
               }
             }
           },
@@ -2209,6 +2408,32 @@
         "summary": "Get basic process and PostgreSQL metrics",
         "tags": [
           "observability"
+        ]
+      }
+    },
+    "/api/v1/profile": {
+      "patch": {
+        "operationId": "ProfileController_update",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "profile"
         ]
       }
     },
@@ -2302,9 +2527,60 @@
       }
     },
     "/api/v1/workspaces/{workspaceId}": {
+      "delete": {
+        "operationId": "WorkspaceController_archive",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workspaces"
+        ]
+      },
       "get": {
         "operationId": "WorkspaceController_get",
         "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workspaces"
+        ]
+      },
+      "patch": {
+        "operationId": "WorkspaceController_update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

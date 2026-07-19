@@ -11,6 +11,10 @@ export class LoginRequestDto {
   @ApiProperty({ type: String, format: 'password' }) password!: string;
 }
 
+export class GoogleLoginRequestDto {
+  @ApiProperty({ type: String, description: 'Google Identity Services ID token credential' }) credential!: string;
+}
+
 export class ForgotPasswordRequestDto {
   @ApiProperty({ type: String, format: 'email' }) email!: string;
 }
@@ -40,3 +44,7 @@ export class AuthResponseDto {
 export class AcceptedResponseDto {
   @ApiProperty({ type: Boolean, example: true }) accepted!: true;
 }
+
+export class VerifyEmailRequestDto { @ApiProperty({ type: String }) token!: string; }
+export class ResendVerificationRequestDto { @ApiProperty({ type: String, format: 'email' }) email!: string; }
+export class EmailRegistrationResponseDto extends AcceptedResponseDto { @ApiProperty({ type: String, format: 'email' }) email!: string; }

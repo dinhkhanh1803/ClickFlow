@@ -1,15 +1,32 @@
 'use client';
 
-import type { ForgotPasswordRequest, LoginRequest, ResetPasswordRequest } from '@clickflow/contracts';
+import type { ForgotPasswordRequest, GoogleLoginRequest, LoginRequest, RegisterRequest, ResendVerificationRequest, ResetPasswordRequest, VerifyEmailRequest } from '@clickflow/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { authApi } from './auth-api';
 import { useAuthStore } from '../model/auth-store';
 
+export function useRegisterMutation() {
+  return useMutation({ mutationFn: (input: RegisterRequest) => authApi.register(input) });
+}
+export function useVerifyEmailMutation() {
+  return useMutation({ mutationFn: (input: VerifyEmailRequest) => authApi.verifyEmail(input) });
+}
+export function useResendVerificationMutation() {
+  return useMutation({ mutationFn: (input: ResendVerificationRequest) => authApi.resendVerification(input) });
+}
 export function useLoginMutation() {
   const setSession = useAuthStore((state) => state.setSession);
   return useMutation({
     mutationFn: (input: LoginRequest) => authApi.login(input),
+    onSuccess: setSession
+  });
+}
+
+export function useGoogleLoginMutation() {
+  const setSession = useAuthStore((state) => state.setSession);
+  return useMutation({
+    mutationFn: (input: GoogleLoginRequest) => authApi.googleLogin(input),
     onSuccess: setSession
   });
 }
