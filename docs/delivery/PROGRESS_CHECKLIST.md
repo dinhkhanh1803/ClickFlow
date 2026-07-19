@@ -60,5 +60,5 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Lists can be created directly under a Workspace or inside a Project without exposing the internal root container.
 - [x] New API Projects default to Open, In progress, and Complete; extra statuses remain user-created.
 - [x] Task screens load and mutate core Task fields through workspace-scoped backend APIs.
-- [ ] Comments, activity, time tracking, reports, attachments, templates, and settings use backend APIs.
+- [x] Comments and activity history use backend APIs.
 - [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.

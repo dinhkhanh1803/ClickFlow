@@ -158,7 +158,14 @@ export function LocalTaskDetailModal({ task, statusOptions, onClose, onUpdate }:
   const [activityWidth, setActivityWidth] = useState(360);
   const [previewAttachmentId, setPreviewAttachmentId] = useState<string | null>(null);
   const [activePicker, setActivePicker] = useState<TaskDetailPicker>(null);
-  const comments = task.comments ?? [];
+  const activityComments: LocalTaskComment[] = (task.activity ?? []).map((activity) => ({
+    id: `activity-${activity.id}`,
+    body: activity.eventType.replaceAll('_', ' ').toLowerCase(),
+    authorName: activity.actorName,
+    createdAt: activity.createdAt
+  }));
+  const comments = [...activityComments, ...(task.comments ?? [])]
+    .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime());
   const attachments = task.attachments ?? [];
   const previewAttachment = attachments.find((attachment) => attachment.id === previewAttachmentId) ?? null;
   const postComment = ({ body, attachments: commentAttachments, links }: CommentDraft) => {

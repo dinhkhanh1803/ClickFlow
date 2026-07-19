@@ -6,6 +6,7 @@ import { useContext, useMemo } from 'react';
 
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { taskApi } from './task-api';
+import { commentApi } from './comment-api';
 import { workspaceApi } from './workspace-api';
 import { mapWorkspaceTree } from './workspace-navigation-adapter';
 
@@ -14,7 +15,9 @@ export const workspaceKeys = {
   projects: (workspaceId: string) => ['workspaces', workspaceId, 'projects'] as const,
   sections: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'sections'] as const,
   statuses: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'statuses'] as const,
-  tasks: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'tasks'] as const
+  tasks: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'tasks'] as const,
+  comments: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'comments'] as const,
+  activity: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'activity'] as const
 };
 
 function requireToken(accessToken: string | null): string {
@@ -59,12 +62,22 @@ export function useWorkspaceNavigationQuery(enabled = true) {
   })) }, queryClient);
   const statuses = useMemo<ProjectStatusResponse[]>(() => statusQueries.flatMap((query) => query.data ?? []), [statusQueries]);
   const tasks = useMemo<TaskApiResponse[]>(() => taskQueries.flatMap((query) => query.data?.items ?? []), [taskQueries]);
-  const allQueries = [...projectQueries, ...sectionQueries, ...statusQueries, ...taskQueries];
+  const commentQueries = useQueries({ queries: tasks.map((task) => ({
+    queryKey: workspaceKeys.comments(task.workspaceId, task.id),
+    queryFn: () => commentApi.list(requireToken(accessToken), task.workspaceId, task.id)
+  })) }, queryClient);
+  const activityQueries = useQueries({ queries: tasks.map((task) => ({
+    queryKey: workspaceKeys.activity(task.workspaceId, task.id),
+    queryFn: () => commentApi.activity(requireToken(accessToken), task.workspaceId, task.id)
+  })) }, queryClient);
+  const comments = useMemo(() => commentQueries.flatMap((query) => query.data?.items ?? []), [commentQueries]);
+  const activities = useMemo(() => activityQueries.flatMap((query) => query.data?.items ?? []), [activityQueries]);
+  const allQueries = [...projectQueries, ...sectionQueries, ...statusQueries, ...taskQueries, ...commentQueries, ...activityQueries];
   const pending = authenticated && (workspacesQuery.isPending || allQueries.some((query) => query.isPending));
   const error = authenticated ? workspacesQuery.error ?? allQueries.find((query) => query.error)?.error ?? null : null;
-  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks) : undefined;
+  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks, comments, activities) : undefined;
 
-  return { data, projects, sections, statuses, tasks, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
+  return { data, projects, sections, statuses, tasks, comments, activities, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
 }
 
 export function useCreateWorkspaceMutation() {
@@ -174,6 +187,18 @@ export function useArchiveTaskMutation() {
   return useMutation({
     mutationFn: (variables: { workspaceId: string; projectId: string; taskId: string; version: number }) => taskApi.archive(requireToken(accessToken), variables.workspaceId, variables.taskId, variables.version),
     onSuccess: (_task, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.tasks(variables.workspaceId, variables.projectId) })
+  }, queryClient);
+}
+
+export function useCreateCommentMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, taskId, body }: { workspaceId: string; taskId: string; body: string }) => commentApi.create(requireToken(accessToken), workspaceId, taskId, body),
+    onSuccess: (_comment, variables) => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.comments(variables.workspaceId, variables.taskId) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.activity(variables.workspaceId, variables.taskId) });
+    }
   }, queryClient);
 }
 

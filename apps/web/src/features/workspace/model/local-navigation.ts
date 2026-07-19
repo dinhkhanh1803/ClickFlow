@@ -17,6 +17,14 @@ export type LocalTaskComment = {
   authorName?: string;
 };
 
+export type LocalTaskActivity = {
+  id: string;
+  eventType: string;
+  actorName: string;
+  createdAt: string;
+  metadata: Record<string, unknown>;
+};
+
 export type LocalTaskAttachment = {
   id: string;
   name: string;
@@ -43,6 +51,7 @@ export type LocalListTask = {
   tags: string[];
   description: string;
   comments: LocalTaskComment[];
+  activity?: LocalTaskActivity[];
   attachments: LocalTaskAttachment[];
   createdAt: string;
 };

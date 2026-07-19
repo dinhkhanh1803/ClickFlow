@@ -16,7 +16,7 @@ import { LocalGanttTaskSurface } from './local-gantt-task-surface';
 import { TaskStatusChart } from './task-status-chart';
 import { TaskAssignmentChart } from './task-assignment-chart';
 import { SpaceTabContent, SpaceTaskModal, type SpaceView } from './space-tab-content';
-import { useArchiveTaskMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useUpdateStatusMutation, useUpdateTaskMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
+import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useUpdateStatusMutation, useUpdateTaskMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
 
 const spaceViews: Array<{ name: SpaceView; icon: typeof Columns3; iconClassName: string }> = [
   { name: 'Overview', icon: LayoutDashboard, iconClassName: 'text-violet-500' },
@@ -53,6 +53,7 @@ export function SpaceOverview() {
   const updateStatusMutation = useUpdateStatusMutation();
   const effectiveLocalSpaces = navigationQuery.data ?? localSpaces;
   const projects = space.projects.filter((project) => !project.archived);
+  const createCommentMutation = useCreateCommentMutation();
   const query = new URLSearchParams(locationQuery);
   const spaceId = query.get('space');
   const folderId = query.get('folder');
@@ -203,6 +204,15 @@ export function SpaceOverview() {
       const task = list?.tasks?.find((item) => item.id === taskId);
       const projectId = list?.apiProjectId ?? list?.parentId;
       if (!projectId || !task?.version) return;
+      if (patch.comments && patch.comments.length > task.comments.length) {
+        const comment = patch.comments[patch.comments.length - 1];
+        const body = [comment.body, ...(comment.links ?? [])].filter(Boolean).join('\n');
+        if (body.trim()) {
+          try { await createCommentMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, taskId, body }); }
+          catch { toast.error('Unable to post the comment.'); }
+        }
+        return;
+      }
       const input: import('@clickflow/contracts').TaskUpdateRequest = { version: task.version };
       if (patch.title !== undefined) input.title = patch.title;
       if (patch.description !== undefined) input.description = patch.description || null;
