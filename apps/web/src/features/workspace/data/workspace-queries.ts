@@ -6,6 +6,7 @@ import { useContext, useMemo } from 'react';
 
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { taskApi } from './task-api';
+import { timeTrackingApi } from '@/features/time-tracking/data/time-tracking-api';
 import { commentApi } from './comment-api';
 import { workspaceApi } from './workspace-api';
 import { mapWorkspaceTree } from './workspace-navigation-adapter';
@@ -17,7 +18,8 @@ export const workspaceKeys = {
   statuses: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'statuses'] as const,
   tasks: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'tasks'] as const,
   comments: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'comments'] as const,
-  activity: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'activity'] as const
+  activity: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'activity'] as const,
+  timeEntries: (workspaceId: string) => ['workspaces', workspaceId, 'time-entries'] as const
 };
 
 function requireToken(accessToken: string | null): string {
@@ -72,12 +74,17 @@ export function useWorkspaceNavigationQuery(enabled = true) {
   })) }, queryClient);
   const comments = useMemo(() => commentQueries.flatMap((query) => query.data?.items ?? []), [commentQueries]);
   const activities = useMemo(() => activityQueries.flatMap((query) => query.data?.items ?? []), [activityQueries]);
-  const allQueries = [...projectQueries, ...sectionQueries, ...statusQueries, ...taskQueries, ...commentQueries, ...activityQueries];
+  const timeEntryQueries = useQueries({ queries: workspaceIds.map((workspaceId) => ({
+    queryKey: workspaceKeys.timeEntries(workspaceId),
+    queryFn: () => timeTrackingApi.list(requireToken(accessToken), workspaceId)
+  })) }, queryClient);
+  const timeEntries = useMemo(() => timeEntryQueries.flatMap((query) => query.data?.items ?? []), [timeEntryQueries]);
+  const allQueries = [...projectQueries, ...sectionQueries, ...statusQueries, ...taskQueries, ...commentQueries, ...activityQueries, ...timeEntryQueries];
   const pending = authenticated && (workspacesQuery.isPending || allQueries.some((query) => query.isPending));
   const error = authenticated ? workspacesQuery.error ?? allQueries.find((query) => query.error)?.error ?? null : null;
-  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks, comments, activities) : undefined;
+  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks, comments, activities, timeEntries) : undefined;
 
-  return { data, projects, sections, statuses, tasks, comments, activities, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
+  return { data, projects, sections, statuses, tasks, comments, activities, timeEntries, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
 }
 
 export function useCreateWorkspaceMutation() {
@@ -190,6 +197,30 @@ export function useArchiveTaskMutation() {
   }, queryClient);
 }
 
+
+export function useStartTimerMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, taskId }: { workspaceId: string; taskId: string }) => timeTrackingApi.start(requireToken(accessToken), workspaceId, taskId),
+    onSuccess: (entry, variables) => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.timeEntries(variables.workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.activity(variables.workspaceId, entry.taskId) });
+    }
+  }, queryClient);
+}
+
+export function useStopTimerMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId }: { workspaceId: string }) => timeTrackingApi.stop(requireToken(accessToken), workspaceId),
+    onSuccess: (entry, variables) => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.timeEntries(variables.workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.activity(variables.workspaceId, entry.taskId) });
+    }
+  }, queryClient);
+}
 export function useCreateCommentMutation() {
   const queryClient = useWorkspaceQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);

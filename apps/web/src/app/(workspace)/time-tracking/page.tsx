@@ -1,2 +1,3 @@
-import { PlaceholderPage } from '@/components/states/placeholder-page';
-export default function Page(){ return <PlaceholderPage title='Time Tracking' description='Mock timer and time-entry overview.'/>; }
+import { TimeTrackingClient } from '@/features/time-tracking/components/time-tracking-client';
+
+export default function Page() { return <TimeTrackingClient />; }

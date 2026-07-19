@@ -16,7 +16,7 @@ import { LocalGanttTaskSurface } from './local-gantt-task-surface';
 import { TaskStatusChart } from './task-status-chart';
 import { TaskAssignmentChart } from './task-assignment-chart';
 import { SpaceTabContent, SpaceTaskModal, type SpaceView } from './space-tab-content';
-import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useUpdateStatusMutation, useUpdateTaskMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
+import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useStartTimerMutation, useStopTimerMutation, useUpdateStatusMutation, useUpdateTaskMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
 
 const spaceViews: Array<{ name: SpaceView; icon: typeof Columns3; iconClassName: string }> = [
   { name: 'Overview', icon: LayoutDashboard, iconClassName: 'text-violet-500' },
@@ -55,6 +55,8 @@ export function SpaceOverview() {
   const projects = space.projects.filter((project) => !project.archived);
   const createCommentMutation = useCreateCommentMutation();
   const query = new URLSearchParams(locationQuery);
+  const startTimerMutation = useStartTimerMutation();
+  const stopTimerMutation = useStopTimerMutation();
   const spaceId = query.get('space');
   const folderId = query.get('folder');
   const listId = query.get('list');
@@ -214,6 +216,16 @@ export function SpaceOverview() {
         return;
       }
       const input: import('@clickflow/contracts').TaskUpdateRequest = { version: task.version };
+      if (patch.trackingStartedAt !== undefined) {
+        try {
+          if (patch.trackingStartedAt && !task.trackingStartedAt) {
+            await startTimerMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, taskId });
+          } else if (patch.trackingStartedAt === null && task.trackingStartedAt) {
+            await stopTimerMutation.mutateAsync({ workspaceId: selectedLocalSpace.id });
+          }
+        } catch { toast.error('Unable to update the timer.'); }
+        return;
+      }
       if (patch.title !== undefined) input.title = patch.title;
       if (patch.description !== undefined) input.description = patch.description || null;
       if (patch.statusGroupId !== undefined) input.statusId = patch.statusGroupId;

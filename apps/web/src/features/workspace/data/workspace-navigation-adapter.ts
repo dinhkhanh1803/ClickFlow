@@ -1,4 +1,4 @@
-import { SPACE_ROOT_PROJECT_TONE, type ActivityApiResponse, type CommentApiResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
+import { SPACE_ROOT_PROJECT_TONE, type ActivityApiResponse, type CommentApiResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TimeEntryApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
 import type { LocalListTask, LocalSpace, LocalStatusColor, LocalTaskPriority } from '../model/local-navigation';
 
 const fallbackTones = ['bg-indigo-500', 'bg-orange-500', 'bg-pink-500', 'bg-emerald-500', 'bg-violet-500', 'bg-cyan-500'];
@@ -17,8 +17,10 @@ function taskPriority(priority: TaskApiResponse['priority']): LocalTaskPriority 
   return ({ URGENT: 'Urgent', HIGH: 'High', NORMAL: 'Normal', LOW: 'Low' } as const)[priority];
 }
 
-function mapTask(task: TaskApiResponse, statuses: ProjectStatusResponse[], comments: CommentApiResponse[], activities: ActivityApiResponse[]): LocalListTask {
+function mapTask(task: TaskApiResponse, statuses: ProjectStatusResponse[], comments: CommentApiResponse[], activities: ActivityApiResponse[], timeEntries: TimeEntryApiResponse[]): LocalListTask {
   const status = statuses.find((item) => item.id === task.statusId);
+  const taskTimeEntries = timeEntries.filter((entry) => entry.taskId === task.id && entry.archivedAt === null);
+  const runningEntry = taskTimeEntries.find((entry) => entry.endedAt === null);
   return {
     id: task.id,
     version: task.version,
@@ -31,8 +33,8 @@ function mapTask(task: TaskApiResponse, statuses: ProjectStatusResponse[], comme
     startDate: '',
     dueDate: task.dueAt?.slice(0, 10) ?? '',
     timeEstimate: '',
-    trackingStartedAt: null,
-    trackedSeconds: 0,
+    trackingStartedAt: runningEntry?.startedAt ?? null,
+    trackedSeconds: taskTimeEntries.reduce((total, entry) => total + (entry.durationSeconds ?? 0), 0),
     tags: [],
     description: task.description ?? '',
     comments: comments.filter((comment) => comment.taskId === task.id).map((comment) => ({
@@ -57,7 +59,8 @@ export function mapWorkspaceTree(
   statuses: ProjectStatusResponse[] = [],
   tasks: TaskApiResponse[] = [],
   comments: CommentApiResponse[] = [],
-  activities: ActivityApiResponse[] = []
+  activities: ActivityApiResponse[] = [],
+  timeEntries: TimeEntryApiResponse[] = []
 ): LocalSpace[] {
   return workspaces.map((workspace, index) => {
     const workspaceProjects = projects
@@ -98,7 +101,7 @@ export function mapWorkspaceTree(
                   .sort((left, right) => left.position - right.position)
                   .map((status) => ({ id: status.id, name: status.name, taskStatus: status.name, scope: 'list' as const, color: statusColor(status.category), source: 'api' as const }))
               } : {}),
-              tasks: tasks.filter((task) => task.sectionId === section.id && task.archivedAt === null).map((task) => mapTask(task, statuses, comments, activities))
+              tasks: tasks.filter((task) => task.sectionId === section.id && task.archivedAt === null).map((task) => mapTask(task, statuses, comments, activities, timeEntries))
             };
           })
       ]

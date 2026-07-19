@@ -62,3 +62,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Task screens load and mutate core Task fields through workspace-scoped backend APIs.
 - [x] Comments and activity history use backend APIs.
 - [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.
+- [x] Task timers and the Time Tracking overview use backend APIs.
