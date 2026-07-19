@@ -1,22 +1,25 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { QueryClient, QueryClientContext, useQuery } from '@tanstack/react-query';
 import { CheckSquare2, Folder, Search, X } from 'lucide-react';
 import { Dialog, DialogTitle } from '@/components/ui/dialog';
 import { analyticsApi } from '@/features/analytics/data/analytics-api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useWorkspaceNavigationQuery } from '@/features/workspace/data/workspace-queries';
 
-type SearchFilter = 'all' | 'projects' | 'tasks';
+type SearchFilter = 'all' | 'projects' | 'tasks' | 'docs';
 const filters: Array<{ id: SearchFilter; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'projects', label: 'Projects' },
   { id: 'tasks', label: 'Tasks' },
+  { id: 'docs', label: 'Docs' },
 ];
 
 type GlobalSearchDialogProps = { open: boolean; onOpenChange: (open: boolean) => void };
+const fallbackQueryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
 
 export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
   const [query, setQuery] = useState('');
@@ -24,13 +27,14 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
   const token = useAuthStore((state) => state.accessToken);
   const navigation = useWorkspaceNavigationQuery();
   const workspace = navigation.data?.[0];
+  const queryClient = useContext(QueryClientContext) ?? fallbackQueryClient;
   const search = useQuery({
     queryKey: ['analytics-search', workspace?.id, query],
     queryFn: () => analyticsApi.search(token!, workspace!.id, query.trim()),
     enabled: open && Boolean(token && workspace && query.trim().length >= 2),
-  });
+  }, queryClient);
   const results = useMemo(() => (search.data?.items ?? [])
-    .filter((item) => filter === 'all' || (filter === 'projects' ? item.type === 'PROJECT' : item.type === 'TASK'))
+    .filter((item) => filter === 'all' || filter === 'projects' && item.type === 'PROJECT' || filter === 'tasks' && item.type === 'TASK')
     .map((item) => ({
       id: item.id,
       kind: item.type === 'PROJECT' ? 'project' : 'task',

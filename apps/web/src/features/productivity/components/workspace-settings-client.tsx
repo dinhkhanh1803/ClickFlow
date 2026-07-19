@@ -23,6 +23,7 @@ export function WorkspaceSettingsClient() {
   const [notifications, setNotifications] = useState(true);
   useEffect(() => {
     if (!settings.data) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimezone(settings.data.timezone);
     setLocale(settings.data.locale);
     setWeekStartsOn(settings.data.preferences.weekStartsOn ?? 1);

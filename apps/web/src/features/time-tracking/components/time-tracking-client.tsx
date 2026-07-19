@@ -22,9 +22,9 @@ export function TimeTrackingClient() {
   const totalSeconds = entries.reduce((total, entry) => total + (entry.durationSeconds ?? 0), 0);
   const running = entries.find((entry) => entry.endedAt === null);
 
-  if (navigation.isLoading) return <PageState title="Loading time entries" description="Fetching workspace timers from the API." />;
-  if (navigation.isError) return <PageState title="Unable to load time tracking" description="Check the API connection and refresh the page." />;
-  if (!workspaces.length) return <PageState title="No Workspace yet" description="Create a Workspace and Task before tracking time." />;
+  if (navigation.isLoading) return <PageState title="Loading time entries" kind="loading" />;
+  if (navigation.isError) return <PageState title="Unable to load time tracking" kind="error" />;
+  if (!workspaces.length) return <PageState title="No Workspace yet" kind="empty" />;
 
   return <div className="space-y-6 p-6">
     <header className="flex flex-wrap items-end justify-between gap-4">
