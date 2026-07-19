@@ -75,6 +75,17 @@
         ],
         "type": "object"
       },
+      "ArchiveDocumentRequestDto": {
+        "properties": {
+          "contentVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "contentVersion"
+        ],
+        "type": "object"
+      },
       "ArchiveResponseDto": {
         "properties": {
           "projects": {
@@ -355,6 +366,28 @@
         ],
         "type": "object"
       },
+      "CreateDocumentRequestDto": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "projectId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sectionId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
       "CreateProjectRequestDto": {
         "properties": {
           "deadline": {
@@ -594,6 +627,56 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "DocumentResponseDto": {
+        "properties": {
+          "archivedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentVersion": {
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sectionId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "title",
+          "content",
+          "contentVersion",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "DownloadUrlResponseDto": {
@@ -1537,6 +1620,23 @@
         },
         "type": "object"
       },
+      "UpdateDocumentRequestDto": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "contentVersion": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contentVersion"
+        ],
+        "type": "object"
+      },
       "UpdateProjectRequestDto": {
         "properties": {
           "deadline": {
@@ -1706,6 +1806,19 @@
           "storageKey": {
             "type": "string"
           },
+          "uploadFields": {
+            "type": "object"
+          },
+          "uploadHeaders": {
+            "type": "object"
+          },
+          "uploadMethod": {
+            "enum": [
+              "PUT",
+              "POST"
+            ],
+            "type": "string"
+          },
           "uploadUrl": {
             "type": "string"
           }
@@ -1713,6 +1826,7 @@
         "required": [
           "storageKey",
           "uploadUrl",
+          "uploadMethod",
           "expiresAt"
         ],
         "type": "object"
@@ -2433,6 +2547,200 @@
         ],
         "tags": [
           "analytics"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/documents": {
+      "get": {
+        "operationId": "DocumentController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "documents"
+        ]
+      },
+      "post": {
+        "operationId": "DocumentController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspaceId}/documents/{documentId}": {
+      "delete": {
+        "operationId": "DocumentController_archive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "documentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveDocumentRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "documents"
+        ]
+      },
+      "get": {
+        "operationId": "DocumentController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "documentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "documents"
+        ]
+      },
+      "patch": {
+        "operationId": "DocumentController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "documentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "documents"
         ]
       }
     },

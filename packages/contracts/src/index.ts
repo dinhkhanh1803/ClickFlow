@@ -8,3 +8,4 @@ export * from './analytics-api-contract';
 export * from './attachment-api-contract';
 export * from './productivity-api-contract';
 export * from './workspace-api-contract';
+export * from './document-api-contract';

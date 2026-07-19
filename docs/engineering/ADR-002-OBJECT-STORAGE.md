@@ -6,7 +6,7 @@ Use an S3-compatible private bucket through the `StorageProvider` interface. Pro
 
 ## Security and operations
 
-- Keys are `workspaces/{workspaceId}/attachments/{uuid}`. Buckets deny public access.
+- Keys are `workspaces/{workspaceId}/attachments/{uuid}.{ext}`. Cloudinary assets use private delivery; future S3-compatible buckets must deny public access.
 - Complete verifies provider metadata, maximum 10 MiB, MIME allowlist and magic bytes before an active database record exists.
 - Provider-side malware scanning/quarantine must be enabled before broadening the allowlist beyond PDF/JPEG/PNG.
 - Deletion is retry-safe: metadata is soft-deleted and object deletion is idempotent. A scheduled orphan sweep removes unreferenced keys after the upload-intent grace period.

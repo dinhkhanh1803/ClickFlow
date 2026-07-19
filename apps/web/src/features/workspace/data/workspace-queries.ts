@@ -1,12 +1,14 @@
 'use client';
 
-import { SPACE_ROOT_PROJECT_TONE, type CreateProjectRequest, type CreateProjectStatusRequest, type CreateSectionRequest, type CreateWorkspaceRequest, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TaskCreateRequest, type TaskUpdateRequest, type UpdateProjectStatusRequest } from '@clickflow/contracts';
+import { SPACE_ROOT_PROJECT_TONE, type CreateProjectRequest, type CreateProjectStatusRequest, type CreateSectionRequest, type CreateWorkspaceRequest, type DocumentResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TaskCreateRequest, type TaskUpdateRequest, type UpdateProjectStatusRequest } from '@clickflow/contracts';
 import { QueryClient, QueryClientContext, useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { useContext, useMemo } from 'react';
 
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { taskApi } from './task-api';
 import { timeTrackingApi } from '@/features/time-tracking/data/time-tracking-api';
+import { documentApi } from './document-api';
+import { documentKeys } from './document-queries';
 import { commentApi } from './comment-api';
 import { workspaceApi } from './workspace-api';
 import { mapWorkspaceTree } from './workspace-navigation-adapter';
@@ -19,7 +21,8 @@ export const workspaceKeys = {
   tasks: (workspaceId: string, projectId: string) => ['workspaces', workspaceId, 'projects', projectId, 'tasks'] as const,
   comments: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'comments'] as const,
   activity: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'activity'] as const,
-  timeEntries: (workspaceId: string) => ['workspaces', workspaceId, 'time-entries'] as const
+  timeEntries: (workspaceId: string) => ['workspaces', workspaceId, 'time-entries'] as const,
+  documents: documentKeys.workspace
 };
 
 function requireToken(accessToken: string | null): string {
@@ -79,12 +82,17 @@ export function useWorkspaceNavigationQuery(enabled = true) {
     queryFn: () => timeTrackingApi.list(requireToken(accessToken), workspaceId)
   })) }, queryClient);
   const timeEntries = useMemo(() => timeEntryQueries.flatMap((query) => query.data?.items ?? []), [timeEntryQueries]);
-  const allQueries = [...projectQueries, ...sectionQueries, ...statusQueries, ...taskQueries, ...commentQueries, ...activityQueries, ...timeEntryQueries];
+  const documentQueries = useQueries({ queries: workspaceIds.map((workspaceId) => ({
+    queryKey: documentKeys.workspace(workspaceId),
+    queryFn: () => documentApi.list(requireToken(accessToken), workspaceId)
+  })) }, queryClient);
+  const documents = useMemo<DocumentResponse[]>(() => documentQueries.flatMap((query) => query.data ?? []), [documentQueries]);
+  const allQueries = [...projectQueries, ...sectionQueries, ...statusQueries, ...taskQueries, ...commentQueries, ...activityQueries, ...timeEntryQueries, ...documentQueries];
   const pending = authenticated && (workspacesQuery.isPending || allQueries.some((query) => query.isPending));
   const error = authenticated ? workspacesQuery.error ?? allQueries.find((query) => query.error)?.error ?? null : null;
-  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks, comments, activities, timeEntries) : undefined;
+  const data = workspacesQuery.data && !pending && !error ? mapWorkspaceTree(workspacesQuery.data, projects, sections, statuses, tasks, comments, activities, timeEntries, documents) : undefined;
 
-  return { data, projects, sections, statuses, tasks, comments, activities, timeEntries, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
+  return { data, projects, sections, statuses, tasks, comments, activities, timeEntries, documents, isLoading: pending, isError: Boolean(error), error, usesApi: authenticated };
 }
 
 export function useCreateWorkspaceMutation() {

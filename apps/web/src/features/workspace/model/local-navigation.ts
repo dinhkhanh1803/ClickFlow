@@ -65,7 +65,7 @@ export type LocalSpaceItem = {
   tasks?: LocalListTask[];
   statusGroups?: LocalStatusGroup[];
   statusOverrides?: LocalStatusOverride[];
-  document?: { content: string; updatedAt: string; style?: LocalDocumentBlockStyle; };
+  document?: { content: string; contentVersion?: number; updatedAt: string; style?: LocalDocumentBlockStyle; };
 };
 
 export type LocalSpace = {

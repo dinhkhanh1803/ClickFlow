@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SPACE_ROOT_PROJECT_TONE, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
+import { SPACE_ROOT_PROJECT_TONE, type DocumentResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
 import { mapWorkspaceTree } from './workspace-navigation-adapter';
 
 const timestamp = '2026-07-19T00:00:00.000Z';
@@ -32,6 +32,24 @@ describe('mapWorkspaceTree', () => {
     });
   });
 
+  it('preserves saved status colors and applies the three default status colors', () => {
+    const statuses = [
+      { id: 'status-open', projectId: project.id, name: 'Open', color: '#64748b', category: 'OPEN', completed: false, position: 0 },
+      { id: 'status-progress', projectId: project.id, name: 'In progress', color: '#3b82f6', category: 'IN_PROGRESS', completed: false, position: 1 },
+      { id: 'status-complete', projectId: project.id, name: 'Complete', color: '#10b981', category: 'COMPLETED', completed: true, position: 2 },
+      { id: 'status-custom', projectId: project.id, name: 'Blocked', color: '#f43f5e', category: 'OPEN', completed: false, position: 3 },
+    ] satisfies ProjectStatusResponse[];
+
+    const tree = mapWorkspaceTree([workspace], [project], [section], statuses);
+    const folder = tree[0].items.find((item) => item.id === project.id);
+
+    expect(folder?.statusGroups).toMatchObject([
+      { name: 'Open', color: 'slate' },
+      { name: 'In progress', color: 'blue' },
+      { name: 'Complete', color: 'emerald' },
+      { name: 'Blocked', color: 'rose' },
+    ]);
+  });
   it('maps Lists from the hidden Space container directly under the Workspace', () => {
     const rootProject = { ...project, id: 'project-root', name: 'Space Lists', tone: SPACE_ROOT_PROJECT_TONE, position: 1 };
     const rootSection = { id: 'section-root', projectId: rootProject.id, name: 'Inbox', position: 0 } satisfies SectionResponse;
@@ -46,5 +64,24 @@ describe('mapWorkspaceTree', () => {
       statusGroups: [{ id: 'status-open', name: 'Open', source: 'api' }]
     });
     expect(rootList).not.toHaveProperty('parentId');
+
+  });
+  it('places persisted Documents at Workspace and Folder scope', () => {
+    const folderDoc = { id: 'doc-folder', workspaceId: workspace.id, projectId: project.id, sectionId: null, title: 'Launch brief', content: '<p>Ready</p>', contentVersion: 3, createdAt: timestamp, updatedAt: timestamp, archivedAt: null } satisfies DocumentResponse;
+    const workspaceDoc = { ...folderDoc, id: 'doc-space', projectId: null, title: 'Workspace notes', contentVersion: 1 } satisfies DocumentResponse;
+
+    const tree = mapWorkspaceTree([workspace], [project], [section], [], [], [], [], [], [folderDoc, workspaceDoc]);
+
+    expect(tree[0].items.find((item) => item.id === folderDoc.id)).toMatchObject({
+      kind: 'doc',
+      parentId: project.id,
+      document: { content: '<p>Ready</p>', contentVersion: 3, updatedAt: timestamp }
+    });
+    expect(tree[0].items.find((item) => item.id === workspaceDoc.id)).toMatchObject({
+      kind: 'doc',
+      name: 'Workspace notes',
+      document: { contentVersion: 1 }
+    });
+    expect(tree[0].items.find((item) => item.id === workspaceDoc.id)).not.toHaveProperty('parentId');
   });
 });

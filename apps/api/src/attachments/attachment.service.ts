@@ -12,7 +12,8 @@ export class AttachmentService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService, @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider) {}
   async createUploadIntent(workspaceId: string, input: UploadIntentInput) {
     await this.assertTask(workspaceId, input.taskId);
-    const storageKey = `workspaces/${workspaceId}/attachments/${randomUUID()}`;
+    const extension = input.mimeType === 'image/jpeg' ? 'jpg' : input.mimeType === 'image/png' ? 'png' : 'pdf';
+    const storageKey = `workspaces/${workspaceId}/attachments/${randomUUID()}.${extension}`;
     return { storageKey, ...await this.storage.createSignedUpload({ storageKey, mimeType: input.mimeType, byteSize: input.byteSize, expiresInSeconds: 600 }) };
   }
   async complete(workspaceId: string, userId: string, input: CompleteAttachmentInput, context: AuthClientContext) {

@@ -21,4 +21,8 @@ describe('environment', () => {
   it('parses an explicit CORS allowlist', () => {
     expect(parseCorsOrigins('https://one.example, https://two.example')).toEqual(['https://one.example', 'https://two.example']);
   });
+
+  it('requires credentials when Cloudinary storage is selected', () => {
+    expect(() => loadEnvironment({ NODE_ENV: 'test', STORAGE_PROVIDER: 'cloudinary' })).toThrow('CLOUDINARY_CLOUD_NAME');
+  });
 });

@@ -65,6 +65,29 @@ describe('ContextSidebar', () => {
     expect(screen.queryByRole('menuitem', { name: /Form/ })).not.toBeInTheDocument();
   });
 
+  it('closes sidebar menus when clicking outside the sidebar', async () => {
+    const user = userEvent.setup();
+    render(<ContextSidebar modulePath="/projects" />);
+
+    await user.click(screen.getByLabelText('Create space'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    await user.click(document.body);
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('closes item option menus with Escape', async () => {
+    const user = userEvent.setup();
+    render(<ContextSidebar modulePath="/projects" />);
+
+    await user.click(screen.getByRole('button', { name: 'More options for Projects' }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
   it('creates a List inside a Project folder from its plus button', async () => {
     const user = userEvent.setup();
     render(<ContextSidebar modulePath="/projects" />);

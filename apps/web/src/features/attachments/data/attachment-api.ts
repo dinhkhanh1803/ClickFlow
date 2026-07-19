@@ -1,9 +1,8 @@
-import type { AttachmentContract } from '@clickflow/contracts';
+import type { AttachmentContract, AttachmentUploadIntentContract } from '@clickflow/contracts';
 
 import { createApiClient } from '@/lib/api/client';
 import { apiBaseUrl } from '@/lib/api/environment';
 
-type UploadIntent = { storageKey: string; uploadUrl: string; expiresAt: string };
 type UploadInput = { taskId: string; fileName: string; mimeType: 'application/pdf' | 'image/jpeg' | 'image/png'; byteSize: number };
 
 const client = createApiClient(apiBaseUrl);
@@ -12,8 +11,16 @@ const authorized = (accessToken: string) => ({ accessToken });
 export const attachmentApi = {
   async upload(accessToken: string, workspaceId: string, taskId: string, file: File): Promise<AttachmentContract> {
     const input: UploadInput = { taskId, fileName: file.name, mimeType: file.type as UploadInput['mimeType'], byteSize: file.size };
-    const intent = await client.post<UploadIntent>(`/workspaces/${workspaceId}/attachments/upload-intents`, input, authorized(accessToken));
-    const upload = await fetch(intent.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+    const intent = await client.post<AttachmentUploadIntentContract>(`/workspaces/${workspaceId}/attachments/upload-intents`, input, authorized(accessToken));
+    let upload: Response;
+    if (intent.uploadMethod === 'POST') {
+      const form = new FormData();
+      for (const [key, value] of Object.entries(intent.uploadFields ?? {})) form.append(key, value);
+      form.append('file', file);
+      upload = await fetch(intent.uploadUrl, { method: 'POST', body: form });
+    } else {
+      upload = await fetch(intent.uploadUrl, { method: 'PUT', headers: intent.uploadHeaders ?? { 'Content-Type': file.type }, body: file });
+    }
     if (!upload.ok) throw new Error('The object storage upload failed');
     return client.post(`/workspaces/${workspaceId}/attachments/complete`, { ...input, storageKey: intent.storageKey }, authorized(accessToken));
   },

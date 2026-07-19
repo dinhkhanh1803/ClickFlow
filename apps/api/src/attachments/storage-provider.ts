@@ -16,7 +16,13 @@ export interface StoredObjectMetadata {
 }
 
 export interface StorageProvider {
-  createSignedUpload(spec: UploadIntentSpec): Promise<{ uploadUrl: string; expiresAt: Date }>;
+  createSignedUpload(spec: UploadIntentSpec): Promise<{
+    uploadUrl: string;
+    uploadMethod: 'PUT' | 'POST';
+    uploadHeaders?: Record<string, string>;
+    uploadFields?: Record<string, string>;
+    expiresAt: Date;
+  }>;
   createSignedDownload(storageKey: string, expiresInSeconds: number): Promise<{ downloadUrl: string; expiresAt: Date }>;
   head(storageKey: string): Promise<StoredObjectMetadata | null>;
   list(prefix: string): Promise<string[]>;
