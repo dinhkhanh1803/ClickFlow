@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 import { toast } from 'sonner';
-import { notifyMockSignIn, notifyTaskCreation, notifyToastPreview } from '@/lib/feedback/toast-feedback';
+import { notifyTaskCreation, notifyToastPreview } from '@/lib/feedback/toast-feedback';
 
 describe('toast feedback', () => {
   it('announces a mock task creation', () => {
@@ -13,10 +13,5 @@ describe('toast feedback', () => {
   it('announces a preview toast', () => {
     notifyToastPreview();
     expect(toast.success).toHaveBeenCalledWith('ClickFlow notifications are working', { description: 'This is a safe preview toast.' });
-  });
-
-  it('announces mock sign-in success', () => {
-    notifyMockSignIn();
-    expect(toast.success).toHaveBeenCalledWith('Signed in successfully', { description: 'Welcome back to ClickFlow.' });
   });
 });

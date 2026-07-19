@@ -3,6 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/dashboard' }));
+vi.mock('@/features/auth/components/logout-button', () => ({ LogoutButton: () => <button type="button" role="menuitem">Log out</button> }));
 
 import { AppHeader, AppShell } from '@/components/layout/app-shell';
 
@@ -40,13 +41,13 @@ describe('AppHeader', () => {
     await user.pointer({ keys: '[MouseLeft]', target: document.body });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
-  it('offers a logout link to the mock sign-in screen', async () => {
+  it('offers the authenticated logout action', async () => {
     const user = userEvent.setup();
     render(<AppHeader />);
 
     await user.click(screen.getByRole('button', { name: 'Open account menu' }));
 
-    expect(screen.getByRole('link', { name: 'Log out' })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('menuitem', { name: 'Log out' })).toBeInTheDocument();
   });
 
   it('overlays a preview panel on hover without replacing the route panel', async () => {

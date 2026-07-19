@@ -12,7 +12,7 @@ ClickFlow uses short-lived HS256 access tokens and opaque rotating refresh token
 - `POST /api/v1/auth/reset-password` consumes a reset token once, changes the Argon2id hash and revokes all active sessions for the user.
 - `GET /api/v1/users/me` requires `Authorization: Bearer <access-token>`.
 
-The refresh token is stored in the `clickflow_refresh` cookie with `HttpOnly`, `SameSite=Lax`, an auth-only path and `Secure` in production. The readable `clickflow_csrf` cookie must match the `x-csrf-token` header for refresh and logout.
+The refresh token is stored in the `clickflow_refresh` cookie with `HttpOnly`, `SameSite=Lax`, an auth-only path and `Secure` in production. The readable `clickflow_csrf` cookie uses path `/` so the frontend can restore a session after reload; it must match the `x-csrf-token` header for refresh and logout.
 
 ## Security behavior
 

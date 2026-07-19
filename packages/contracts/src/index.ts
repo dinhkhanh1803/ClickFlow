@@ -1,4 +1,5 @@
 export * from './common-api-contract';
+export * from './auth-api-contract';
 export * from './domain-contract';
 export * from './comment-api-contract';
 export * from './task-api-contract';

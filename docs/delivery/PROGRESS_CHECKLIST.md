@@ -50,3 +50,12 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Attachment signed-URL workflow, MIME/magic-byte validation, workspace namespace, orphan cleanup, ADR, and E2E tests are implemented.
 - [x] Project templates, transactional idempotent instantiation, archive/restore, validated settings, migration, and rollback tests are implemented.
 - [x] Backend hardening, PostgreSQL CI, scans, non-root container, Render staging blueprint, release/restore workflows, alert policy, smoke test, and runbooks are committed.
+
+## Frontend–Backend Integration
+
+- [x] Shared authentication contracts and a typed browser API client are implemented.
+- [x] Login, session refresh, logout, forgot-password, and reset-password flows use the backend API.
+- [x] Protected workspace routes require an authenticated backend session.
+- [ ] Workspace, project, section, and task screens use backend repositories instead of local data.
+- [ ] Comments, activity, time tracking, reports, attachments, templates, and settings use backend APIs.
+- [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.
