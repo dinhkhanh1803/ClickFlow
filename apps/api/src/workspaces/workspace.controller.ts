@@ -1,11 +1,13 @@
-import { Controller, Get, Inject } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import type { AuthenticatedUser } from '../authorization/authenticated-user';
 import { CurrentUser } from '../authorization/current-user.decorator';
 import { CurrentWorkspaceId } from '../authorization/current-workspace.decorator';
 import { RequireWorkspaceAccess } from '../authorization/workspace-access.decorator';
-import { WorkspaceMemberResponseDto, WorkspaceResponseDto } from './workspace.dto';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { CreateWorkspaceRequestDto, WorkspaceMemberResponseDto, WorkspaceResponseDto } from './workspace.dto';
+import { createWorkspaceSchema, type CreateWorkspaceInput } from './workspace.schemas';
 import { WorkspaceService } from './workspace.service';
 
 @ApiTags('workspaces')
@@ -18,6 +20,16 @@ export class WorkspaceController {
   @ApiOkResponse({ type: [WorkspaceResponseDto] })
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.workspaces.listForUser(user.id);
+  }
+
+  @Post()
+  @ApiBody({ type: CreateWorkspaceRequestDto })
+  @ApiCreatedResponse({ type: WorkspaceResponseDto })
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(createWorkspaceSchema)) input: CreateWorkspaceInput
+  ) {
+    return this.workspaces.create(user.id, input);
   }
 
   @Get(':workspaceId')

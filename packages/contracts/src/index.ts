@@ -7,3 +7,4 @@ export * from './time-tracking-api-contract';
 export * from './analytics-api-contract';
 export * from './attachment-api-contract';
 export * from './productivity-api-contract';
+export * from './workspace-api-contract';

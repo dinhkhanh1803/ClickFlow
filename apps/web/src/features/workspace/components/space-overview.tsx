@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Bookmark, CalendarDays, ChevronDown, Columns3, FileText, Folder, GanttChartSquare, LayoutDashboard, LayoutList, Link2, ListChecks, LockKeyhole, Plus, RefreshCw, Settings2, Table2, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTitle } from '@/components/ui/dialog';
+import { PageState } from '@/components/states/page-state';
+import { toast } from 'sonner';
 import { defaultLocalSpaces, loadLocalSpaces, localId, saveLocalSpaces, type LocalListTask, type LocalSpace, type LocalSpaceItemKind, type LocalStatusColor, type LocalStatusScope, type LocalTaskStatus } from '../model/local-navigation';
 import { useWorkspace } from '../model/workspace-store';
 import type { Project, Task } from '../model/workspace-types';
@@ -14,6 +16,7 @@ import { LocalGanttTaskSurface } from './local-gantt-task-surface';
 import { TaskStatusChart } from './task-status-chart';
 import { TaskAssignmentChart } from './task-assignment-chart';
 import { SpaceTabContent, SpaceTaskModal, type SpaceView } from './space-tab-content';
+import { useCreateProjectMutation, useCreateSectionMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
 
 const spaceViews: Array<{ name: SpaceView; icon: typeof Columns3; iconClassName: string }> = [
   { name: 'Overview', icon: LayoutDashboard, iconClassName: 'text-violet-500' },
@@ -39,17 +42,19 @@ export function SpaceOverview() {
   const [selectedTask, setSelectedTask] = useState<SelectedTask>(null);
   const [navigationCreateKind, setNavigationCreateKind] = useState<Extract<LocalSpaceItemKind, 'folder' | 'list'> | null>(null);
   const [navigationName, setNavigationName] = useState('');
+  const navigationQuery = useWorkspaceNavigationQuery();
+  const createProjectMutation = useCreateProjectMutation();
+  const createSectionMutation = useCreateSectionMutation();
+  const effectiveLocalSpaces = navigationQuery.data ?? localSpaces;
   const projects = space.projects.filter((project) => !project.archived);
   const query = new URLSearchParams(locationQuery);
   const spaceId = query.get('space');
   const folderId = query.get('folder');
   const listId = query.get('list');
-  const selectedLocalSpace = localSpaces.find((item) => item.id === spaceId) ?? localSpaces[0];
+  const selectedLocalSpace = effectiveLocalSpaces.find((item) => item.id === spaceId) ?? effectiveLocalSpaces[0];
   const selectedFolder = selectedLocalSpace?.items.find((item) => item.id === folderId && item.kind === 'folder');
   const selectedList = selectedLocalSpace?.items.find((item) => item.id === listId && item.kind === 'list' && (!selectedFolder || item.parentId === selectedFolder.id));
   const folders = selectedLocalSpace?.items.filter((item) => item.kind === 'folder') ?? [];
-  const scopedProjects = selectedFolder ? projects.filter((project) => project.folderId === selectedFolder.id) : projects;
-  const recentTasks = scopedProjects.flatMap((project) => project.tasks.map((task) => ({ project, task }))).slice(0, 4);
   const docs = selectedLocalSpace?.items.filter((item) => item.kind === 'doc' && (!selectedFolder || item.parentId === selectedFolder.id)) ?? [];
   const lists = selectedFolder ? selectedLocalSpace?.items.filter((item) => item.kind === 'list' && item.parentId === selectedFolder.id) ?? [] : [];
   const spaceLists = selectedLocalSpace?.items.filter((item) => item.kind === 'list') ?? [];
@@ -79,23 +84,19 @@ export function SpaceOverview() {
   }, []);
 
   useEffect(() => {
-    const taskId = query.get('task');
-    const projectId = query.get('project');
-    if (!taskId || query.get('view') !== 'Overview') return;
+    const parameters = new URLSearchParams(locationQuery);
+    const taskId = parameters.get('task');
+    const projectId = parameters.get('project');
+    if (!taskId || parameters.get('view') !== 'Overview') return;
     const project = projects.find((item) => item.id === projectId) ?? projects.find((item) => item.tasks.some((task) => task.id === taskId));
     const task = project?.tasks.find((item) => item.id === taskId);
-    if (project && task) setSelectedTask({ project, task });
+    if (project && task) {
+      // URL selection is synchronized into modal state when navigation changes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedTask({ project, task });
+    }
   }, [locationQuery, projects]);
 
-  const openTask = (project: Project, task: Task) => {
-    setSelectedTask({ project, task });
-    const url = new URL(window.location.href);
-    url.searchParams.set('project', project.id);
-    url.searchParams.set('task', task.id);
-    url.searchParams.set('view', 'Overview');
-    window.history.pushState(null, '', url);
-    setLocationQuery(url.search);
-  };
   const closeTask = () => {
     setSelectedTask(null);
     const url = new URL(window.location.href);
@@ -130,22 +131,36 @@ export function SpaceOverview() {
     url.searchParams.set('doc', doc.id);
     window.history.pushState(null, '', url.pathname + url.search);
     window.dispatchEvent(new Event('clickflow:space-navigation'));
-  };  const openFirstProject = () => { if (projects[0]) selectProject(projects[0].id); };
+  };
   const beginNavigationCreate = (kind: Extract<LocalSpaceItemKind, 'folder' | 'list'>) => {
     setNavigationCreateKind(kind);
     setNavigationName('');
   };
-  const submitNavigationCreate = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitNavigationCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextName = navigationName.trim();
     if (!nextName || !navigationCreateKind || !selectedLocalSpace) return;
-    const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
-      ...localSpace,
-      items: [...localSpace.items, { id: localId(navigationCreateKind), name: nextName, kind: navigationCreateKind, ...(navigationCreateKind === 'list' && selectedFolder ? { parentId: selectedFolder.id } : {}) }],
-    } : localSpace);
-    setLocalSpaces(nextSpaces);
-    saveLocalSpaces(nextSpaces);
-    setNavigationCreateKind(null);
+    if (!navigationQuery.usesApi) {
+      const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
+        ...localSpace,
+        items: [...localSpace.items, { id: localId(navigationCreateKind), name: nextName, kind: navigationCreateKind, ...(navigationCreateKind === 'list' && selectedFolder ? { parentId: selectedFolder.id } : {}) }],
+      } : localSpace);
+      setLocalSpaces(nextSpaces);
+      saveLocalSpaces(nextSpaces);
+      setNavigationCreateKind(null);
+      return;
+    }
+    try {
+      if (navigationCreateKind === 'folder') {
+        await createProjectMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { name: nextName } });
+      } else if (selectedFolder) {
+        await createSectionMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId: selectedFolder.id, input: { name: nextName } });
+      } else {
+        toast.error('Open a Project before creating a List.');
+        return;
+      }
+      setNavigationCreateKind(null);
+    } catch { toast.error('Unable to create this item.'); }
   };
   const createLocalListTask = (input: { title: string; status: LocalTaskStatus; statusGroupId?: string }) => {
     if (!selectedLocalSpace || !selectedList) return;
@@ -209,14 +224,27 @@ export function SpaceOverview() {
     setLocalSpaces(nextSpaces);
     saveLocalSpaces(nextSpaces);
   };
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!name.trim()) return;
-    createProject({ name: name.trim(), description: description.trim() || 'New project in this Space.', folderId: selectedFolder?.id });
-    setName('');
-    setDescription('');
-    setCreating(false);
+    if (!name.trim() || !selectedLocalSpace) return;
+    if (!navigationQuery.usesApi) {
+      createProject({ name: name.trim(), description: description.trim() || 'New project in this Space.', folderId: selectedFolder?.id });
+      setName('');
+      setDescription('');
+      setCreating(false);
+      return;
+    }
+    try {
+      await createProjectMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { name: name.trim(), description: description.trim() || null } });
+      setName('');
+      setDescription('');
+      setCreating(false);
+    } catch { toast.error('Unable to create the Project.'); }
   };
+
+  if (navigationQuery.isLoading) return <PageState title="Spaces" kind="loading" />;
+  if (navigationQuery.isError) return <PageState title="Spaces" kind="error" />;
+  if (!selectedLocalSpace) return <PageState title="Spaces" kind="empty" />;
 
   return <main className="min-h-[calc(100vh-4rem)] bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
     <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
@@ -228,6 +256,6 @@ export function SpaceOverview() {
     {selectedTask && <SpaceTaskModal project={selectedTask.project} task={selectedTask.task} onClose={closeTask} />}
     <Dialog open={sharing} onOpenChange={setSharing} contentClassName="max-w-lg p-0">
       <section className="overflow-hidden rounded-2xl bg-white dark:bg-slate-950"><header className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800"><div><DialogTitle>Share this Space</DialogTitle><p className="mt-1 text-sm text-slate-500">Sharing {selectedLocalSpace?.name} with all views.</p></div><button type="button" aria-label="Close share dialog" onClick={() => setSharing(false)} className="rounded-full bg-slate-100 p-1.5 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"><X size={16} /></button></header><div className="space-y-5 p-5"><div className="flex gap-2 rounded-xl border border-slate-200 p-2 dark:border-slate-700"><input aria-label="Invite by name or email" placeholder="Invite by name or email" className="min-w-0 flex-1 bg-transparent px-2 text-sm outline-none" /><Button size="sm">Invite</Button></div><div className="flex items-center justify-between text-sm"><span className="inline-flex items-center gap-2 font-medium"><Link2 size={16} />Private link</span><Button size="sm" variant="outline">Copy link</Button></div><div className="flex items-center justify-between text-sm"><span className="inline-flex items-center gap-2 font-medium"><Users size={16} />Default permission</span><button type="button" className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-sm dark:border-slate-700">Full edit<ChevronDown size={14} /></button></div><div className="border-t border-slate-100 pt-4 dark:border-slate-800"><p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Share with</p><div className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-indigo-500 text-xs font-bold text-white">S1</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{selectedLocalSpace?.name}</p><p className="text-xs text-slate-500">Space members</p></div><span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-200">Full edit</span></div></div></div><footer className="border-t border-slate-100 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-900/60"><button type="button" className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-800"><LockKeyhole size={15} />Make Private</button></footer></section>
-    </Dialog>    <Dialog open={navigationCreateKind !== null} onOpenChange={(open) => { if (!open) setNavigationCreateKind(null); }}><form onSubmit={submitNavigationCreate} className="space-y-4"><DialogTitle>New {navigationCreateKind}</DialogTitle><label className="block text-sm font-medium">{navigationCreateKind === 'folder' ? 'Folder name' : 'List name'}<input aria-label={navigationCreateKind === 'folder' ? 'Folder name' : 'List name'} value={navigationName} onChange={(event) => setNavigationName(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" autoFocus /></label><div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setNavigationCreateKind(null)}>Cancel</Button><Button type="submit">Create</Button></div></form></Dialog>    <Dialog open={creating} onOpenChange={setCreating}><form onSubmit={submit} className="space-y-4"><DialogTitle>Create a project</DialogTitle><label className="block text-sm font-medium">Project name<input aria-label="Project name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" autoFocus /></label><label className="block text-sm font-medium">Description<textarea aria-label="Project description" value={description} onChange={(event) => setDescription(event.target.value)} className="mt-2 min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" /></label><div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button type="submit">Create project</Button></div></form></Dialog>
+    </Dialog>    <Dialog open={navigationCreateKind !== null} onOpenChange={(open) => { if (!open) setNavigationCreateKind(null); }}><form onSubmit={submitNavigationCreate} className="space-y-4"><DialogTitle>New {navigationCreateKind}</DialogTitle><label className="block text-sm font-medium">{navigationCreateKind === 'folder' ? 'Folder name' : 'List name'}<input aria-label={navigationCreateKind === 'folder' ? 'Folder name' : 'List name'} value={navigationName} onChange={(event) => setNavigationName(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" autoFocus /></label><div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setNavigationCreateKind(null)}>Cancel</Button><Button type="submit" disabled={createProjectMutation.isPending || createSectionMutation.isPending}>Create</Button></div></form></Dialog>    <Dialog open={creating} onOpenChange={setCreating}><form onSubmit={submit} className="space-y-4"><DialogTitle>Create a project</DialogTitle><label className="block text-sm font-medium">Project name<input aria-label="Project name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" autoFocus /></label><label className="block text-sm font-medium">Description<textarea aria-label="Project description" value={description} onChange={(event) => setDescription(event.target.value)} className="mt-2 min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" /></label><div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button type="submit" disabled={createProjectMutation.isPending}>Create project</Button></div></form></Dialog>
   </main>;
 }

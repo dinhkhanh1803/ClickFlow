@@ -483,6 +483,37 @@
         ],
         "type": "object"
       },
+      "CreateWorkspaceRequestDto": {
+        "properties": {
+          "locale": {
+            "default": "en",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "type": "string"
+          },
+          "private": {
+            "default": true,
+            "type": "boolean"
+          },
+          "timezone": {
+            "default": "UTC",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "tone": {
+            "maxLength": 40,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "CurrentTimerResponseDto": {
         "properties": {
           "timer": {
@@ -2106,6 +2137,40 @@
                     "$ref": "#/components/schemas/WorkspaceResponseDto"
                   },
                   "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workspaces"
+        ]
+      },
+      "post": {
+        "operationId": "WorkspaceController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponseDto"
                 }
               }
             },

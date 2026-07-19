@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { WorkspaceRole } from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
+import type { CreateWorkspaceInput } from './workspace.schemas';
 
 function initials(displayName: string): string {
   return displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
@@ -9,6 +11,30 @@ function initials(displayName: string): string {
 @Injectable()
 export class WorkspaceService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async create(userId: string, input: CreateWorkspaceInput) {
+    const workspace = await this.prisma.$transaction(async (transaction) => {
+      const created = await transaction.workspace.create({
+        data: {
+          createdById: userId,
+          name: input.name,
+          tone: input.tone,
+          private: input.private,
+          timezone: input.timezone,
+          locale: input.locale
+        },
+        select: {
+          id: true, name: true, tone: true, private: true, timezone: true,
+          locale: true, createdAt: true, updatedAt: true
+        }
+      });
+      await transaction.workspaceMember.create({
+        data: { workspaceId: created.id, userId, role: WorkspaceRole.OWNER }
+      });
+      return created;
+    });
+    return { ...workspace, role: WorkspaceRole.OWNER };
+  }
 
   listForUser(userId: string) {
     return this.prisma.workspaceMember.findMany({

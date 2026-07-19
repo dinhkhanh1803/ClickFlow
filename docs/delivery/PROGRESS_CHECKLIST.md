@@ -56,6 +56,7 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Shared authentication contracts and a typed browser API client are implemented.
 - [x] Login, session refresh, logout, forgot-password, and reset-password flows use the backend API.
 - [x] Protected workspace routes require an authenticated backend session.
-- [ ] Workspace, project, section, and task screens use backend repositories instead of local data.
+- [x] Workspace, project, and section navigation and CRUD use backend APIs.
+- [ ] Task screens use backend repositories instead of local data.
 - [ ] Comments, activity, time tracking, reports, attachments, templates, and settings use backend APIs.
 - [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.

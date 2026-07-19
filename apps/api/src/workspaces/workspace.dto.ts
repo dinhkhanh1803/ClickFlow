@@ -1,4 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class CreateWorkspaceRequestDto {
+  @ApiProperty({ type: String, maxLength: 160 }) name!: string;
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 40 }) tone?: string | null;
+  @ApiPropertyOptional({ type: Boolean, default: true }) private?: boolean;
+  @ApiPropertyOptional({ type: String, default: 'UTC', maxLength: 100 }) timezone?: string;
+  @ApiPropertyOptional({ type: String, default: 'en', maxLength: 35 }) locale?: string;
+}
+
 
 export class WorkspaceResponseDto {
   @ApiProperty({ type: String, format: 'uuid' }) id!: string;
