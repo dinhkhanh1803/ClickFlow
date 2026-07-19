@@ -9,7 +9,6 @@ const dashboardQueryKey = ['dashboard', 'local'] as const;
 
 export function useDashboardData() {
   const queryClient = useQueryClient();
-
   useEffect(() => {
     const refresh = () => void queryClient.invalidateQueries({ queryKey: dashboardQueryKey });
     window.addEventListener('clickflow:local-spaces-changed', refresh);

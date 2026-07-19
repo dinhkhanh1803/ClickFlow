@@ -1,2 +1,2 @@
-import { PlaceholderPage } from '@/components/states/placeholder-page';
-export default function Page(){ return <PlaceholderPage title='Reports' description='Productivity and delivery insights.'/>; }
+import { ReportsClient } from '@/features/analytics/components/reports-client';
+export default function Page(){ return <ReportsClient />; }

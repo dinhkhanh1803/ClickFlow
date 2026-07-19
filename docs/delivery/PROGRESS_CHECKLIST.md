@@ -63,3 +63,4 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Comments and activity history use backend APIs.
 - [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.
 - [x] Task timers and the Time Tracking overview use backend APIs.
+- [x] Dashboard, global search, and reports use workspace-scoped analytics APIs.
