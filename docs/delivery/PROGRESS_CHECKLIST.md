@@ -1,5 +1,7 @@
 # Delivery Progress Checklist
 
+> Current continuation notes and known blockers: [ClickFlow integration handoff - 2026-07-20](./HANDOFF_2026-07-20.md).
+
 ## Phase 0 — Product Foundation
 
 - [x] Product vision, MVP scope, user stories, business rules, information architecture, and user flows documented.
@@ -76,3 +78,5 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Space, Folder, and List creation use a centered shared modal; Space visibility persists as Public or Private and Private mode exposes invite input.
 - [x] Header notifications derive from authenticated task Activity History, deep-link to tasks, and retain per-user read state in the browser.
 - [x] Custom statuses support color selection, rename/recolor, safe deletion with task fallback to Open, while Open/In progress/Complete are database-protected system statuses.
+- [x] Tasks support multiple persisted assignees, avatar-only display, and hover-to-unassign without losing legacy assignments.
+- [x] Task time estimates and tags persist through the API and remain visible after task data refresh.
