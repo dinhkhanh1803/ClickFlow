@@ -19,12 +19,14 @@ const taskSelect = {
   priority: true,
   position: true,
   dueAt: true,
+  estimateMinutes: true,
   completedAt: true,
   version: true,
   createdAt: true,
   updatedAt: true,
   archivedAt: true,
   assignee: { select: { id: true, displayName: true, avatarUrl: true } },
+  taskAssignments: { select: { user: { select: { id: true, displayName: true, avatarUrl: true } } }, orderBy: { assignedAt: 'asc' as const } },
   status: { select: { id: true, name: true, color: true, completed: true } },
   taskTags: { select: { tag: { select: { id: true, name: true, color: true } } }, orderBy: { tag: { name: 'asc' as const } } },
   checklistItems: { select: { id: true, taskId: true, label: true, completed: true, position: true }, orderBy: { position: 'asc' as const } }
@@ -35,7 +37,7 @@ type TaskRecord = Prisma.TaskGetPayload<{ select: typeof taskSelect }>;
 export function buildTaskUpdateActivityMetadata(input: UpdateTaskInput): Prisma.InputJsonObject {
   return {
     changedFields: Object.keys(input).filter((field) => field !== 'version'),
-    ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
+    ...(input.assigneeIds !== undefined ? { assigneeIds: input.assigneeIds } : input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
     ...(input.statusId !== undefined ? { statusId: input.statusId } : {})
   };
 }
@@ -49,6 +51,8 @@ function serializeTask(task: TaskRecord) {
     ...task,
     position: task.position.toNumber(),
     assignee: task.assignee ? { ...task.assignee, initials: initials(task.assignee.displayName) } : null,
+    assignees: task.taskAssignments.map(({ user }) => ({ ...user, initials: initials(user.displayName) })),
+    taskAssignments: undefined,
     tags: task.taskTags.map(({ tag }) => tag),
     taskTags: undefined
   };
@@ -64,7 +68,7 @@ export class TaskService {
       projectId: query.projectId,
       sectionId: query.sectionId,
       statusId: query.statusId,
-      assigneeId: query.assigneeId,
+      ...(query.assigneeId ? { taskAssignments: { some: { userId: query.assigneeId } } } : {}),
       archivedAt: query.archived === 'all' ? undefined : query.archived === 'archived' ? { not: null } : null,
       ...(query.search ? { title: { contains: query.search, mode: 'insensitive' } } : {}),
       ...(query.from || query.to ? { dueAt: { gte: query.from, lte: query.to } } : {})
@@ -84,7 +88,8 @@ export class TaskService {
 
   async create(workspaceId: string, actorId: string, input: CreateTaskInput, context: AuthClientContext) {
     const task = await this.prisma.$transaction(async (transaction) => {
-      const status = await this.assertReferences(transaction, workspaceId, input.projectId, input.statusId, input.sectionId, input.assigneeId);
+      const assigneeIds = input.assigneeIds ?? (input.assigneeId ? [input.assigneeId] : []);
+      const status = await this.assertReferences(transaction, workspaceId, input.projectId, input.statusId, input.sectionId, assigneeIds);
       await this.assertParent(transaction, workspaceId, null, input.projectId, input.parentTaskId ?? null);
       await this.lockColumn(transaction, workspaceId, input.projectId, input.statusId);
       const maximum = await transaction.task.aggregate({ where: { workspaceId, projectId: input.projectId, statusId: input.statusId, archivedAt: null }, _max: { position: true } });
@@ -94,18 +99,20 @@ export class TaskService {
           projectId: input.projectId,
           sectionId: input.sectionId,
           statusId: input.statusId,
-          assigneeId: input.assigneeId,
+          assigneeId: assigneeIds[0] ?? null,
+          taskAssignments: { create: assigneeIds.map((userId) => ({ workspaceId, userId })) },
           parentTaskId: input.parentTaskId,
           title: input.title,
           description: input.description,
           priority: input.priority,
           dueAt: input.dueAt,
+          estimateMinutes: input.estimateMinutes,
           completedAt: status.completed ? new Date() : null,
           position: (maximum._max.position?.toNumber() ?? 0) + 1024
         },
         select: taskSelect
       });
-      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_CREATED', created.id, context.requestId, input.assigneeId ? { changedFields: ['assigneeId'], assigneeId: input.assigneeId } : {});
+      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_CREATED', created.id, context.requestId, assigneeIds.length ? { changedFields: ['assigneeIds'], assigneeIds } : {});
       return created;
     });
     return serializeTask(task);
@@ -113,12 +120,15 @@ export class TaskService {
 
   async update(workspaceId: string, taskId: string, actorId: string, input: UpdateTaskInput, context: AuthClientContext) {
     const task = await this.prisma.$transaction(async (transaction) => {
-      const current = await transaction.task.findFirst({ where: { id: taskId, workspaceId, archivedAt: null }, select: { id: true, projectId: true, statusId: true, completedAt: true } });
+      const current = await transaction.task.findFirst({ where: { id: taskId, workspaceId, archivedAt: null }, select: { id: true, projectId: true, statusId: true, completedAt: true, status: { select: { name: true } } } });
       if (!current) throw new NotFoundException('Active task not found');
       const statusId = input.statusId ?? current.statusId;
-      const status = await this.assertReferences(transaction, workspaceId, current.projectId, statusId, input.sectionId, input.assigneeId);
+      const assigneeIds = input.assigneeIds ?? (input.assigneeId !== undefined ? (input.assigneeId ? [input.assigneeId] : []) : undefined);
+      const status = await this.assertReferences(transaction, workspaceId, current.projectId, statusId, input.sectionId, assigneeIds);
       if (input.parentTaskId !== undefined) await this.assertParent(transaction, workspaceId, taskId, current.projectId, input.parentTaskId);
-      const { version, ...fields } = input;
+      const { version, assigneeIds: _assigneeIds, ...fields } = input;
+      void _assigneeIds;
+      if (assigneeIds !== undefined) fields.assigneeId = assigneeIds[0] ?? null;
       let position: number | undefined;
       if (input.statusId && input.statusId !== current.statusId) {
         await this.lockColumn(transaction, workspaceId, current.projectId, input.statusId);
@@ -129,7 +139,15 @@ export class TaskService {
         data: { ...fields, position, completedAt: resolveCompletedAt(status.completed, current.completedAt, new Date()), version: { increment: 1 } }
       });
       if (updated.count !== 1) throw new ConflictException('Task version conflict');
-      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_UPDATED', taskId, context.requestId, buildTaskUpdateActivityMetadata(input));
+      if (assigneeIds !== undefined) {
+        await transaction.taskAssignment.deleteMany({ where: { taskId } });
+        if (assigneeIds.length) await transaction.taskAssignment.createMany({ data: assigneeIds.map((userId) => ({ workspaceId, taskId, userId })) });
+      }
+      const activityMetadata: Prisma.InputJsonObject = {
+        ...buildTaskUpdateActivityMetadata(input),
+        ...(input.statusId && input.statusId !== current.statusId ? { statusFrom: current.status.name, statusTo: status.name } : {})
+      };
+      await this.recordActivity(transaction, workspaceId, actorId, 'TASK_UPDATED', taskId, context.requestId, activityMetadata);
       return transaction.task.findUniqueOrThrow({ where: { id: taskId }, select: taskSelect });
     });
     return serializeTask(task);
@@ -186,12 +204,13 @@ export class TaskService {
     return serializeTask(task);
   }
 
-  private async assertReferences(transaction: Prisma.TransactionClient, workspaceId: string, projectId: string, statusId: string, sectionId?: string | null, assigneeId?: string | null): Promise<TaskStatus> {
+  private async assertReferences(transaction: Prisma.TransactionClient, workspaceId: string, projectId: string, statusId: string, sectionId?: string | null, assigneeIds?: string[]): Promise<TaskStatus> {
     const status = await this.assertStatus(transaction, workspaceId, projectId, statusId);
     if (sectionId !== undefined) await this.assertSection(transaction, workspaceId, projectId, sectionId);
-    if (assigneeId) {
-      const user = await transaction.user.findFirst({ where: { id: assigneeId, archivedAt: null }, select: { id: true } });
-      if (!user) throw new ConflictException('Assignee must be an active user');
+    if (assigneeIds?.length) {
+      const uniqueIds = [...new Set(assigneeIds)];
+      const users = await transaction.user.count({ where: { id: { in: uniqueIds }, archivedAt: null } });
+      if (users !== uniqueIds.length) throw new ConflictException('Assignees must be active users');
     }
     return status;
   }

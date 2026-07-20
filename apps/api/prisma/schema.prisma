@@ -68,6 +68,7 @@ model User {
   memberships         WorkspaceMember[]
   createdWorkspaces   Workspace[]          @relation("WorkspaceCreator")
   assignedTasks       Task[]               @relation("TaskAssignee")
+  taskAssignments     TaskAssignment[]
   authoredComments    Comment[]            @relation("CommentAuthor")
   uploadedAttachments Attachment[]         @relation("AttachmentUploader")
   timeEntries         TimeEntry[]
@@ -161,6 +162,7 @@ model Workspace {
   navigationItems        WorkspaceNavigationItem[]
   statuses               TaskStatus[]
   tasks                  Task[]
+  taskAssignments        TaskAssignment[]
   tags                   Tag[]
   taskTags               TaskTag[]
   checklistItems         ChecklistItem[]
@@ -318,6 +320,7 @@ model Task {
   priority       TaskPriority    @default(NORMAL)
   position       Decimal         @default(0) @db.Decimal(20, 10)
   dueAt          DateTime?       @db.Timestamptz(3)
+  estimateMinutes Int?
   completedAt    DateTime?       @db.Timestamptz(3)
   version        Int             @default(1)
   createdAt      DateTime        @default(now()) @db.Timestamptz(3)
@@ -335,6 +338,7 @@ model Task {
   comments       Comment[]
   attachments    Attachment[]
   timeEntries    TimeEntry[]
+  taskAssignments TaskAssignment[]
 
   @@index([workspaceId, projectId, statusId, position])
   @@index([workspaceId, sectionId, archivedAt])
@@ -344,6 +348,19 @@ model Task {
   @@map("tasks")
 }
 
+model TaskAssignment {
+  workspaceId String    @db.Uuid
+  taskId      String    @db.Uuid
+  userId      String    @db.Uuid
+  assignedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([workspaceId, userId])
+  @@map("task_assignments")
+}
 model ChecklistItem {
   id          String    @id @default(uuid()) @db.Uuid
   workspaceId String    @db.Uuid

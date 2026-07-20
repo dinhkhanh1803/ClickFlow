@@ -5,11 +5,13 @@ export class CreateTaskRequestDto {
   @ApiPropertyOptional({ type: String, format: 'uuid', nullable: true }) sectionId?: string | null;
   @ApiProperty({ type: String, format: 'uuid' }) statusId!: string;
   @ApiPropertyOptional({ type: String, format: 'uuid', nullable: true }) assigneeId?: string | null;
+  @ApiPropertyOptional({ type: [String], format: 'uuid' }) assigneeIds?: string[];
   @ApiPropertyOptional({ type: String, format: 'uuid', nullable: true }) parentTaskId?: string | null;
   @ApiProperty({ type: String, maxLength: 240 }) title!: string;
   @ApiPropertyOptional({ type: String, nullable: true, maxLength: 20_000 }) description?: string | null;
   @ApiPropertyOptional({ type: String, enum: ['URGENT', 'HIGH', 'NORMAL', 'LOW'], default: 'NORMAL' }) priority?: string;
   @ApiPropertyOptional({ type: String, format: 'date-time', nullable: true }) dueAt?: string | null;
+  @ApiPropertyOptional({ type: Number, nullable: true }) estimateMinutes?: number | null;
 }
 
 export class UpdateTaskRequestDto {
@@ -17,11 +19,13 @@ export class UpdateTaskRequestDto {
   @ApiPropertyOptional({ type: String, format: 'uuid', nullable: true }) sectionId?: string | null;
   @ApiPropertyOptional({ type: String, format: 'uuid' }) statusId?: string;
   @ApiPropertyOptional({ type: String, format: 'uuid', nullable: true }) assigneeId?: string | null;
+  @ApiPropertyOptional({ type: [String], format: 'uuid' }) assigneeIds?: string[];
   @ApiPropertyOptional({ type: String, format: 'uuid', nullable: true }) parentTaskId?: string | null;
   @ApiPropertyOptional({ type: String, maxLength: 240 }) title?: string;
   @ApiPropertyOptional({ type: String, nullable: true, maxLength: 20_000 }) description?: string | null;
   @ApiPropertyOptional({ type: String, enum: ['URGENT', 'HIGH', 'NORMAL', 'LOW'] }) priority?: string;
   @ApiPropertyOptional({ type: String, format: 'date-time', nullable: true }) dueAt?: string | null;
+  @ApiPropertyOptional({ type: Number, nullable: true }) estimateMinutes?: number | null;
 }
 
 export class VersionRequestDto { @ApiProperty({ type: Number }) version!: number; }
@@ -47,12 +51,14 @@ export class TaskResponseDto {
   @ApiProperty({ type: String, format: 'uuid', nullable: true }) sectionId!: string | null;
   @ApiProperty({ type: String, format: 'uuid' }) statusId!: string;
   @ApiProperty({ type: String, format: 'uuid', nullable: true }) assigneeId!: string | null;
+  @ApiProperty({ type: [MemberSummaryDto] }) assignees!: MemberSummaryDto[];
   @ApiProperty({ type: String, format: 'uuid', nullable: true }) parentTaskId!: string | null;
   @ApiProperty({ type: String }) title!: string;
   @ApiProperty({ type: String, nullable: true }) description!: string | null;
   @ApiProperty({ type: String, enum: ['URGENT', 'HIGH', 'NORMAL', 'LOW'] }) priority!: string;
   @ApiProperty({ type: Number }) position!: number;
   @ApiProperty({ type: String, format: 'date-time', nullable: true }) dueAt!: Date | null;
+  @ApiProperty({ type: Number, nullable: true }) estimateMinutes!: number | null;
   @ApiProperty({ type: String, format: 'date-time', nullable: true }) completedAt!: Date | null;
   @ApiProperty({ type: Number }) version!: number;
   @ApiProperty({ type: String, format: 'date-time' }) createdAt!: Date;

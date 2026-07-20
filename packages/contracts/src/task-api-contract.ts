@@ -11,11 +11,13 @@ export const taskCreateRequestSchema = z.object({
   sectionId: nullableUuid.optional(),
   statusId: uuid,
   assigneeId: nullableUuid.optional(),
+  assigneeIds: z.array(uuid).max(50).optional(),
   parentTaskId: nullableUuid.optional(),
   title: z.string().trim().min(1).max(240),
   description: z.string().max(20_000).nullable().optional(),
   priority: apiTaskPrioritySchema.default('NORMAL'),
-  dueAt: nullableUtcTimestamp.optional()
+  dueAt: nullableUtcTimestamp.optional(),
+  estimateMinutes: z.number().int().min(1).max(525600).nullable().optional()
 }).strict();
 
 export const taskMutationVersionSchema = z.number().int().positive();
@@ -38,6 +40,8 @@ export interface TaskAssigneeResponse {
   avatarUrl: string | null;
 }
 
+export interface TaskTagResponse { id: string; name: string; color: string; }
+
 export interface TaskApiResponse {
   id: string;
   workspaceId: string;
@@ -46,12 +50,15 @@ export interface TaskApiResponse {
   statusId: string;
   assigneeId: string | null;
   assignee?: TaskAssigneeResponse | null;
+  assignees?: TaskAssigneeResponse[];
+  tags?: TaskTagResponse[];
   parentTaskId: string | null;
   title: string;
   description: string | null;
   priority: z.infer<typeof apiTaskPrioritySchema>;
   position: number;
   dueAt: string | null;
+  estimateMinutes?: number | null;
   completedAt: string | null;
   version: number;
   archivedAt: string | null;
@@ -71,9 +78,11 @@ export interface TaskUpdateRequest {
   sectionId?: string | null;
   statusId?: string;
   assigneeId?: string | null;
+  assigneeIds?: string[];
   parentTaskId?: string | null;
   title?: string;
   description?: string | null;
   priority?: z.infer<typeof apiTaskPrioritySchema>;
   dueAt?: string | null;
+  estimateMinutes?: number | null;
 }

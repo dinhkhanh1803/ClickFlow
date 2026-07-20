@@ -25,11 +25,13 @@ export const createTaskSchema = z.object({
   sectionId: nullableUuid.optional(),
   statusId: uuid,
   assigneeId: nullableUuid.optional(),
+  assigneeIds: z.array(uuid).max(50).optional(),
   parentTaskId: nullableUuid.optional(),
   title: z.string().trim().min(1).max(240),
   description: z.string().max(20_000).nullable().optional(),
   priority: apiTaskPrioritySchema.default('NORMAL'),
-  dueAt: nullableTimestamp.optional()
+  dueAt: nullableTimestamp.optional(),
+  estimateMinutes: z.number().int().min(1).max(525600).nullable().optional()
 }).strict();
 
 export const updateTaskSchema = z.object({
@@ -37,11 +39,13 @@ export const updateTaskSchema = z.object({
   sectionId: nullableUuid.optional(),
   statusId: uuid.optional(),
   assigneeId: nullableUuid.optional(),
+  assigneeIds: z.array(uuid).max(50).optional(),
   parentTaskId: nullableUuid.optional(),
   title: z.string().trim().min(1).max(240).optional(),
   description: z.string().max(20_000).nullable().optional(),
   priority: apiTaskPrioritySchema.optional(),
-  dueAt: nullableTimestamp.optional()
+  dueAt: nullableTimestamp.optional(),
+  estimateMinutes: z.number().int().min(1).max(525600).nullable().optional()
 }).strict().refine((value) => Object.keys(value).some((key) => key !== 'version'), 'At least one field besides version is required');
 
 export const versionSchema = z.object({ version }).strict();
