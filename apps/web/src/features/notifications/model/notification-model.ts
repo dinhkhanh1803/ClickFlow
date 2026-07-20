@@ -36,9 +36,18 @@ function changedFields(activity: ActivityApiResponse): string[] {
   return Array.isArray(value) ? value.filter((field): field is string => typeof field === 'string') : [];
 }
 
+function activityAssignsUser(activity: ActivityApiResponse, currentUserId: string): boolean {
+  const assigneeIds = activity.metadata.assigneeIds;
+  return activity.metadata.assigneeId === currentUserId
+    || (Array.isArray(assigneeIds) && assigneeIds.includes(currentUserId));
+}
+
+function taskIsAssignedToUser(task: TaskApiResponse, currentUserId: string): boolean {
+  return task.assigneeId === currentUserId || (task.assignees ?? []).some((assignee) => assignee.id === currentUserId);
+}
 function notificationCopy(activity: ActivityApiResponse, currentUserId: string): NotificationCopy {
   const fields = changedFields(activity);
-  if ((activity.eventType === 'TASK_CREATED' || fields.includes('assigneeId')) && activity.metadata.assigneeId === currentUserId) {
+  if ((activity.eventType === 'TASK_CREATED' || fields.includes('assigneeId') || fields.includes('assigneeIds')) && activityAssignsUser(activity, currentUserId)) {
     return { title: 'Assigned to you', action: 'assigned you to' };
   }
   if (activity.eventType === 'TASK_UPDATED' && fields.includes('statusId')) {
@@ -71,8 +80,8 @@ export function mapActivityNotifications(
     .filter((activity) => {
       if (activity.subjectType !== 'TASK' || activity.actor?.id === currentUserId) return false;
       const task = tasksById.get(activity.subjectId);
-      if (!task || task.assigneeId !== currentUserId) return false;
-      if (activity.eventType === 'TASK_CREATED') return activity.metadata.assigneeId === currentUserId;
+      if (!task || !taskIsAssignedToUser(task, currentUserId)) return false;
+      if (activity.eventType === 'TASK_CREATED') return activityAssignsUser(activity, currentUserId);
       return true;
     })
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))

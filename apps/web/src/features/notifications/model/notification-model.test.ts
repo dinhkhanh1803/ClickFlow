@@ -31,6 +31,28 @@ describe('personal notification model', () => {
     expect(notifications[0]?.description).toBe('Minh Tran assigned you to "Ship notifications".');
   });
 
+  it('notifies every assigned user about task activity', () => {
+    const sharedTask = {
+      ...task,
+      assigneeId: 'user-a',
+      assignees: [
+        { id: 'user-a', displayName: 'User A', initials: 'UA', avatarUrl: null },
+        { id: 'user-b', displayName: 'User B', initials: 'UB', avatarUrl: null },
+      ],
+    };
+
+    expect(mapActivityNotifications([activity], [sharedTask], 'user-a', new Set())).toHaveLength(1);
+    expect(mapActivityNotifications([activity], [sharedTask], 'user-b', new Set())).toHaveLength(1);
+    expect(mapActivityNotifications([activity], [sharedTask], 'user-c', new Set())).toHaveLength(0);
+  });
+
+  it('recognizes a multi-assignee assignment notification', () => {
+    const assignment = { ...activity, eventType: 'TASK_UPDATED', metadata: { changedFields: ['assigneeIds'], assigneeIds: ['user-a', 'user-b'] } };
+    const sharedTask = { ...task, assignees: [{ id: 'user-b', displayName: 'User B', initials: 'UB', avatarUrl: null }] };
+    const [notification] = mapActivityNotifications([assignment], [sharedTask], 'user-b', new Set());
+
+    expect(notification?.title).toBe('Assigned to you');
+  });
   it('excludes unrelated tasks and actions performed by the current user', () => {
     const selfActivity = { ...activity, id: 'self', actor: { id: 'current-user', displayName: 'Me', initials: 'ME', avatarUrl: null } };
     const unrelatedTask = { ...task, id: 'task-2', assigneeId: 'someone-else' };
