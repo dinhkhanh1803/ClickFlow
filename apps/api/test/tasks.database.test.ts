@@ -74,6 +74,14 @@ describeDatabase('Task 6 HTTP lifecycle', () => {
     const foreignStatusId = responseBody<{ id: string }>(foreignStatus).id;
     const sectionId = responseBody<{ id: string }>(section).id;
 
+    const externallyAssigned = await request(app.getHttpServer()).post(`${base}/tasks`).set(authA).send({
+      projectId,
+      statusId: todoId,
+      assigneeId: ownerB.userId,
+      title: 'Assign another account'
+    }).expect(201);
+    expect(responseBody<{ assignee: { id: string; initials: string } }>(externallyAssigned).assignee).toMatchObject({ id: ownerB.userId, initials: 'TS' });
+
     const created = await request(app.getHttpServer()).post(`${base}/tasks`).set(authA).send({
       projectId,
       sectionId,

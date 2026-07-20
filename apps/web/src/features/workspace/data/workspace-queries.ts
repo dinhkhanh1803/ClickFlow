@@ -22,7 +22,8 @@ export const workspaceKeys = {
   comments: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'comments'] as const,
   activity: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'activity'] as const,
   timeEntries: (workspaceId: string) => ['workspaces', workspaceId, 'time-entries'] as const,
-  documents: documentKeys.workspace
+  documents: documentKeys.workspace,
+  assignableUsers: ['users', 'assignable'] as const
 };
 
 function requireToken(accessToken: string | null): string {
@@ -36,6 +37,16 @@ function useWorkspaceQueryClient() {
   return useContext(QueryClientContext) ?? fallbackQueryClient;
 }
 
+export function useAssignableUsersQuery(enabled = true) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const authenticated = useAuthStore((state) => state.status === 'authenticated') && enabled;
+  const queryClient = useWorkspaceQueryClient();
+  return useQuery({
+    queryKey: workspaceKeys.assignableUsers,
+    queryFn: () => workspaceApi.listAssignableUsers(requireToken(accessToken)),
+    enabled: authenticated && Boolean(accessToken)
+  }, queryClient);
+}
 
 export function useWorkspaceNavigationQuery(enabled = true) {
   const accessToken = useAuthStore((state) => state.accessToken);

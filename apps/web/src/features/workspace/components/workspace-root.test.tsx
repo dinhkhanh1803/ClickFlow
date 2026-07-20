@@ -3,11 +3,13 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WorkspaceRoot } from '@/features/workspace/components/workspace-root';
 import { LOCAL_SPACES_STORAGE_KEY } from '@/features/workspace/model/local-navigation';
+import { useAuthStore } from '@/features/auth/model/auth-store';
 
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
   window.history.replaceState(null, '', '/projects');
+  useAuthStore.getState().clearSession();
 });
 
 describe('WorkspaceRoot', () => {
@@ -523,12 +525,16 @@ describe('WorkspaceRoot', () => {
     expect(screen.getByRole('option', { name: 'UI' })).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('tags');
   });
-  it('sets local assignee and due date with task pickers', async () => {
+  it('labels the current assignee as Me and pins it before other people', async () => {
     const user = userEvent.setup();
+    useAuthStore.getState().updateUser({ id: 'user-a', email: 'khanh@clickflow.test', displayName: 'Khanh Tran', avatarUrl: 'https://example.com/khanh.png', timezone: 'UTC', locale: 'en' });
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
-      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', members: [
+        { id: 'member-b', userId: 'user-b', displayName: 'Bao Nguyen', initials: 'BN', avatarUrl: 'https://example.com/bao.png', role: 'MEMBER' },
+        { id: 'member-a', userId: 'user-a', displayName: 'Khanh Tran', initials: 'KT', avatarUrl: 'https://example.com/khanh.png', role: 'OWNER' },
+      ], items: [
         { id: 'folder-projects', name: 'Projects', kind: 'folder' },
-        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', assigneeId: null, startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
       ] },
     ]));
     window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
@@ -536,8 +542,33 @@ describe('WorkspaceRoot', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
     await user.click(screen.getByRole('button', { name: 'Edit assignee' }));
-    await user.click(screen.getByRole('option', { name: /Me/ }));
-    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"assignee":"Me"');
+
+    const people = screen.getAllByRole('option');
+    expect(people[1]).toHaveAccessibleName('Me');
+    expect(people[1]).not.toHaveTextContent('khanh@clickflow.test');
+    expect(people[2]).toHaveAccessibleName(/Bao Nguyen/);
+  });
+
+  it('sets local assignee and due date with task pickers', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', members: [
+        { id: 'member-a', userId: 'user-a', displayName: 'Khanh Tran', initials: 'KT', avatarUrl: null, role: 'OWNER' },
+        { id: 'member-b', userId: 'user-b', displayName: 'Bao Nguyen', initials: 'BN', avatarUrl: null, role: 'MEMBER' },
+      ], items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', assigneeId: null, startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'Edit assignee' }));
+    expect(screen.getByRole('option', { name: /Bao Nguyen/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: /Bao Nguyen/ }));
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"assignee":"Bao Nguyen"');
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('"assigneeId":"user-b"');
 
     await user.click(screen.getByRole('button', { name: 'Edit dates' }));
     await user.click(screen.getByRole('button', { name: /Tomorrow/ }));

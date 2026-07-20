@@ -7,6 +7,7 @@ export type LocalStatusColor = 'slate' | 'blue' | 'indigo' | 'violet' | 'teal' |
 export type LocalStatusGroup = { id: string; name: string; scope: LocalStatusScope; color?: LocalStatusColor; taskStatus?: LocalTaskStatus; source?: 'api'; isSystem?: boolean; };
 export type LocalStatusOverride = { status: LocalTaskStatus; name: string; color: LocalStatusColor; };
 export type LocalTaskPriority = 'Urgent' | 'High' | 'Normal' | 'Low';
+export type LocalWorkspaceMember = { id: string; userId: string; displayName: string; initials: string; avatarUrl: string | null; role: 'OWNER' | 'MEMBER'; };
 
 export type LocalTaskComment = {
   id: string;
@@ -78,6 +79,7 @@ export type LocalSpace = {
   publicAccess?: 'VIEW' | 'EDIT';
   createdBy?: { id: string; displayName: string; avatarUrl: string | null };
   private?: boolean;
+  members?: LocalWorkspaceMember[];
   items: LocalSpaceItem[];
   statusGroups?: LocalStatusGroup[];
   statusOverrides?: LocalStatusOverride[];

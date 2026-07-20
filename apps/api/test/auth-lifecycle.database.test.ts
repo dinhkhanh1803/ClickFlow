@@ -70,6 +70,11 @@ describeDatabase('authentication lifecycle', () => {
       .expect(200)
       .expect(({ body }) => expect(body).toMatchObject({ email: emails[0], displayName: 'Auth Flow' }));
 
+    await agent.get('/api/v1/users/assignable')
+      .set('Authorization', `Bearer ${String(registered.body.accessToken)}`)
+      .expect(200)
+      .expect(({ body }) => expect(body).toEqual(expect.arrayContaining([expect.objectContaining({ email: emails[0], displayName: 'Auth Flow', initials: 'AF' })])));
+
     const refreshed = await agent.post('/api/v1/auth/refresh')
       .set('x-csrf-token', String(registered.body.csrfToken))
       .expect(200);

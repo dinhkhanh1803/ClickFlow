@@ -1,9 +1,9 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../authorization/current-user.decorator';
 import type { AuthenticatedUser } from '../authorization/authenticated-user';
-import { UserResponseDto } from './auth.dto';
+import { UserResponseDto, UserSummaryResponseDto } from './auth.dto';
 import { AuthService } from './auth.service';
 
 @ApiTags('users')
@@ -16,5 +16,11 @@ export class UsersController {
   @ApiOkResponse({ type: UserResponseDto })
   getMe(@CurrentUser() user: AuthenticatedUser): Promise<UserResponseDto> {
     return this.auth.getCurrentUser(user);
+  }
+
+  @Get('assignable')
+  @ApiOkResponse({ type: [UserSummaryResponseDto] })
+  listAssignable(@Query('q') query?: string): Promise<UserSummaryResponseDto[]> {
+    return this.auth.listAssignableUsers(query);
   }
 }

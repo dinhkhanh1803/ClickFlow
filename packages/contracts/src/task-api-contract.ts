@@ -31,6 +31,13 @@ export const taskMoveRequestSchema = z.object({
 export type TaskCreateRequest = z.input<typeof taskCreateRequestSchema>;
 export type TaskMoveRequest = z.infer<typeof taskMoveRequestSchema>;
 
+export interface TaskAssigneeResponse {
+  id: string;
+  displayName: string;
+  initials: string;
+  avatarUrl: string | null;
+}
+
 export interface TaskApiResponse {
   id: string;
   workspaceId: string;
@@ -38,6 +45,7 @@ export interface TaskApiResponse {
   sectionId: string | null;
   statusId: string;
   assigneeId: string | null;
+  assignee?: TaskAssigneeResponse | null;
   parentTaskId: string | null;
   title: string;
   description: string | null;

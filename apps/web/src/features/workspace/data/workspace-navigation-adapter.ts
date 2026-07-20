@@ -37,6 +37,7 @@ function mapTask(task: TaskApiResponse, statuses: ProjectStatusResponse[], comme
   const status = statuses.find((item) => item.id === task.statusId);
   const taskTimeEntries = timeEntries.filter((entry) => entry.taskId === task.id && entry.archivedAt === null);
   const runningEntry = taskTimeEntries.find((entry) => entry.endedAt === null);
+  const assignee = task.assignee ?? null;
   return {
     id: task.id,
     version: task.version,
@@ -44,7 +45,7 @@ function mapTask(task: TaskApiResponse, statuses: ProjectStatusResponse[], comme
     status: status?.name ?? 'Open',
     statusGroupId: task.statusId,
     priority: taskPriority(task.priority),
-    assignee: task.assigneeId ? 'Assigned' : '',
+    assignee: assignee?.displayName ?? '',
     assigneeId: task.assigneeId,
     startDate: '',
     dueDate: task.dueAt?.slice(0, 10) ?? '',

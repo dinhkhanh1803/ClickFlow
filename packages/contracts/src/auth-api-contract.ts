@@ -7,6 +7,14 @@ export interface AuthUserResponse {
   locale: string;
 }
 
+export interface AssignableUserResponse {
+  id: string;
+  email: string;
+  displayName: string;
+  initials: string;
+  avatarUrl: string | null;
+}
+
 export interface UpdateProfileRequest {
   displayName?: string;
   avatarUrl?: string | null;

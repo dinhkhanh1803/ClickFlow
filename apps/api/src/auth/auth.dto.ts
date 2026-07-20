@@ -33,6 +33,14 @@ export class UserResponseDto {
   @ApiProperty({ type: String }) locale!: string;
 }
 
+export class UserSummaryResponseDto {
+  @ApiProperty({ type: String, format: 'uuid' }) id!: string;
+  @ApiProperty({ type: String, format: 'email' }) email!: string;
+  @ApiProperty({ type: String }) displayName!: string;
+  @ApiProperty({ type: String }) initials!: string;
+  @ApiProperty({ type: String, nullable: true }) avatarUrl!: string | null;
+}
+
 export class AuthResponseDto {
   @ApiProperty({ type: String }) accessToken!: string;
   @ApiProperty({ type: String, example: 'Bearer' }) tokenType!: 'Bearer';

@@ -190,8 +190,8 @@ export class TaskService {
     const status = await this.assertStatus(transaction, workspaceId, projectId, statusId);
     if (sectionId !== undefined) await this.assertSection(transaction, workspaceId, projectId, sectionId);
     if (assigneeId) {
-      const member = await transaction.workspaceMember.findFirst({ where: { workspaceId, userId: assigneeId }, select: { userId: true } });
-      if (!member) throw new ConflictException('Assignee must be an active workspace member');
+      const user = await transaction.user.findFirst({ where: { id: assigneeId, archivedAt: null }, select: { id: true } });
+      if (!user) throw new ConflictException('Assignee must be an active user');
     }
     return status;
   }

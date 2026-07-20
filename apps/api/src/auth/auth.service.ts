@@ -52,6 +52,10 @@ function isUniqueFailure(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'P2002');
 }
 
+function initials(displayName: string): string {
+  return displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || displayName.slice(0, 1).toUpperCase();
+}
+
 @Injectable()
 export class AuthService {
   private readonly accessTtlSeconds = Number(process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 900);
@@ -408,6 +412,23 @@ export class AuthService {
     const current = await this.prisma.user.findFirst({ where: { id: user.id, archivedAt: null }, select: publicUserSelect });
     if (!current) throw new UnauthorizedException('Account is unavailable');
     return current;
+  }
+
+  async listAssignableUsers(query?: string) {
+    const search = query?.trim();
+    const users = await this.prisma.user.findMany({
+      where: {
+        archivedAt: null,
+        ...(search ? { OR: [
+          { displayName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } }
+        ] } : {})
+      },
+      orderBy: [{ displayName: 'asc' }, { email: 'asc' }],
+      take: 50,
+      select: { id: true, email: true, displayName: true, avatarUrl: true }
+    });
+    return users.map((user) => ({ ...user, initials: initials(user.displayName) }));
   }
 
   private sendVerification(user: { email: string; displayName: string }, rawToken: string, expiresAt: Date): Promise<void> {

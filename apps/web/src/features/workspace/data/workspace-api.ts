@@ -11,7 +11,8 @@ import type {
   UpdateWorkspaceRequest,
   UpdateProjectRequest,
   UpdateSectionRequest,
-  WorkspaceResponse
+  WorkspaceResponse,
+  AssignableUserResponse
 } from '@clickflow/contracts';
 
 import { createApiClient } from '@/lib/api/client';
@@ -32,6 +33,10 @@ export const workspaceApi = {
   },
   listWorkspaces(accessToken: string): Promise<WorkspaceResponse[]> {
     return client.get('/workspaces', authorized(accessToken));
+  },
+  listAssignableUsers(accessToken: string, query?: string): Promise<AssignableUserResponse[]> {
+    const search = query?.trim();
+    return client.get('/users/assignable' + (search ? '?q=' + encodeURIComponent(search) : ''), authorized(accessToken));
   },
   listProjects(accessToken: string, workspaceId: string): Promise<ProjectListResponse> {
     return client.get(`/workspaces/${workspaceId}/projects?page=1&pageSize=100&sortBy=updatedAt&sortOrder=desc`, authorized(accessToken));
