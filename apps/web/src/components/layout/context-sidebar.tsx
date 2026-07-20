@@ -40,6 +40,7 @@ const creationOptions: Array<{ kind: CreateKind; label: string; description: str
 const itemIcon = (kind: LocalSpaceItemKind) => kind === 'folder' ? Folder : kind === 'list' ? ListChecks : kind === 'dashboard' ? LayoutDashboard : kind === 'doc' ? FileText : PanelTop;
 
 const DEFAULT_SPACE_ICON = '\u{1F680}';
+const DEFAULT_FOLDER_LIST_NAME = 'List';
 const BROKEN_EMOJI_MARKER = 'ðŸ';
 
 function spaceAvatarText(space: { icon?: string; name: string }): string {
@@ -387,8 +388,17 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
         setActiveSpaceId(id);
       } else {
         const id = localId(createKind);
-        setSpaces((current) => current.map((space) => space.id === parentSpaceId ? { ...space, items: [...space.items, { id, name, kind: createKind, ...(parentItemId ? { parentId: parentItemId } : {}), ...(createKind === 'doc' ? { document: { content: '', updatedAt: new Date().toISOString() } } : {}) }] } : space));
+        const defaultFolderList = createKind === 'folder' ? { id: localId('list'), name: DEFAULT_FOLDER_LIST_NAME, kind: 'list' as const, parentId: id } : null;
+        setSpaces((current) => current.map((space) => space.id === parentSpaceId ? {
+          ...space,
+          items: [
+            ...space.items,
+            { id, name, kind: createKind, ...(parentItemId ? { parentId: parentItemId } : {}), ...(createKind === 'doc' ? { document: { content: '', updatedAt: new Date().toISOString() } } : {}) },
+            ...(defaultFolderList ? [defaultFolderList] : []),
+          ],
+        } : space));
         setActiveSpaceId(parentSpaceId);
+        if (createKind === 'folder') setExpandedFolderIds((current) => new Set([...current, id]));
         if (createKind === 'doc') navigateToDocument(parentSpaceId, parentItemId, id);
       }
       setCreateOpen(false);
@@ -408,7 +418,17 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
         return;
       }
     } else if (createKind === 'folder') {
-      void createProjectMutation.mutateAsync({ workspaceId: parentSpaceId, input: { name, description: newDescription.trim() || null } }).catch(() => toast.error('Unable to create this Project.'));
+      try {
+        const project = await createProjectMutation.mutateAsync({ workspaceId: parentSpaceId, input: { name, description: newDescription.trim() || null } });
+        await createSectionMutation.mutateAsync({ workspaceId: parentSpaceId, projectId: project.id, input: { name: DEFAULT_FOLDER_LIST_NAME } });
+        await navigationQuery.refetch();
+        setActiveSpaceId(parentSpaceId);
+        setExpandedSpaceIds((current) => new Set([...current, parentSpaceId]));
+        setExpandedFolderIds((current) => new Set([...current, project.id]));
+      } catch {
+        toast.error('Unable to create this Project.');
+        return;
+      }
     } else if (createKind === 'list' && parentItemId) {
       void createSectionMutation.mutateAsync({ workspaceId: parentSpaceId, projectId: parentItemId, input: { name } }).catch(() => toast.error('Unable to create this List.'));
       setActiveSpaceId(parentSpaceId);

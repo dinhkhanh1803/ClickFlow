@@ -19,6 +19,9 @@ import { TaskStatusChart } from './task-status-chart';
 import { TaskAssignmentChart } from './task-assignment-chart';
 import { SpaceTabContent, SpaceTaskModal, type SpaceView } from './space-tab-content';
 import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useDeleteStatusMutation, useStartTimerMutation, useStopTimerMutation, useUpdateStatusMutation, useUpdateTaskMutation, useWorkspaceNavigationQuery } from '../data/workspace-queries';
+import { useCreateDocumentMutation } from '../data/document-queries';
+
+const DEFAULT_FOLDER_LIST_NAME = 'List';
 
 const spaceViews: Array<{ name: SpaceView; icon: typeof Columns3; iconClassName: string }> = [
   { name: 'Overview', icon: LayoutDashboard, iconClassName: 'text-violet-500' },
@@ -31,8 +34,31 @@ const spaceViews: Array<{ name: SpaceView; icon: typeof Columns3; iconClassName:
 
 type SelectedTask = { project: Project; task: Task } | null;
 
+type EmptyScope = 'space' | 'folder';
+
+function ListRequiredEmptyState({ scope, onCreate }: { scope: EmptyScope; onCreate: (kind: Extract<LocalSpaceItemKind, 'folder' | 'list' | 'doc'>) => void }) {
+  const isFolder = scope === 'folder';
+  return <section className="flex min-h-[520px] items-center justify-center px-6 py-16 text-center" aria-label={isFolder ? 'Empty Folder' : 'Empty Space'}>
+    <div className="flex max-w-sm flex-col items-center">
+      <div aria-hidden="true" className="relative h-28 w-36 text-slate-500 dark:text-slate-600">
+        <ListChecks size={72} strokeWidth={1.4} className="absolute left-5 top-5 rotate-[-6deg]" />
+        <FileText size={52} strokeWidth={1.4} className="absolute right-4 top-1 rotate-[5deg]" />
+        <div className="absolute bottom-2 right-5 h-16 w-16 rounded-full border-4 border-current opacity-80" />
+      </div>
+      <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">{isFolder ? 'This Folder is empty' : 'This Space is empty'}</h2>
+      <p className="mt-1 text-sm text-slate-500">{isFolder ? 'Create a List to get started' : 'Create a Folder, List or Doc to get started'}</p>
+      {isFolder ? <Button size="sm" className="mt-6" onClick={() => onCreate('list')}><Plus size={15} />Create List</Button> : <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm">
+        <button type="button" onClick={() => onCreate('folder')} className="font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-300">Create Folder</button>
+        <button type="button" onClick={() => onCreate('list')} className="font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-300">Create List</button>
+        <button type="button" onClick={() => onCreate('doc')} className="font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-300">Create Doc</button>
+      </div>}
+    </div>
+  </section>;
+}
+
+
 export function SpaceOverview() {
-  const { space, selectProject, createProject } = useWorkspace();
+  const { space, selectProject } = useWorkspace();
   const [creating, setCreating] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
@@ -42,7 +68,7 @@ export function SpaceOverview() {
   const [localSpaces, setLocalSpaces] = useState<LocalSpace[]>(defaultLocalSpaces);
   const [locationQuery, setLocationQuery] = useState('');
   const [selectedTask, setSelectedTask] = useState<SelectedTask>(null);
-  const [navigationCreateKind, setNavigationCreateKind] = useState<Extract<LocalSpaceItemKind, 'folder' | 'list'> | null>(null);
+  const [navigationCreateKind, setNavigationCreateKind] = useState<Extract<LocalSpaceItemKind, 'folder' | 'list' | 'doc'> | null>(null);
   const [navigationName, setNavigationName] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshIntervalSeconds, setRefreshIntervalSeconds] = useState(30);
@@ -65,6 +91,7 @@ export function SpaceOverview() {
   const createCommentMutation = useCreateCommentMutation();
   const uploadAttachmentMutation = useUploadAttachmentMutation();
   const removeAttachmentMutation = useRemoveAttachmentMutation();
+  const createDocumentMutation = useCreateDocumentMutation();
   const query = new URLSearchParams(locationQuery);
   const startTimerMutation = useStartTimerMutation();
   const stopTimerMutation = useStopTimerMutation();
@@ -91,7 +118,8 @@ export function SpaceOverview() {
   const title = selectedList ? `${selectedLocalSpace?.name} / ${selectedFolder?.name ?? 'Lists'} / ${selectedList.name}` : selectedFolder ? `${selectedLocalSpace?.name} / ${selectedFolder.name}` : selectedLocalSpace?.name ?? space.name;
   const availableViews = selectedList ? spaceViews.filter((view) => view.name !== 'Overview') : spaceViews;
   const displayedView: SpaceView = selectedList && activeView === 'Overview' ? 'List' : activeView;
-  const isSaving = [createProjectMutation, createSectionMutation, createRootSectionMutation, createTaskMutation, updateTaskMutation, archiveTaskMutation, createStatusMutation, updateStatusMutation, deleteStatusMutation, createCommentMutation, uploadAttachmentMutation, removeAttachmentMutation, startTimerMutation, stopTimerMutation].some((mutation) => mutation.isPending);
+  const isSaving = [createProjectMutation, createSectionMutation, createRootSectionMutation, createTaskMutation, updateTaskMutation, archiveTaskMutation, createStatusMutation, updateStatusMutation, deleteStatusMutation, createCommentMutation, uploadAttachmentMutation, removeAttachmentMutation, createDocumentMutation, startTimerMutation, stopTimerMutation].some((mutation) => mutation.isPending);
+  const needsListForDisplayedView = displayedView !== 'Overview' && visibleLocalLists.length === 0;
 
   useEffect(() => {
     const refreshNavigation = () => {
@@ -182,7 +210,7 @@ export function SpaceOverview() {
     window.history.pushState(null, '', url.pathname + url.search);
     window.dispatchEvent(new Event('clickflow:space-navigation'));
   };
-  const beginNavigationCreate = (kind: Extract<LocalSpaceItemKind, 'folder' | 'list'>) => {
+  const beginNavigationCreate = (kind: Extract<LocalSpaceItemKind, 'folder' | 'list' | 'doc'>) => {
     setNavigationCreateKind(kind);
     setNavigationDescription('');
     setNavigationName('');
@@ -192,9 +220,18 @@ export function SpaceOverview() {
     const nextName = navigationName.trim();
     if (!nextName || !navigationCreateKind || !selectedLocalSpace) return;
     if (!navigationQuery.usesApi) {
+      const nextItemId = localId(navigationCreateKind);
+      const nextItem = {
+        id: nextItemId,
+        name: nextName,
+        kind: navigationCreateKind,
+        ...((navigationCreateKind === 'list' || navigationCreateKind === 'doc') && selectedFolder ? { parentId: selectedFolder.id } : {}),
+        ...(navigationCreateKind === 'doc' ? { document: { content: '', updatedAt: new Date().toISOString() } } : {}),
+      };
+      const defaultList = navigationCreateKind === 'folder' ? { id: localId('list'), name: DEFAULT_FOLDER_LIST_NAME, kind: 'list' as const, parentId: nextItemId } : null;
       const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
         ...localSpace,
-        items: [...localSpace.items, { id: localId(navigationCreateKind), name: nextName, kind: navigationCreateKind, ...(navigationCreateKind === 'list' && selectedFolder ? { parentId: selectedFolder.id } : {}) }],
+        items: [...localSpace.items, nextItem, ...(defaultList ? [defaultList] : [])],
       } : localSpace);
       setLocalSpaces(nextSpaces);
       saveLocalSpaces(nextSpaces);
@@ -203,7 +240,11 @@ export function SpaceOverview() {
     }
     try {
       if (navigationCreateKind === 'folder') {
-        await createProjectMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { name: nextName, description: navigationDescription.trim() || null } });
+        const project = await createProjectMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { name: nextName, description: navigationDescription.trim() || null } });
+        await createSectionMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId: project.id, input: { name: DEFAULT_FOLDER_LIST_NAME } });
+        await navigationQuery.refetch();
+      } else if (navigationCreateKind === 'doc') {
+        await createDocumentMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { title: nextName, projectId: selectedFolder?.id ?? null, content: '' } });
       } else if (selectedFolder) {
         await createSectionMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId: selectedFolder.id, input: { name: nextName } });
       } else await createRootSectionMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, name: nextName });
@@ -211,9 +252,13 @@ export function SpaceOverview() {
     } catch { toast.error('Unable to create this item.'); }
   };
   const createLocalListTask = async (input: { title: string; status: LocalTaskStatus; statusGroupId?: string }) => {
-    if (!selectedLocalSpace || !selectedList) return;
+    const taskTargetList = selectedList ?? (visibleLocalLists.length === 1 ? visibleLocalLists[0] : undefined);
+    if (!selectedLocalSpace || !taskTargetList) {
+      toast.info('Open a List before creating a Task.');
+      return;
+    }
     if (navigationQuery.usesApi) {
-      const projectId = selectedList.apiProjectId ?? selectedList.parentId;
+      const projectId = taskTargetList.apiProjectId ?? taskTargetList.parentId;
       if (!projectId || !input.statusGroupId) {
         toast.error('This List needs an API Project and status before creating Tasks.');
         return;
@@ -221,14 +266,14 @@ export function SpaceOverview() {
       try {
         await createTaskMutation.mutateAsync({
           workspaceId: selectedLocalSpace.id,
-          input: { projectId, sectionId: selectedList.id, statusId: input.statusGroupId, title: input.title, priority: 'NORMAL' }
+          input: { projectId, sectionId: taskTargetList.id, statusId: input.statusGroupId, title: input.title, priority: 'NORMAL' }
         });
       } catch { toast.error('Unable to create the Task.'); }
       return;
     }
     const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
       ...localSpace,
-      items: localSpace.items.map((item) => item.id === selectedList.id ? {
+      items: localSpace.items.map((item) => item.id === taskTargetList.id ? {
         ...item,
         tasks: [...(item.tasks ?? []), ({ id: localId('task'), title: input.title, status: input.status, statusGroupId: input.statusGroupId, priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [], createdAt: new Date().toISOString() } satisfies LocalListTask)],
       } : item),
@@ -406,14 +451,26 @@ export function SpaceOverview() {
     event.preventDefault();
     if (!name.trim() || !selectedLocalSpace) return;
     if (!navigationQuery.usesApi) {
-      createProject({ name: name.trim(), description: description.trim() || 'New project in this Space.', folderId: selectedFolder?.id });
+      const nextFolderId = localId('folder');
+      const nextSpaces = localSpaces.map((localSpace) => localSpace.id === selectedLocalSpace.id ? {
+        ...localSpace,
+        items: [
+          ...localSpace.items,
+          { id: nextFolderId, name: name.trim(), kind: 'folder' as const },
+          { id: localId('list'), name: DEFAULT_FOLDER_LIST_NAME, kind: 'list' as const, parentId: nextFolderId },
+        ],
+      } : localSpace);
+      setLocalSpaces(nextSpaces);
+      saveLocalSpaces(nextSpaces);
       setName('');
       setDescription('');
       setCreating(false);
       return;
     }
     try {
-      await createProjectMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { name: name.trim(), description: description.trim() || null } });
+      const project = await createProjectMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, input: { name: name.trim(), description: description.trim() || null } });
+      await createSectionMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId: project.id, input: { name: DEFAULT_FOLDER_LIST_NAME } });
+      await navigationQuery.refetch();
       setName('');
       setDescription('');
       setCreating(false);
@@ -434,11 +491,11 @@ export function SpaceOverview() {
   <button type="button" aria-pressed={autoRefresh} onClick={() => setAutoRefresh((value) => !value)} className={`rounded-full border px-2 py-1 ${autoRefresh ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-200' : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900'}`}>Auto refresh: {autoRefresh ? 'On' : 'Off'}</button>
   <div ref={overviewSettingsRef} className="relative"><button type="button" aria-label="Overview settings" aria-haspopup="menu" aria-expanded={overviewSettingsOpen} onClick={() => setOverviewSettingsOpen((value) => !value)} className="rounded border border-slate-200 p-1.5 hover:text-indigo-600 dark:border-slate-700"><Settings2 size={15} /></button>{overviewSettingsOpen && <div role="menu" aria-label="Overview refresh settings" className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900"><button type="button" role="menuitem" onClick={refreshOverview} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"><RefreshCw size={14} />Refresh now</button><p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Refresh interval</p>{[15, 30, 60].map((seconds) => <button key={seconds} type="button" role="menuitemradio" aria-checked={refreshIntervalSeconds === seconds} onClick={() => setRefreshIntervalSeconds(seconds)} className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800 ${refreshIntervalSeconds === seconds ? 'font-semibold text-indigo-600' : ''}`}>{seconds} seconds</button>)}</div>}</div>
 </div>}
-    {displayedView === 'Overview' ? <><section className="grid gap-4 p-4 lg:grid-cols-3"><article className="min-h-72 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><h2 className="text-sm font-semibold">Recent</h2><div className="mt-4 space-y-3">{recentLocalTasks.length ? recentLocalTasks.map(({ list, task }) => <button type="button" onClick={() => openList(list.id)} key={task.id} className="flex w-full items-center gap-3 text-left text-sm hover:text-indigo-600"><ListChecks size={16} className="shrink-0 text-slate-500" /><span className="truncate">{task.title} <span className="text-slate-400">{String.fromCharCode(0x00B7)} in {list.name}</span></span></button>) : <p className="text-sm text-slate-500">No recent tasks yet.</p>}</div></article><article className="min-h-72 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><h2 className="text-sm font-semibold">Docs</h2><div className="mt-4 space-y-3">{docs.length ? docs.map((doc) => <button type="button" key={doc.id} onClick={() => openDocument(doc)} className="flex w-full items-center gap-3 text-left text-sm hover:text-indigo-600"><FileText size={16} className="text-slate-500" /><span>{doc.name} <span className="text-slate-400">{String.fromCharCode(0x00B7)} in {selectedLocalSpace?.name}</span></span></button>) : <p className="text-sm text-slate-500">No Docs in this {selectedFolder ? 'Folder' : 'Space'} yet.</p>}</div></article><article className="flex min-h-72 flex-col rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><h2 className="text-sm font-semibold">Bookmarks</h2><div className="flex flex-1 flex-col items-center justify-center text-center"><Bookmark size={44} className="text-slate-300" /><p className="mt-4 max-w-xs text-sm text-slate-500">Save a Space, project, task, or useful link for quick access.</p>{bookmarked && <p className="mt-3 text-sm font-semibold text-indigo-600">Bookmark saved locally</p>}<Button size="sm" className="mt-4" onClick={() => setBookmarked((value) => !value)}>{bookmarked ? 'Bookmark saved' : 'Add Bookmark'}</Button></div></article></section>{selectedLocalSpace ? <section className="mx-4 mb-4 grid gap-4 xl:grid-cols-2"><TaskStatusChart tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} /><TaskAssignmentChart tasks={visibleLocalTasks} /></section> : null}<section className="mx-4 mb-4 min-h-80 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">{selectedFolder ? 'Lists' : 'Folders'}</h2><p className="mt-1 text-xs text-slate-500">{selectedFolder ? 'Lists in ' + selectedFolder.name : 'Folders in ' + selectedLocalSpace?.name}</p></div><Button size="sm" variant="ghost" onClick={() => beginNavigationCreate(selectedFolder ? 'list' : 'folder')}><Plus size={15} />New {selectedFolder ? 'list' : 'folder'}</Button></div><div className="mt-4 flex flex-wrap gap-3">{selectedFolder ? (lists.length ? lists.map((list) => <button type="button" key={list.id} onClick={() => openList(list.id)} className="flex min-w-64 items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-left text-sm font-semibold transition hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-700 dark:hover:bg-indigo-950/30"><ListChecks className="text-slate-500" size={20} />{list.name}</button>) : <p className="text-sm text-slate-500">No Lists in this Folder yet.</p>) : (folders.length ? folders.map((folder) => { const folderLists = selectedLocalSpace?.items.filter((item) => item.parentId === folder.id && item.kind === 'list') ?? []; return <button type="button" key={folder.id} onClick={() => openFolder(folder.id)} className="flex min-w-64 items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-left text-sm font-semibold transition hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-700 dark:hover:bg-indigo-950/30"><Folder className="text-slate-500" size={20} />{folder.name}<span className="ml-auto text-xs font-normal text-slate-400">{folderLists.length} lists</span></button>; }) : <p className="text-sm text-slate-500">No folders in this Space yet.</p>)}</div></section></> : displayedView === 'Calendar' ? <LocalCalendarTaskSurface tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onUpdateTask={updateLocalListTask} /> : displayedView === 'Table' ? <LocalTableTaskSurface tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onUpdateTask={updateLocalListTask} /> : displayedView === 'Gantt' ? <LocalGanttTaskSurface tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onUpdateTask={updateLocalListTask} /> : (displayedView === 'Board' || displayedView === 'List') ? <LocalListTaskSurface view={displayedView} tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onCreateStatus={createScopedStatus} onUpdateStatus={updateScopedStatus} onDeleteStatus={deleteScopedStatus} onCreateTask={createLocalListTask} onUpdateTask={updateLocalListTask} onDeleteTasks={deleteLocalListTasks} /> : <SpaceTabContent view={displayedView as Exclude<SpaceView, 'Overview'>} projects={projects} onOpenProject={selectProject} />}
+    {displayedView === 'Overview' ? <><section className="grid gap-4 p-4 lg:grid-cols-3"><article className="min-h-72 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><h2 className="text-sm font-semibold">Recent</h2><div className="mt-4 space-y-3">{recentLocalTasks.length ? recentLocalTasks.map(({ list, task }) => <button type="button" onClick={() => openList(list.id)} key={task.id} className="flex w-full items-center gap-3 text-left text-sm hover:text-indigo-600"><ListChecks size={16} className="shrink-0 text-slate-500" /><span className="truncate">{task.title} <span className="text-slate-400">{String.fromCharCode(0x00B7)} in {list.name}</span></span></button>) : <p className="text-sm text-slate-500">No recent tasks yet.</p>}</div></article><article className="min-h-72 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><h2 className="text-sm font-semibold">Docs</h2><div className="mt-4 space-y-3">{docs.length ? docs.map((doc) => <button type="button" key={doc.id} onClick={() => openDocument(doc)} className="flex w-full items-center gap-3 text-left text-sm hover:text-indigo-600"><FileText size={16} className="text-slate-500" /><span>{doc.name} <span className="text-slate-400">{String.fromCharCode(0x00B7)} in {selectedLocalSpace?.name}</span></span></button>) : <p className="text-sm text-slate-500">No Docs in this {selectedFolder ? 'Folder' : 'Space'} yet.</p>}</div></article><article className="flex min-h-72 flex-col rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><h2 className="text-sm font-semibold">Bookmarks</h2><div className="flex flex-1 flex-col items-center justify-center text-center"><Bookmark size={44} className="text-slate-300" /><p className="mt-4 max-w-xs text-sm text-slate-500">Save a Space, project, task, or useful link for quick access.</p>{bookmarked && <p className="mt-3 text-sm font-semibold text-indigo-600">Bookmark saved locally</p>}<Button size="sm" className="mt-4" onClick={() => setBookmarked((value) => !value)}>{bookmarked ? 'Bookmark saved' : 'Add Bookmark'}</Button></div></article></section>{selectedLocalSpace ? <section className="mx-4 mb-4 grid gap-4 xl:grid-cols-2"><TaskStatusChart tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} /><TaskAssignmentChart tasks={visibleLocalTasks} /></section> : null}<section className="mx-4 mb-4 min-h-80 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">{selectedFolder ? 'Lists' : 'Folders'}</h2><p className="mt-1 text-xs text-slate-500">{selectedFolder ? 'Lists in ' + selectedFolder.name : 'Folders in ' + selectedLocalSpace?.name}</p></div><Button size="sm" variant="ghost" onClick={() => beginNavigationCreate(selectedFolder ? 'list' : 'folder')}><Plus size={15} />New {selectedFolder ? 'list' : 'folder'}</Button></div><div className="mt-4 flex flex-wrap gap-3">{selectedFolder ? (lists.length ? lists.map((list) => <button type="button" key={list.id} onClick={() => openList(list.id)} className="flex min-w-64 items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-left text-sm font-semibold transition hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-700 dark:hover:bg-indigo-950/30"><ListChecks className="text-slate-500" size={20} />{list.name}</button>) : <p className="text-sm text-slate-500">No Lists in this Folder yet.</p>) : (folders.length ? folders.map((folder) => { const folderLists = selectedLocalSpace?.items.filter((item) => item.parentId === folder.id && item.kind === 'list') ?? []; return <button type="button" key={folder.id} onClick={() => openFolder(folder.id)} className="flex min-w-64 items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-left text-sm font-semibold transition hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-700 dark:hover:bg-indigo-950/30"><Folder className="text-slate-500" size={20} />{folder.name}<span className="ml-auto text-xs font-normal text-slate-400">{folderLists.length} lists</span></button>; }) : <p className="text-sm text-slate-500">No folders in this Space yet.</p>)}</div></section></> : needsListForDisplayedView ? <ListRequiredEmptyState scope={selectedFolder ? 'folder' : 'space'} onCreate={beginNavigationCreate} /> : displayedView === 'Calendar' ? <LocalCalendarTaskSurface tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onUpdateTask={updateLocalListTask} /> : displayedView === 'Table' ? <LocalTableTaskSurface tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onUpdateTask={updateLocalListTask} /> : displayedView === 'Gantt' ? <LocalGanttTaskSurface tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onUpdateTask={updateLocalListTask} /> : (displayedView === 'Board' || displayedView === 'List') ? <LocalListTaskSurface view={displayedView} tasks={visibleLocalTasks} statusGroups={scopedStatusGroups} statusOverrides={scopedStatusOverrides} onCreateStatus={createScopedStatus} onUpdateStatus={updateScopedStatus} onDeleteStatus={deleteScopedStatus} onCreateTask={createLocalListTask} onUpdateTask={updateLocalListTask} onDeleteTasks={deleteLocalListTasks} /> : <SpaceTabContent view={displayedView as Exclude<SpaceView, 'Overview'>} projects={projects} onOpenProject={selectProject} />}
     {selectedTask && <SpaceTaskModal project={selectedTask.project} task={selectedTask.task} onClose={closeTask} />}
     {selectedLocalSpace?.private && <Dialog open={sharing} onOpenChange={setSharing} contentClassName="max-w-lg p-0">
       <section className="overflow-hidden rounded-2xl bg-white dark:bg-slate-950"><header className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800"><div><DialogTitle>Share this Space</DialogTitle><p className="mt-1 text-sm text-slate-500">Sharing {selectedLocalSpace?.name} with all views.</p></div><button type="button" aria-label="Close share dialog" onClick={() => setSharing(false)} className="rounded-full bg-slate-100 p-1.5 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"><X size={16} /></button></header><div className="space-y-5 p-5"><div className="flex gap-2 rounded-xl border border-slate-200 p-2 dark:border-slate-700"><input aria-label="Invite by name or email" placeholder="Invite by name or email" className="min-w-0 flex-1 bg-transparent px-2 text-sm outline-none" /><Button size="sm">Invite</Button></div><div className="flex items-center justify-between text-sm"><span className="inline-flex items-center gap-2 font-medium"><Link2 size={16} />Private link</span><Button size="sm" variant="outline">Copy link</Button></div><div className="flex items-center justify-between text-sm"><span className="inline-flex items-center gap-2 font-medium"><Users size={16} />Default permission</span><button type="button" className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-sm dark:border-slate-700">Full edit<ChevronDown size={14} /></button></div><div className="border-t border-slate-100 pt-4 dark:border-slate-800"><p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Share with</p><div className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-indigo-500 text-xs font-bold text-white">S1</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{selectedLocalSpace?.name}</p><p className="text-xs text-slate-500">Space members</p></div><span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-200">Full edit</span></div></div></div><footer className="border-t border-slate-100 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-900/60"><button type="button" className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-800"><LockKeyhole size={15} />Make Private</button></footer></section>
-    </Dialog>}    <CreationDialog kind={navigationCreateKind ?? 'folder'} open={navigationCreateKind !== null} name={navigationName} description={navigationDescription} isPrivate={false} publicAccess="VIEW" invitees="" pending={createProjectMutation.isPending || createSectionMutation.isPending || createRootSectionMutation.isPending} parentLabel={selectedFolder?.name ?? selectedLocalSpace?.name} onNameChange={setNavigationName} onDescriptionChange={setNavigationDescription} onPrivateChange={() => undefined} onPublicAccessChange={() => undefined} onInviteesChange={() => undefined} onOpenChange={(open) => { if (!open) setNavigationCreateKind(null); }} onSubmit={submitNavigationCreate} />    <Dialog open={creating} onOpenChange={setCreating}><form onSubmit={submit} className="space-y-4"><DialogTitle>Create a project</DialogTitle><label className="block text-sm font-medium">Project name<input aria-label="Project name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" autoFocus /></label><label className="block text-sm font-medium">Description<textarea aria-label="Project description" value={description} onChange={(event) => setDescription(event.target.value)} className="mt-2 min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" /></label><div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button type="submit" disabled={createProjectMutation.isPending}>Create project</Button></div></form></Dialog>
+    </Dialog>}    <CreationDialog kind={navigationCreateKind ?? 'folder'} open={navigationCreateKind !== null} name={navigationName} description={navigationDescription} isPrivate={false} publicAccess="VIEW" invitees="" pending={createProjectMutation.isPending || createSectionMutation.isPending || createRootSectionMutation.isPending || createDocumentMutation.isPending} parentLabel={selectedFolder?.name ?? selectedLocalSpace?.name} onNameChange={setNavigationName} onDescriptionChange={setNavigationDescription} onPrivateChange={() => undefined} onPublicAccessChange={() => undefined} onInviteesChange={() => undefined} onOpenChange={(open) => { if (!open) setNavigationCreateKind(null); }} onSubmit={submitNavigationCreate} />    <Dialog open={creating} onOpenChange={setCreating}><form onSubmit={submit} className="space-y-4"><DialogTitle>Create a project</DialogTitle><label className="block text-sm font-medium">Project name<input aria-label="Project name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" autoFocus /></label><label className="block text-sm font-medium">Description<textarea aria-label="Project description" value={description} onChange={(event) => setDescription(event.target.value)} className="mt-2 min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950" /></label><div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button type="submit" disabled={createProjectMutation.isPending}>Create project</Button></div></form></Dialog>
   </main>;
 }
 

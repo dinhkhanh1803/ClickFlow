@@ -16,10 +16,15 @@ describe('WorkspaceRoot', () => {
     render(<WorkspaceRoot />);
 
     await user.click(screen.getByRole('button', { name: 'New folder' }));
-    await user.type(screen.getByLabelText('Folder name'), 'Marketing');
+    await user.type(screen.getByLabelText('folder name'), 'Marketing');
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByRole('button', { name: /Marketing0 lists/ })).toBeInTheDocument();
+    const folderButton = screen.getByRole('button', { name: /Marketing1 list/ });
+    expect(folderButton).toBeInTheDocument();
+    await user.click(folderButton);
+
+    expect(screen.getByRole('button', { name: 'List' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('List');
   });
   it('edits a project from its workspace header', async () => {
     const user = userEvent.setup();
@@ -270,12 +275,39 @@ describe('WorkspaceRoot', () => {
     render(<WorkspaceRoot />);
 
     await user.click(await screen.findByRole('button', { name: 'New list' }));
-    await user.type(screen.getByLabelText('List name'), 'Roadmap');
+    await user.type(screen.getByLabelText('list name'), 'Roadmap');
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
     expect(screen.getByRole('button', { name: 'Roadmap' })).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('folder-projects');
-  });  it('opens a selected List without an Overview tab', async () => {
+  });  it('shows a List-required empty state for an empty Space Board', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([{ id: 'space-empty', name: 'Empty Space', tone: 'bg-indigo-500', items: [] }]));
+    window.history.replaceState(null, '', '/projects?space=space-empty');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+
+    expect(screen.getByRole('heading', { name: 'This Space is empty' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create List' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Folder' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Doc' })).toBeInTheDocument();
+  });
+  it('shows a List-required empty state for an empty Folder Board and opens Create List', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [{ id: 'folder-empty', name: 'Empty Folder', kind: 'folder' }] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-empty');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    await user.click(screen.getByRole('button', { name: 'Create List' }));
+
+    expect(screen.getByRole('heading', { name: 'This Folder is empty' })).toBeInTheDocument();
+    expect(screen.getByLabelText('list name')).toBeInTheDocument();
+  });
+  it('opens a selected List without an Overview tab', async () => {
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
       { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
         { id: 'folder-projects', name: 'Projects', kind: 'folder' },
@@ -324,6 +356,25 @@ describe('WorkspaceRoot', () => {
 
     expect(screen.getByText('Prepare kickoff')).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Prepare kickoff');
+  });
+  it('creates a task in the only visible List when adding from Folder Board scope', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects' },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('tab', { name: 'Board' }));
+    await user.click(screen.getByRole('button', { name: 'Add task in TO DO' }));
+    await user.type(screen.getByLabelText('Task name'), 'Prepare folder task');
+    await user.click(screen.getByRole('button', { name: 'Save task' }));
+
+    expect(screen.getByText('Prepare folder task')).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Prepare folder task');
   });
   it('collapses and expands a status group in the local List', async () => {
     const user = userEvent.setup();

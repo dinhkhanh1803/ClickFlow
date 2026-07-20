@@ -88,6 +88,20 @@ describe('ContextSidebar', () => {
 
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
+  it('creates a default List when creating a Folder from the Space plus button', async () => {
+    const user = userEvent.setup();
+    render(<ContextSidebar modulePath="/projects" />);
+
+    await user.click(screen.getByRole('button', { name: 'Create in Space 1' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Folder' }));
+    await user.type(screen.getByLabelText('folder name'), 'aaa');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(screen.getByRole('button', { name: 'aaa' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'List' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('List');
+  });
+
   it('creates a List inside a Project folder from its plus button', async () => {
     const user = userEvent.setup();
     render(<ContextSidebar modulePath="/projects" />);
