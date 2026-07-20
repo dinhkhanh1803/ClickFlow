@@ -1,4 +1,4 @@
-export interface AuthenticatedUser {
+﻿export interface AuthenticatedUser {
   id: string;
   email?: string;
 }
@@ -10,4 +10,6 @@ export interface AuthenticatedRequest {
   body?: Record<string, unknown>;
   query?: Record<string, string | string[] | undefined>;
   headers?: Record<string, string | string[] | undefined>;
+  method?: string;
 }
+

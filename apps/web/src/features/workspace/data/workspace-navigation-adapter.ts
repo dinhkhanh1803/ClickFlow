@@ -1,4 +1,4 @@
-import { SPACE_ROOT_PROJECT_TONE, type ActivityApiResponse, type CommentApiResponse, type DocumentResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TimeEntryApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
+﻿import { SPACE_ROOT_PROJECT_TONE, type ActivityApiResponse, type CommentApiResponse, type DocumentResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TimeEntryApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
 import type { LocalListTask, LocalSpace, LocalStatusColor, LocalTaskPriority } from '../model/local-navigation';
 
 const fallbackTones = ['bg-indigo-500', 'bg-orange-500', 'bg-pink-500', 'bg-emerald-500', 'bg-violet-500', 'bg-cyan-500'];
@@ -86,12 +86,17 @@ export function mapWorkspaceTree(
     const rootProjectIds = new Set(workspaceProjects.filter((project) => project.tone === SPACE_ROOT_PROJECT_TONE).map((project) => project.id));
     const visibleProjects = workspaceProjects.filter((project) => !rootProjectIds.has(project.id));
     const projectIds = new Set(workspaceProjects.map((project) => project.id));
+    const appearance = workspaceAppearance(workspace.tone, index);
     return {
       id: workspace.id,
       name: workspace.name,
-      ...workspaceAppearance(workspace.tone, index),
+      tone: appearance.tone,
+      ...(appearance.icon ? { icon: appearance.icon } : {}),
       role: workspace.role,
+      description: workspace.description,
       private: workspace.private,
+      publicAccess: workspace.publicAccess,
+      createdBy: workspace.createdBy,
       items: [
         ...visibleProjects.map((project) => ({
           id: project.id,
@@ -140,3 +145,5 @@ export function mapWorkspaceTree(
     };
   });
 }
+
+

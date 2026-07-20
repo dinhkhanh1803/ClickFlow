@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   CanActivate,
   ExecutionContext,
@@ -31,7 +31,8 @@ export class WorkspaceMembershipGuard implements CanActivate {
     if (!request.user) throw new UnauthorizedException('Authentication is required');
     const workspaceId = this.resolveWorkspaceId(request, metadata);
     if (!workspaceId) throw new BadRequestException('Workspace scope is required');
-    if (!await this.memberships.hasAccess(request.user.id, workspaceId)) {
+    const accessLevel = request.method === 'GET' || request.method === 'HEAD' ? 'VIEW' : 'EDIT';
+    if (!await this.memberships.hasAccess(request.user.id, workspaceId, accessLevel)) {
       throw new ForbiddenException('Workspace access denied');
     }
     request.workspaceId = workspaceId;
@@ -45,3 +46,4 @@ export class WorkspaceMembershipGuard implements CanActivate {
     return typeof value === 'string' ? value : undefined;
   }
 }
+

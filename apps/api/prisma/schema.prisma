@@ -12,6 +12,11 @@ enum WorkspaceRole {
   MEMBER
 }
 
+enum WorkspacePublicAccess {
+  VIEW
+  EDIT
+}
+
 enum TaskPriority {
   URGENT
   HIGH
@@ -138,8 +143,10 @@ model Workspace {
   id                     String                    @id @default(uuid()) @db.Uuid
   createdById            String                    @db.Uuid
   name                   String
+  description            String?                   @db.Text
   tone                   String?
   private                Boolean                   @default(true)
+  publicAccess           WorkspacePublicAccess     @default(VIEW)
   timezone               String                    @default("UTC")
   locale                 String                    @default("en")
   settings               Json                      @default("{}")
@@ -499,3 +506,4 @@ model TemplateInstantiation {
   @@index([templateId, createdAt])
   @@map("template_instantiations")
 }
+

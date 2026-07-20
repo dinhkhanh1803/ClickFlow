@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+﻿import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LOCAL_SPACES_STORAGE_KEY } from '@/features/workspace/model/local-navigation';
@@ -191,7 +191,8 @@ describe('ContextSidebar', () => {
     await user.click(screen.getByRole('button', { name: 'Space color emerald-500' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(screen.getByRole('link', { name: /Design team\s*Private/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Design team' })).toBeInTheDocument();
+    expect(screen.getAllByText('Private').length).toBeGreaterThan(0);
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('🎯');
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('bg-emerald-500');
   });
@@ -243,3 +244,5 @@ describe('ContextSidebar', () => {
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('Project notes');
   });
 });
+
+

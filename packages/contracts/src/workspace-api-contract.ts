@@ -1,6 +1,7 @@
-import type { UtcIsoTimestamp } from './domain-contract';
+﻿import type { UtcIsoTimestamp } from './domain-contract';
 
-export type WorkspaceRole = 'OWNER' | 'MEMBER';
+export type WorkspaceRole = 'OWNER' | 'MEMBER' | 'PUBLIC';
+export type WorkspacePublicAccess = 'VIEW' | 'EDIT';
 export type ProjectHealthStatus = 'ON_TRACK' | 'AT_RISK' | 'OVERDUE' | 'COMPLETED';
 export const SPACE_ROOT_PROJECT_TONE = 'system:space-root';
 
@@ -8,22 +9,27 @@ export const SPACE_ROOT_PROJECT_TONE = 'system:space-root';
 export interface WorkspaceResponse {
   id: string;
   name: string;
+  description: string | null;
   tone: string | null;
   private: boolean;
+  publicAccess: WorkspacePublicAccess;
   timezone: string;
   locale: string;
   role: WorkspaceRole;
+  createdBy: { id: string; displayName: string; avatarUrl: string | null };
   createdAt: UtcIsoTimestamp;
   updatedAt: UtcIsoTimestamp;
 }
 export interface CreateWorkspaceRequest {
   name: string;
+  description?: string | null;
   tone?: string | null;
   private?: boolean;
+  publicAccess?: WorkspacePublicAccess;
   timezone?: string;
   locale?: string;
 }
-export type UpdateWorkspaceRequest = Partial<Pick<CreateWorkspaceRequest, 'name' | 'tone' | 'private'>>;
+export type UpdateWorkspaceRequest = Partial<Pick<CreateWorkspaceRequest, 'name' | 'description' | 'tone' | 'private' | 'publicAccess'>>;
 
 
 export interface ProjectHealthResponse {
@@ -93,3 +99,4 @@ export interface CreateProjectRequest {
 export type UpdateProjectRequest = Partial<CreateProjectRequest>;
 export interface CreateSectionRequest { name: string; }
 export type UpdateSectionRequest = Partial<CreateSectionRequest>;
+
