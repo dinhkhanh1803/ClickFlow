@@ -1,4 +1,4 @@
-﻿import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { WorkspaceRole } from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
@@ -70,7 +70,7 @@ export class WorkspaceService {
     return [
       ...memberships.map(({ workspace, role }) => ({ ...workspace, role })),
       ...publicWorkspaces.map((workspace) => ({ ...withoutMembers(workspace), role: 'PUBLIC' as const }))
-    ].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime() || left.id.localeCompare(right.id));
+    ];
   }
 
   async getById(workspaceId: string, userId: string) {

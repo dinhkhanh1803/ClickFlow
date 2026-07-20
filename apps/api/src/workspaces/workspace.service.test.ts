@@ -1,4 +1,4 @@
-﻿import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../database/prisma.service';
 import { createWorkspaceSchema } from './workspace.schemas';
 import { WorkspaceService } from './workspace.service';
@@ -28,6 +28,7 @@ describe('WorkspaceService', () => {
 
   it('lists owned and public Spaces with creator metadata for a signed-in user', async () => {
     const createdAt = new Date('2026-07-19T00:00:00.000Z');
+    const olderPublicCreatedAt = new Date('2026-07-01T00:00:00.000Z');
     const privateMemberships = [{
       role: 'OWNER',
       workspace: {
@@ -37,7 +38,7 @@ describe('WorkspaceService', () => {
     }];
     const publicWorkspaces = [{
       id: 'workspace-public', name: 'Public', description: 'Visible to everyone', tone: null, private: false, publicAccess: 'EDIT', timezone: 'UTC', locale: 'en',
-      createdBy: { id: 'user-b', displayName: 'Owner B', avatarUrl: null }, createdAt, updatedAt: createdAt, members: []
+      createdBy: { id: 'user-b', displayName: 'Owner B', avatarUrl: null }, createdAt: olderPublicCreatedAt, updatedAt: olderPublicCreatedAt, members: []
     }];
     const prisma = {
       workspaceMember: { findMany: vi.fn().mockResolvedValue(privateMemberships) },
