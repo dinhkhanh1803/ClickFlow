@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bookmark, CalendarDays, ChevronDown, Columns3, FileText, Folder, GanttChartSquare, LayoutDashboard, LayoutList, Link2, ListChecks, LockKeyhole, Plus, RefreshCw, Settings2, Table2, Users, X } from 'lucide-react';
@@ -18,7 +18,7 @@ import { LocalGanttTaskSurface } from './local-gantt-task-surface';
 import { TaskStatusChart } from './task-status-chart';
 import { TaskAssignmentChart } from './task-assignment-chart';
 import { SpaceTabContent, SpaceTaskModal, type SpaceView } from './space-tab-content';
-import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useDeleteStatusMutation, useStartTimerMutation, useStopTimerMutation, useUpdateStatusMutation, useUpdateTaskMutation, useAssignableUsersQuery, useWorkspaceNavigationQuery } from '../data/workspace-queries';
+import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useDeleteStatusMutation, useStartTimerMutation, useStopTimerMutation, useUpdateStatusMutation, useUpdateTaskMutation, useSyncTaskTagsMutation, useAssignableUsersQuery, useWorkspaceNavigationQuery } from '../data/workspace-queries';
 import { useCreateDocumentMutation } from '../data/document-queries';
 
 const DEFAULT_FOLDER_LIST_NAME = 'List';
@@ -82,6 +82,7 @@ export function SpaceOverview() {
   const createRootSectionMutation = useCreateRootSectionMutation();
   const createTaskMutation = useCreateTaskMutation();
   const updateTaskMutation = useUpdateTaskMutation();
+  const syncTaskTagsMutation = useSyncTaskTagsMutation();
   const archiveTaskMutation = useArchiveTaskMutation();
   const createStatusMutation = useCreateStatusMutation();
   const updateStatusMutation = useUpdateStatusMutation();
@@ -347,7 +348,17 @@ export function SpaceOverview() {
       if (patch.statusGroupId !== undefined) input.statusId = patch.statusGroupId;
       if (patch.priority !== undefined) input.priority = ({ Urgent: 'URGENT', High: 'HIGH', Normal: 'NORMAL', Low: 'LOW' } as const)[patch.priority];
       if (patch.dueDate !== undefined) input.dueAt = patch.dueDate ? `${patch.dueDate}T00:00:00.000Z` : null;
-      if (patch.assigneeId !== undefined) input.assigneeId = patch.assigneeId || null;
+      if (patch.timeEstimate !== undefined) {
+        const match = patch.timeEstimate.match(/(?:(\d+)h)?\s*(?:(\d+)m)?/);
+        input.estimateMinutes = patch.timeEstimate ? Number(match?.[1] ?? 0) * 60 + Number(match?.[2] ?? 0) : null;
+      }
+      if (patch.tags !== undefined) {
+        try { await syncTaskTagsMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, projectId, taskId, tags: patch.tags, currentTags: task.tags ?? [] }); }
+        catch { toast.error('Unable to update tags.'); }
+        return;
+      }
+      if (patch.assigneeIds !== undefined) input.assigneeIds = patch.assigneeIds;
+      else if (patch.assigneeId !== undefined) input.assigneeId = patch.assigneeId || null;
       else if (patch.assignee === '') input.assigneeId = null;
       if (Object.keys(input).length === 1) {
         toast.info('This field will be connected in a later integration task.');

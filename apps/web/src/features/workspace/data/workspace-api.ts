@@ -12,7 +12,8 @@ import type {
   UpdateProjectRequest,
   UpdateSectionRequest,
   WorkspaceResponse,
-  AssignableUserResponse
+  AssignableUserResponse,
+  TaskTagResponse
 } from '@clickflow/contracts';
 
 import { createApiClient } from '@/lib/api/client';
@@ -43,6 +44,18 @@ export const workspaceApi = {
   },
   createProject(accessToken: string, workspaceId: string, input: CreateProjectRequest): Promise<ProjectResponse> {
     return client.post(`/workspaces/${workspaceId}/projects`, input, authorized(accessToken));
+  },
+  listTags(accessToken: string, workspaceId: string): Promise<TaskTagResponse[]> {
+    return client.get(`/workspaces/${workspaceId}/tags`, authorized(accessToken));
+  },
+  createTag(accessToken: string, workspaceId: string, input: { name: string; color: string }): Promise<TaskTagResponse> {
+    return client.post(`/workspaces/${workspaceId}/tags`, input, authorized(accessToken));
+  },
+  attachTag(accessToken: string, workspaceId: string, taskId: string, tagId: string): Promise<void> {
+    return client.post(`/workspaces/${workspaceId}/tasks/${taskId}/tags`, { tagId }, authorized(accessToken));
+  },
+  detachTag(accessToken: string, workspaceId: string, taskId: string, tagId: string): Promise<void> {
+    return client.delete(`/workspaces/${workspaceId}/tasks/${taskId}/tags/${tagId}`, authorized(accessToken));
   },
   updateProject(accessToken: string, workspaceId: string, projectId: string, input: UpdateProjectRequest): Promise<ProjectResponse> {
     return client.patch(`/workspaces/${workspaceId}/projects/${projectId}`, input, authorized(accessToken));

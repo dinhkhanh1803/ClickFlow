@@ -134,6 +134,21 @@ export function useCreateWorkspaceMutation() {
   }, queryClient);
 }
 
+export function useSyncTaskTagsMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: async ({ workspaceId, taskId, tags, currentTags }: { workspaceId: string; projectId: string; taskId: string; tags: string[]; currentTags: string[] }) => {
+      const token = requireToken(accessToken);
+      const available = await workspaceApi.listTags(token, workspaceId);
+      const byName = new Map(available.map((tag) => [tag.name.toLowerCase(), tag]));
+      for (const name of tags) if (!byName.has(name.toLowerCase())) byName.set(name.toLowerCase(), await workspaceApi.createTag(token, workspaceId, { name, color: '#8b5cf6' }));
+      for (const name of tags.filter((name) => !currentTags.includes(name))) await workspaceApi.attachTag(token, workspaceId, taskId, byName.get(name.toLowerCase())!.id);
+      for (const name of currentTags.filter((name) => !tags.includes(name))) { const tag = byName.get(name.toLowerCase()); if (tag) await workspaceApi.detachTag(token, workspaceId, taskId, tag.id); }
+    },
+    onSuccess: (_result, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.tasks(variables.workspaceId, variables.projectId) })
+  }, queryClient);
+}
 export function useCreateProjectMutation() {
   const queryClient = useWorkspaceQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);

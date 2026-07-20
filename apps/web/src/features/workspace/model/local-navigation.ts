@@ -1,4 +1,4 @@
-﻿export type LocalSpaceItemKind = 'folder' | 'list' | 'doc' | 'dashboard' | 'whiteboard' | 'form';
+export type LocalSpaceItemKind = 'folder' | 'list' | 'doc' | 'dashboard' | 'whiteboard' | 'form';
 export type LocalDocumentBlockStyle = 'normal' | 'heading-1' | 'heading-2' | 'heading-3' | 'checklist' | 'bulleted' | 'numbered' | 'toggle' | 'banner' | 'code' | 'quote';
 
 export type LocalTaskStatus = string;
@@ -40,6 +40,8 @@ export type LocalListTask = {
   title: string;
   version?: number;
   assigneeId?: string | null;
+  assigneeIds?: string[];
+  assignees?: Array<{ id: string; displayName: string; initials: string; avatarUrl: string | null }>;
   status: LocalTaskStatus;
   statusGroupId?: string;
   priority: LocalTaskPriority;

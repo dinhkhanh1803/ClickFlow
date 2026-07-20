@@ -1,4 +1,4 @@
-﻿import { SPACE_ROOT_PROJECT_TONE, type ActivityApiResponse, type CommentApiResponse, type DocumentResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TimeEntryApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
+import { SPACE_ROOT_PROJECT_TONE, type ActivityApiResponse, type CommentApiResponse, type DocumentResponse, type ProjectResponse, type ProjectStatusResponse, type SectionResponse, type TaskApiResponse, type TimeEntryApiResponse, type WorkspaceResponse } from '@clickflow/contracts';
 import type { LocalListTask, LocalSpace, LocalStatusColor, LocalTaskPriority } from '../model/local-navigation';
 
 const fallbackTones = ['bg-indigo-500', 'bg-orange-500', 'bg-pink-500', 'bg-emerald-500', 'bg-violet-500', 'bg-cyan-500'];
@@ -45,14 +45,16 @@ function mapTask(task: TaskApiResponse, statuses: ProjectStatusResponse[], comme
     status: status?.name ?? 'Open',
     statusGroupId: task.statusId,
     priority: taskPriority(task.priority),
-    assignee: assignee?.displayName ?? '',
-    assigneeId: task.assigneeId,
+    assignee: task.assignees?.[0]?.displayName ?? assignee?.displayName ?? '',
+    assigneeId: task.assignees?.[0]?.id ?? task.assigneeId,
+    assigneeIds: (task.assignees ?? []).map((item) => item.id),
+    assignees: task.assignees ?? [],
     startDate: '',
     dueDate: task.dueAt?.slice(0, 10) ?? '',
-    timeEstimate: '',
+    timeEstimate: task.estimateMinutes ? Math.floor(task.estimateMinutes / 60) + 'h ' + (task.estimateMinutes % 60) + 'm' : '',
     trackingStartedAt: runningEntry?.startedAt ?? null,
     trackedSeconds: taskTimeEntries.reduce((total, entry) => total + (entry.durationSeconds ?? 0), 0),
-    tags: [],
+    tags: (task.tags ?? []).map((tag) => tag.name),
     description: task.description ?? '',
     comments: comments.filter((comment) => comment.taskId === task.id).map((comment) => ({
       id: comment.id,
