@@ -46,8 +46,9 @@ export function GoogleSignInButton({
         if (response.credential) callbackRef.current(response.credential);
       }
     });
+    const width = Math.min(containerRef.current.clientWidth || 400, 400);
     window.google.accounts.id.renderButton(containerRef.current, {
-      type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', width: 400
+      type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', width
     });
   }, [clientId]);
 
@@ -59,7 +60,11 @@ export function GoogleSignInButton({
 
   return <div aria-busy={pending} className={pending ? 'pointer-events-none opacity-60' : undefined}>
     <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setScriptReady(true)} />
-    <div ref={containerRef} className="flex min-h-11 w-full justify-center overflow-hidden rounded-md" />
+    <div
+      ref={containerRef}
+      data-google-button-host
+      className="mx-auto flex min-h-11 w-full max-w-[400px] justify-center overflow-hidden rounded-md"
+    />
     {pending && <p role="status" className="mt-2 text-center text-xs text-slate-400">Signing in with Google...</p>}
   </div>;
 }

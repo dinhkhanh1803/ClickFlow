@@ -5,6 +5,7 @@ import { GoogleSignInButton } from './google-sign-in-button';
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   Reflect.deleteProperty(window, 'google');
 });
 
@@ -30,5 +31,24 @@ describe('GoogleSignInButton', () => {
     callback?.({ credential: 'google-id-token' });
 
     expect(onCredential).toHaveBeenCalledWith('google-id-token');
+  });
+
+  it('clips only the Google iframe bleed while matching the form width', async () => {
+    const renderButton = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(320);
+    Object.assign(window, {
+      google: { accounts: { id: {
+        initialize: vi.fn(),
+        renderButton
+      } } }
+    });
+
+    const { container } = render(<GoogleSignInButton clientId="client-id" pending={false} onCredential={vi.fn()} />);
+    await waitFor(() => expect(renderButton).toHaveBeenCalledOnce());
+
+    const googleButtonHost = container.querySelector('[data-google-button-host]');
+    expect(googleButtonHost).toHaveClass('overflow-hidden');
+    expect(googleButtonHost).toHaveClass('max-w-[400px]');
+    expect(renderButton).toHaveBeenCalledWith(googleButtonHost, expect.objectContaining({ width: 320 }));
   });
 });
