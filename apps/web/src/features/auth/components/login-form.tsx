@@ -9,8 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ApiError } from '@/lib/api/client';
 import { zodFormResolver } from '@/lib/forms/zod-form-resolver';
-import { useGoogleLoginMutation, useLoginMutation } from '../data/auth-mutations';
-import { GoogleSignInButton } from './google-sign-in-button';
+import { useLoginMutation } from '../data/auth-mutations';
 
 const schema = z.object({
   email: z.email('Enter a valid email address.'),
@@ -22,7 +21,6 @@ type FormValues = z.infer<typeof schema>;
 export function LoginForm() {
   const router = useRouter();
   const login = useLoginMutation();
-  const googleLogin = useGoogleLoginMutation();
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodFormResolver(schema) });
 
   const submit = async (values: FormValues) => {
@@ -36,22 +34,9 @@ export function LoginForm() {
     }
   };
 
-  const submitGoogle = async (credential: string) => {
-    try {
-      await googleLogin.mutateAsync({ credential });
-      toast.success('Signed in with Google', { description: 'Welcome to ClickFlow.' });
-      router.replace('/dashboard');
-      router.refresh();
-    } catch {
-      // The mutation error is rendered below.
-    }
-  };
   const errorMessage = login.error instanceof ApiError
     ? login.error.status === 401 ? 'Email or password is incorrect.' : login.error.status === 403 ? 'Verify your email before signing in.' : login.error.message
-    : login.error ? 'Unable to sign in. Try again.'
-      : googleLogin.error instanceof ApiError
-        ? googleLogin.error.status === 409 ? 'This email is already registered. Sign in with password.' : googleLogin.error.message
-        : googleLogin.error ? 'Unable to sign in with Google. Try again.' : null;
+    : login.error ? 'Unable to sign in. Try again.' : null;
 
   return <form onSubmit={handleSubmit(submit)} className="space-y-5" noValidate>
     <div className="space-y-4">
@@ -60,7 +45,5 @@ export function LoginForm() {
     </div>
     {errorMessage && <p role="alert" className="text-sm text-rose-300">{errorMessage}</p>}
     <Button className="h-11 w-full bg-indigo-500 text-base hover:bg-indigo-400" type="submit" disabled={login.isPending}>{login.isPending ? 'Signing in...' : 'Sign in'}</Button>
-    <div className="flex items-center gap-3 text-xs text-slate-500"><span className="h-px flex-1 bg-slate-800" />or continue with<span className="h-px flex-1 bg-slate-800" /></div>
-    <GoogleSignInButton pending={googleLogin.isPending} onCredential={submitGoogle} />
   </form>;
 }

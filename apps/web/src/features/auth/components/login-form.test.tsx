@@ -16,9 +16,10 @@ afterEach(() => {
 });
 
 describe('LoginForm', () => {
-  it('keeps Google sign-in unavailable until the backend endpoint exists', () => {
+  it('renders only seeded-account email and password sign-in', () => {
     renderWithQueryClient(<LoginForm />);
-    expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeInTheDocument();
+    expect(screen.queryByText('or continue with')).not.toBeInTheDocument();
   });
 
   it('shows validated sign-in fields', () => {

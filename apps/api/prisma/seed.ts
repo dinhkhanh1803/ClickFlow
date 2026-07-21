@@ -3,9 +3,13 @@ import { PrismaClient, StatusCategory, StatusScopeType, TaskPriority, WorkspaceR
 const prisma = new PrismaClient();
 
 const ids = {
-  user: '00000000-0000-4000-8000-000000000001',
+  owner: '00000000-0000-4000-8000-000000000001',
+  memberOne: '00000000-0000-4000-8000-000000000002',
+  memberTwo: '00000000-0000-4000-8000-000000000003',
   workspace: '00000000-0000-4000-8000-000000000010',
-  member: '00000000-0000-4000-8000-000000000011',
+  ownerMember: '00000000-0000-4000-8000-000000000011',
+  memberOneMembership: '00000000-0000-4000-8000-000000000012',
+  memberTwoMembership: '00000000-0000-4000-8000-000000000013',
   project: '00000000-0000-4000-8000-000000000020',
   section: '00000000-0000-4000-8000-000000000030',
   statusOpen: '00000000-0000-4000-8000-000000000040',
@@ -15,33 +19,44 @@ const ids = {
   task: '00000000-0000-4000-8000-000000000060'
 } as const;
 
+const seedUsers = [
+  { id: ids.owner, emailEnv: 'SEED_OWNER_EMAIL', fallbackEmail: 'owner@clickflow.local', displayName: 'ClickFlow Owner', role: WorkspaceRole.OWNER, membershipId: ids.ownerMember },
+  { id: ids.memberOne, emailEnv: 'SEED_MEMBER_ONE_EMAIL', fallbackEmail: 'member-one@clickflow.local', displayName: 'ClickFlow Member One', role: WorkspaceRole.MEMBER, membershipId: ids.memberOneMembership },
+  { id: ids.memberTwo, emailEnv: 'SEED_MEMBER_TWO_EMAIL', fallbackEmail: 'member-two@clickflow.local', displayName: 'ClickFlow Member Two', role: WorkspaceRole.MEMBER, membershipId: ids.memberTwoMembership }
+] as const;
+
 async function main(): Promise<void> {
   const passwordHash = process.env.SEED_USER_PASSWORD_HASH;
   if (!passwordHash) throw new Error('SEED_USER_PASSWORD_HASH is required to run the development seed');
 
   await prisma.$transaction(async (transaction) => {
-    await transaction.user.upsert({
-      where: { id: ids.user },
-      update: { displayName: 'ClickFlow Demo', passwordHash, emailVerifiedAt: new Date() },
-      create: {
-        id: ids.user,
-        email: process.env.SEED_USER_EMAIL ?? 'demo@clickflow.local',
-        displayName: 'ClickFlow Demo',
-        passwordHash,
-        timezone: 'UTC',
-        locale: 'en'
-      }
-    });
+    for (const user of seedUsers) {
+      await transaction.user.upsert({
+        where: { id: user.id },
+        update: { email: process.env[user.emailEnv] ?? user.fallbackEmail, displayName: user.displayName, passwordHash, emailVerifiedAt: new Date() },
+        create: {
+          id: user.id,
+          email: process.env[user.emailEnv] ?? user.fallbackEmail,
+          displayName: user.displayName,
+          passwordHash,
+          emailVerifiedAt: new Date(),
+          timezone: 'UTC',
+          locale: 'en'
+        }
+      });
+    }
     await transaction.workspace.upsert({
       where: { id: ids.workspace },
-      update: { name: 'Demo Workspace' },
-      create: { id: ids.workspace, createdById: ids.user, name: 'Demo Workspace', private: true }
+      update: { name: 'Demo Workspace', private: false, publicAccess: 'EDIT' },
+      create: { id: ids.workspace, createdById: ids.owner, name: 'Demo Workspace', private: false, publicAccess: 'EDIT' }
     });
-    await transaction.workspaceMember.upsert({
-      where: { workspaceId_userId: { workspaceId: ids.workspace, userId: ids.user } },
-      update: { role: WorkspaceRole.OWNER },
-      create: { id: ids.member, workspaceId: ids.workspace, userId: ids.user, role: WorkspaceRole.OWNER }
-    });
+    for (const user of seedUsers) {
+      await transaction.workspaceMember.upsert({
+        where: { workspaceId_userId: { workspaceId: ids.workspace, userId: user.id } },
+        update: { role: user.role },
+        create: { id: user.membershipId, workspaceId: ids.workspace, userId: user.id, role: user.role }
+      });
+    }
     await transaction.project.upsert({
       where: { id: ids.project },
       update: { name: 'Demo Project' },
@@ -118,14 +133,14 @@ async function main(): Promise<void> {
     });
     await transaction.task.upsert({
       where: { id: ids.task },
-      update: { title: 'Review the ClickFlow demo task' },
+      update: { title: 'Review the ClickFlow demo task', assigneeId: ids.owner },
       create: {
         id: ids.task,
         workspaceId: ids.workspace,
         projectId: ids.project,
         sectionId: ids.section,
         statusId: ids.statusOpen,
-        assigneeId: ids.user,
+        assigneeId: ids.owner,
         title: 'Review the ClickFlow demo task',
         priority: TaskPriority.NORMAL,
         position: 0

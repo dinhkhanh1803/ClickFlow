@@ -22,4 +22,9 @@ describe('attachment schemas', () => {
 
     expect(result.success).toBe(true);
   });
+
+  it('rejects videos and files above the temporary upload cap', () => {
+    expect(uploadIntentSchema.safeParse({ ...uploadInput, mimeType: 'video/mp4', byteSize: 12 }).success).toBe(false);
+    expect(uploadIntentSchema.safeParse({ ...uploadInput, byteSize: 5 * 1024 * 1024 + 1 }).success).toBe(false);
+  });
 });

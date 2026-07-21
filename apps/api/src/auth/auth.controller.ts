@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, HttpCode, HttpStatus, Inject, Ip, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Headers, HttpCode, HttpStatus, Inject, Ip, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { ApiAcceptedResponse, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
@@ -13,6 +13,9 @@ import { GoogleIdentityVerifier } from './google-identity.verifier';
 import { Public } from './public.decorator';
 import { TokenService } from './token.service';
 
+function featureEnabled(name: string): boolean {
+  return process.env[name] === 'true';
+}
 function clientContext(request: Request, ipAddress: string): AuthClientContext {
   const requestWithId = request as Request & { requestId?: string };
   return {
@@ -49,6 +52,7 @@ export class AuthController {
   @ApiBody({ type: RegisterRequestDto })
   @ApiCreatedResponse({ type: EmailRegistrationResponseDto })
   async registerEmail(@Body(new ZodValidationPipe(registerSchema)) input: RegisterInput, @Req() request: Request, @Ip() ipAddress: string): Promise<EmailRegistrationResponseDto> {
+    if (!featureEnabled('PUBLIC_REGISTRATION_ENABLED')) throw new ForbiddenException('Public registration is disabled');
     this.limiter.consume('register-email', ipAddress, input.email);
     return this.auth.registerEmail(input, clientContext(request, ipAddress));
   }
@@ -81,6 +85,7 @@ export class AuthController {
     @Req() request: Request,
     @Ip() ipAddress: string
   ): Promise<EmailRegistrationResponseDto> {
+    if (!featureEnabled('PUBLIC_REGISTRATION_ENABLED')) throw new ForbiddenException('Public registration is disabled');
     this.limiter.consume('register-email', ipAddress, input.email);
     return this.auth.registerEmail(input, clientContext(request, ipAddress));
   }
@@ -114,6 +119,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
     @Ip() ipAddress: string
   ): Promise<AuthResponseDto> {
+    if (!featureEnabled('GOOGLE_LOGIN_ENABLED')) throw new ForbiddenException('Google login is disabled');
     const rateLimitIdentity = this.tokens.hashOpaqueToken(input.credential);
     this.limiter.consume('google', ipAddress, rateLimitIdentity);
     const identity = await this.google.verify(input.credential);

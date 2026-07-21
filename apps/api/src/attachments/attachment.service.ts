@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { AuthClientContext } from '../auth/auth.service';
 import { PrismaService } from '../database/prisma.service';
-import { assertStoredObject, assertStoredObjectMetadata, storageExtensionForMimeType } from './attachment-rules';
+import { MAX_WORKSPACE_ATTACHMENT_BYTES, assertStoredObject, assertStoredObjectMetadata, storageExtensionForMimeType } from './attachment-rules';
 import type { CompleteAttachmentInput, UploadIntentInput } from './attachment.schemas';
 import { STORAGE_PROVIDER, type StorageProvider } from './storage-provider';
 
@@ -12,6 +12,7 @@ export class AttachmentService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService, @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider) {}
   async createUploadIntent(workspaceId: string, input: UploadIntentInput) {
     await this.assertTask(workspaceId, input.taskId);
+    await this.assertWorkspaceAttachmentQuota(workspaceId, input.byteSize);
     const extension = storageExtensionForMimeType(input.mimeType);
     const storageKey = `workspaces/${workspaceId}/attachments/${randomUUID()}.${extension}`;
     return { storageKey, ...await this.storage.createSignedUpload({ storageKey, mimeType: input.mimeType, byteSize: input.byteSize, expiresInSeconds: 600 }) };
@@ -57,6 +58,11 @@ export class AttachmentService {
   }
   private async assertTask(workspaceId: string, taskId: string) {
     if (!await this.prisma.task.findFirst({ where: { id: taskId, workspaceId, archivedAt: null }, select: { id: true } })) throw new NotFoundException('Active task not found');
+  }
+  private async assertWorkspaceAttachmentQuota(workspaceId: string, nextByteSize: number) {
+    const { _sum } = await this.prisma.attachment.aggregate({ where: { workspaceId, archivedAt: null }, _sum: { byteSize: true } });
+    const currentBytes = _sum.byteSize ?? 0n;
+    if (currentBytes + BigInt(nextByteSize) > BigInt(MAX_WORKSPACE_ATTACHMENT_BYTES)) throw new BadRequestException('Workspace attachment storage quota exceeded');
   }
   private response(attachment: { id: string; taskId: string; fileName: string; mimeType: string; byteSize: bigint; createdAt: Date }) {
     return { id: attachment.id, taskId: attachment.taskId, fileName: attachment.fileName, mimeType: attachment.mimeType, byteSize: attachment.byteSize.toString(), createdAt: attachment.createdAt };

@@ -14,8 +14,11 @@ describe('environment', () => {
     expect(() => loadEnvironment({ NODE_ENV: 'staging' })).toThrow('DATABASE_URL');
   });
 
-  it('allows database-free unit tests and liveness checks', () => {
-    expect(loadEnvironment({ NODE_ENV: 'test' }).DATABASE_URL).toBeUndefined();
+  it('allows database-free unit tests and keeps public account creation disabled by default', () => {
+    const environment = loadEnvironment({ NODE_ENV: 'test' });
+    expect(environment.DATABASE_URL).toBeUndefined();
+    expect(environment.PUBLIC_REGISTRATION_ENABLED).toBe('false');
+    expect(environment.GOOGLE_LOGIN_ENABLED).toBe('false');
   });
 
   it('parses an explicit CORS allowlist', () => {

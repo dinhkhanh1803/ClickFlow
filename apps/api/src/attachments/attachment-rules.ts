@@ -1,8 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
-export const MAX_STANDARD_ATTACHMENT_BYTES = 25 * 1024 * 1024;
-export const MAX_VIDEO_ATTACHMENT_BYTES = 100 * 1024 * 1024;
-export const MAX_ATTACHMENT_BYTES = MAX_VIDEO_ATTACHMENT_BYTES;
+export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+export const MAX_WORKSPACE_ATTACHMENT_BYTES = 500 * 1024 * 1024;
 
 export const ALLOWED_ATTACHMENT_MIME_TYPES = [
   'application/pdf',
@@ -10,9 +9,6 @@ export const ALLOWED_ATTACHMENT_MIME_TYPES = [
   'image/png',
   'image/webp',
   'image/gif',
-  'video/mp4',
-  'video/webm',
-  'video/quicktime',
   'text/plain',
   'text/markdown',
   'application/zip',
@@ -30,9 +26,6 @@ export const ATTACHMENT_MIME_EXTENSIONS = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
-  'video/mp4': 'mp4',
-  'video/webm': 'webm',
-  'video/quicktime': 'mov',
   'text/plain': 'txt',
   'text/markdown': 'md',
   'application/zip': 'zip',
@@ -50,9 +43,6 @@ const signatures: Partial<Record<keyof typeof ATTACHMENT_MIME_EXTENSIONS, number
   'image/png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
   'image/webp': [[0x52, 0x49, 0x46, 0x46]],
   'image/gif': [[0x47, 0x49, 0x46, 0x38]],
-  'video/mp4': [[0x00, 0x00, 0x00], [0x66, 0x74, 0x79, 0x70]],
-  'video/quicktime': [[0x00, 0x00, 0x00], [0x66, 0x74, 0x79, 0x70]],
-  'video/webm': [[0x1a, 0x45, 0xdf, 0xa3]],
   'application/zip': [[0x50, 0x4b, 0x03, 0x04], [0x50, 0x4b, 0x05, 0x06], [0x50, 0x4b, 0x07, 0x08]],
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [[0x50, 0x4b]],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [[0x50, 0x4b]],
@@ -66,7 +56,7 @@ export function storageExtensionForMimeType(mimeType: string): string {
 }
 
 export function maxAttachmentBytesForMimeType(mimeType: string): number {
-  return mimeType.startsWith('video/') ? MAX_VIDEO_ATTACHMENT_BYTES : MAX_STANDARD_ATTACHMENT_BYTES;
+  return ALLOWED_ATTACHMENT_MIME_TYPES.includes(mimeType as never) ? MAX_ATTACHMENT_BYTES : 0;
 }
 
 export function hasValidMagicBytes(mimeType: string, bytes: Uint8Array): boolean {

@@ -16,6 +16,8 @@ const environmentSchema = z.object({
   API_RATE_WINDOW_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(60_000),
   AUTH_RATE_WINDOW_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(900_000),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_LOGIN_ENABLED: z.enum(['true', 'false']).default('false'),
+  PUBLIC_REGISTRATION_ENABLED: z.enum(['true', 'false']).default('false'),
   STORAGE_PROVIDER: z.enum(['memory', 'cloudinary', 'r2', 's3']).default('memory'),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   EMAIL_HOST: z.string().min(1).optional(),

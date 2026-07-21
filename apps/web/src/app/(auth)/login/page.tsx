@@ -10,7 +10,7 @@ export default function LoginPage() {
       <div className="p-7 sm:p-10 lg:p-12">
         <div className="flex items-center gap-2 text-sm font-semibold text-indigo-300"><span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-500 text-xs text-white">CF</span>ClickFlow</div>
         <div className="mt-10 max-w-sm"><p className="text-sm font-medium text-indigo-300">Welcome back</p><h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Work with more clarity.</h1><p className="mt-3 text-sm leading-6 text-slate-400">Sign in to continue planning, tracking and delivering with your team.</p></div>
-        <div className="mt-9 max-w-sm"><LoginForm /><p className="mt-6 text-center text-sm text-slate-400">New to ClickFlow? <a href="/register" className="font-medium text-indigo-300 transition hover:text-indigo-200">Create account</a><span className="mx-2 text-slate-600">·</span><a href="/forgot-password" className="font-medium text-indigo-300 transition hover:text-indigo-200">Forgot password?</a></p></div>
+        <div className="mt-9 max-w-sm"><LoginForm /><p className="mt-6 text-center text-sm text-slate-400">Access is currently limited to seeded accounts.</p></div>
       </div>
       <aside className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 p-12 md:block">
         <div aria-hidden="true" className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/25 bg-white/10" /><div aria-hidden="true" className="absolute -bottom-28 left-16 h-72 w-72 rounded-full border border-white/20 bg-slate-950/10" />

@@ -241,7 +241,7 @@ describe('ContextSidebar', () => {
     );
     expect(new URLSearchParams(window.location.search).get('space')).toBe('space-2');
   });
-  it('lets a Space owner update its name, access, icon, and color', async () => {
+  it('lets a Space owner update its name, icon, and color while access stays fixed', async () => {
     const user = userEvent.setup();
     render(<ContextSidebar modulePath="/projects" />);
 
@@ -250,13 +250,14 @@ describe('ContextSidebar', () => {
     const name = screen.getByLabelText('Space settings name');
     await user.clear(name);
     await user.type(name, 'Design team');
-    await user.click(screen.getByRole('switch', { name: 'Access visibility' }));
+    expect(screen.queryByRole('switch', { name: 'Access visibility' })).not.toBeInTheDocument();
+    expect(screen.getByText('Spaces are public to signed-in users and editable by default.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Space icon 🎯' }));
     await user.click(screen.getByRole('button', { name: 'Space color emerald-500' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(screen.getByRole('link', { name: 'Design team' })).toBeInTheDocument();
-    expect(screen.getAllByText('Private').length).toBeGreaterThan(0);
+    expect(screen.queryByText('View only')).not.toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('🎯');
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('bg-emerald-500');
   });
