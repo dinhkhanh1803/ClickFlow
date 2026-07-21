@@ -1,0 +1,52 @@
+import { expect, test } from '@playwright/test';
+
+import { mockCoreApi } from './core-api-mock';
+
+test('signs in and completes the core Space, Folder, List, Task flow', async ({ page }) => {
+  const api = await mockCoreApi(page);
+
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill('khanh@clickflow.local');
+  await page.getByLabel('Password').fill('Initial-Pass-9!');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.context().addCookies([
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3000' },
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3002' }
+  ]);
+
+  await page.goto('/projects');
+  await expect(page.getByRole('button', { name: 'Create a new Space' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Create a new Space' }).click();
+  await page.getByLabel('Space name').fill('Regression Space');
+  await page.getByLabel('Space description').fill('E2E protected flow');
+  await page.getByRole('button', { name: 'Can edit' }).click();
+  await page.getByRole('button', { name: 'Create Space', exact: true }).click();
+
+  await expect(page.getByRole('link', { name: 'Regression Space' })).toBeVisible();
+  await expect(page.getByText('Created by Khanh')).toBeVisible();
+  await expect(page.getByText('E2E protected flow')).toBeVisible();
+  expect(api.createdWorkspaceRequests[0]).toMatchObject({ name: 'Regression Space', description: 'E2E protected flow', private: false, publicAccess: 'EDIT' });
+
+  await page.getByRole('button', { name: 'Create in Regression Space' }).click();
+  await page.getByRole('menuitem', { name: 'Folder' }).click();
+  await page.getByLabel('folder name').fill('Launch Folder');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  const folderCard = page.getByRole('button', { name: /Launch Folder 1 lists/ });
+  await expect(folderCard).toBeVisible();
+  await folderCard.click();
+  await expect(page.getByText('Regression Space / Launch Folder')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^List$/ }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: /^List$/ }).first().click();
+  await expect(page.getByText('Regression Space / Launch Folder / List')).toBeVisible();
+  await page.getByRole('button', { name: 'Add task in OPEN' }).click();
+  await page.getByLabel('Task name').fill('Ship E2E guarded flow');
+  await page.getByRole('button', { name: 'Save task' }).click();
+
+  await expect(page.getByRole('button', { name: 'Ship E2E guarded flow' })).toBeVisible();
+  expect(api.createdTaskRequests[0]).toMatchObject({ title: 'Ship E2E guarded flow', priority: 'NORMAL' });
+});
+
