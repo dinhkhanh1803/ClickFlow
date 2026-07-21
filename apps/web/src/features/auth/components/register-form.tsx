@@ -24,8 +24,11 @@ export function RegisterForm() {
   const resend = useResendVerificationMutation();
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const form = useForm<Values>({ resolver: zodFormResolver(schema) });
-  const submit = async ({ confirmPassword: _confirmPassword, ...values }: Values) => {
-    try { const result = await registerAccount.mutateAsync(values); setRegisteredEmail(result.email); } catch { /* rendered below */ }
+  const submit = async (values: Values) => {
+    try {
+      const result = await registerAccount.mutateAsync({ displayName: values.displayName, email: values.email, password: values.password });
+      setRegisteredEmail(result.email);
+    } catch { /* rendered below */ }
   };
   if (registeredEmail) return <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-6 text-center"><span className="mx-auto grid size-12 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-300"><Mail size={22} /></span><h2 className="mt-4 text-xl font-semibold text-white">Check your email</h2><p className="mt-2 text-sm leading-6 text-slate-300">We sent a verification link to <strong>{registeredEmail}</strong>. Verify your email before signing in.</p><Button type="button" variant="ghost" className="mt-4 text-indigo-300" disabled={resend.isPending} onClick={() => resend.mutate({ email: registeredEmail })}>{resend.isPending ? 'Sending...' : resend.isSuccess ? 'Email sent again' : 'Resend verification email'}</Button><Link href="/login" className="mt-3 block text-sm font-medium text-indigo-300">Back to sign in</Link></div>;
   const error = registerAccount.error instanceof ApiError ? registerAccount.error.status === 409 ? 'An account with this email already exists.' : registerAccount.error.message : registerAccount.error ? 'Unable to create account. Try again.' : null;

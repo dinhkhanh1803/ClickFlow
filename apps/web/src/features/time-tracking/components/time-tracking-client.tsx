@@ -15,7 +15,7 @@ const formatDuration = (seconds: number) => {
 export function TimeTrackingClient() {
   const navigation = useWorkspaceNavigationQuery();
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
-  const workspaces = navigation.data ?? [];
+  const workspaces = useMemo(() => navigation.data ?? [], [navigation.data]);
   const workspaceId = selectedWorkspaceId || workspaces[0]?.id || '';
   const entries = navigation.timeEntries.filter((entry) => entry.workspaceId === workspaceId && entry.archivedAt === null);
   const tasks = useMemo(() => new Map(workspaces.flatMap((space) => space.items.flatMap((item) => item.tasks ?? [])).map((task) => [task.id, task])), [workspaces]);
