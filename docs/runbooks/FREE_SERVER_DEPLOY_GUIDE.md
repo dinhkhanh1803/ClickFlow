@@ -1,24 +1,25 @@
-# Hướng dẫn deploy ClickFlow lên server free
+﻿# Hướng dẫn deploy ClickFlow lên server free
 
-Tài liệu này dành cho người mới deploy lần đầu. Mục tiêu là đưa ClickFlow lên môi trường online có thể test thật với PostgreSQL, Google login, gửi email xác thực và upload attachment qua Cloudinary.
+Tài liệu này dành cho người mới deploy lần đầu. Mục tiêu là đưa ClickFlow lên môi trường online có thể test thật với PostgreSQL, Google login, gửi email xác thực và upload attachment qua Cloudflare R2.
 
 ## 1. Kiến trúc deploy khuyến nghị
 
-Để tiết kiệm chi phí, dùng combo sau:
+Combo free/tiết kiệm phù hợp nhất cho ClickFlow:
 
-- Database: Render PostgreSQL hoặc Neon free.
+- Database: Neon free hoặc Render PostgreSQL.
 - API NestJS: Render Web Service bằng Docker.
 - Web Next.js: Vercel free.
-- File storage: Cloudinary.
+- File storage: Cloudflare R2.
 - Email xác thực: Gmail App Password hoặc SMTP provider khác.
 
-Repo hiện đã có `render.yaml` cho API + PostgreSQL trên Render, nên đường đi dễ nhất là:
+Luồng deploy:
 
 ```text
 GitHub repo
-  ├─ Render: chạy API tại https://clickflow-api-xxx.onrender.com
-  ├─ Render/Neon: PostgreSQL
-  └─ Vercel: chạy Web tại https://clickflow-web-xxx.vercel.app
+  ├─ Render: API tại https://clickflow-api-xxx.onrender.com
+  ├─ Neon/Render: PostgreSQL
+  ├─ Vercel: Web tại https://clickflow-web-xxx.vercel.app
+  └─ Cloudflare R2: private bucket lưu attachment
 ```
 
 ## 2. Chuẩn bị tài khoản/dịch vụ
@@ -26,32 +27,16 @@ GitHub repo
 Bạn cần có:
 
 - GitHub: chứa source code ClickFlow.
-- Render: deploy API và có thể tạo PostgreSQL.
+- Render: deploy API.
 - Vercel: deploy frontend Next.js.
-- Cloudinary: lưu ảnh, video, tài liệu attachment.
+- Neon hoặc Render PostgreSQL: database.
+- Cloudflare: tạo R2 bucket lưu file.
 - Google Cloud Console: OAuth Client cho Google login.
 - Gmail có bật 2-Step Verification để tạo App Password gửi email.
 
-## 3. Deploy database PostgreSQL
+## 3. Tạo PostgreSQL
 
-### Cách A: Dùng Render PostgreSQL
-
-1. Vào Render Dashboard.
-2. Chọn New → PostgreSQL.
-3. Tạo database, ví dụ:
-
-```text
-Name: clickflow-postgres
-Database: clickflow
-User: clickflow
-Region: gần server API nhất
-Plan: Free nếu tài khoản còn hỗ trợ free PostgreSQL, hoặc gói thấp nhất
-```
-
-4. Sau khi tạo xong, copy `Internal Database URL` nếu API cũng chạy trên Render.
-5. Nếu API chạy nơi khác, dùng `External Database URL`.
-
-### Cách B: Dùng Neon free
+### Cách A: Neon free
 
 1. Vào Neon.
 2. Tạo project PostgreSQL mới.
@@ -63,34 +48,80 @@ postgresql://USER:PASSWORD@HOST/DB?sslmode=require
 
 4. Dùng chuỗi này làm `DATABASE_URL` cho API.
 
-## 4. Deploy API lên Render
+### Cách B: Render PostgreSQL
 
-### Cách nhanh bằng `render.yaml`
+1. Vào Render Dashboard.
+2. Chọn New → PostgreSQL.
+3. Tạo database, ví dụ:
 
-Repo đã có file [render.yaml](../../render.yaml), Render có thể đọc file này để tạo service.
+```text
+Name: clickflow-postgres
+Database: clickflow
+User: clickflow
+Region: gần server API nhất
+Plan: free nếu tài khoản còn hỗ trợ, hoặc gói thấp nhất
+```
+
+4. Nếu API cũng chạy trên Render, ưu tiên dùng Internal Database URL.
+5. Nếu API chạy nơi khác, dùng External Database URL.
+
+## 4. Tạo Cloudflare R2 bucket
+
+1. Vào Cloudflare Dashboard.
+2. Mở R2 Object Storage.
+3. Tạo bucket, ví dụ:
+
+```text
+clickflow-attachments
+```
+
+4. Giữ bucket private. Không bật public bucket cho attachment.
+5. Vào R2 → Manage R2 API Tokens.
+6. Tạo API token có quyền đọc/ghi object cho bucket.
+7. Copy các giá trị:
+
+```bash
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=clickflow-attachments
+```
+
+ClickFlow dùng signed URL nên client upload trực tiếp lên R2, còn API chỉ ký URL và verify metadata.
+### CORS cho R2 bucket
+
+Vì browser upload trực tiếp lên signed URL của R2, bucket cần CORS cho domain web. Trong Cloudflare R2 bucket settings, thêm rule tương tự:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "https://your-clickflow-web.vercel.app"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag", "Content-Length", "Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Khi đổi domain web production, nhớ cập nhật `AllowedOrigins`.
+
+## 5. Deploy API lên Render
+
+Repo đã có [render.yaml](../../render.yaml), có thể dùng Render Blueprint.
+
+### Cách nhanh bằng Blueprint
 
 1. Push code lên GitHub.
 2. Vào Render Dashboard.
 3. New → Blueprint.
 4. Chọn repo ClickFlow.
-5. Render sẽ đọc `render.yaml`.
-6. Kiểm tra service API và database được tạo.
+5. Render đọc `render.yaml` và tạo service.
 
-Lưu ý: `render.yaml` hiện dùng Dockerfile tại:
-
-```text
-apps/api/Dockerfile
-```
-
-Health check:
-
-```text
-/api/v1/health/ready
-```
-
-### Cách tạo thủ công
-
-Nếu không dùng Blueprint:
+### Cách thủ công
 
 1. New → Web Service.
 2. Chọn repo ClickFlow.
@@ -113,7 +144,7 @@ Nếu không dùng Blueprint:
 /api/v1/health/ready
 ```
 
-## 5. Biến môi trường cho API
+## 6. Biến môi trường cho API
 
 Trong Render → API service → Environment, cấu hình:
 
@@ -139,10 +170,11 @@ EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=gmail-app-password
 EMAIL_FROM=ClickFlow <your-email@gmail.com>
 
-STORAGE_PROVIDER=cloudinary
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
+STORAGE_PROVIDER=r2
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+R2_BUCKET=clickflow-attachments
 
 API_RATE_LIMIT=300
 API_RATE_WINDOW_MS=60000
@@ -153,7 +185,7 @@ QUERY_TIMEOUT_MS=10000
 
 Không commit các giá trị thật vào Git.
 
-Để tạo JWT secret nhanh trên máy local:
+Tạo JWT secret nhanh trên máy local:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
@@ -161,25 +193,25 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 Chạy 2 lần để lấy 2 chuỗi khác nhau cho `JWT_ACCESS_SECRET` và `JWT_REFRESH_SECRET`.
 
-## 6. Chạy migration database production/staging
+## 7. Chạy migration database production/staging
 
-Sau khi API service deploy xong, database vẫn cần schema Prisma.
+Sau khi API deploy xong, chạy schema Prisma.
 
-Nếu dùng Render Shell trong API service:
+Render Shell trong API service:
 
 ```bash
 cd apps/api
 pnpm exec prisma migrate deploy
 ```
 
-Nếu Render image không có shell tiện dụng, chạy từ máy local nhưng trỏ tới database staging/production:
+Hoặc chạy từ máy local, trỏ tới database staging/production:
 
 ```bash
 cd apps/api
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DB?schema=public" pnpm exec prisma migrate deploy
 ```
 
-Trên Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 cd apps/api
@@ -189,7 +221,7 @@ pnpm exec prisma migrate deploy
 
 Chỉ dùng `prisma migrate deploy` cho server. Không dùng `prisma migrate dev` trên production.
 
-## 7. Deploy Web lên Vercel
+## 8. Deploy Web lên Vercel
 
 1. Vào Vercel Dashboard.
 2. Add New → Project.
@@ -201,29 +233,27 @@ Chỉ dùng `prisma migrate deploy` cho server. Không dùng `prisma migrate dev
 apps/web
 ```
 
-6. Build command:
-
-```bash
-pnpm build
-```
-
-7. Install command:
+6. Install command:
 
 ```bash
 pnpm install --frozen-lockfile
 ```
 
-8. Output giữ mặc định của Next.js.
+7. Build command:
 
-Nếu Vercel không tự nhận monorepo đúng, có thể dùng:
+```bash
+pnpm build
+```
+
+Nếu Vercel không tự nhận monorepo đúng, đổi build command thành:
 
 ```bash
 cd ../.. && pnpm --filter web build
 ```
 
-nhưng ưu tiên để Root Directory là `apps/web` trước.
+nhưng ưu tiên Root Directory là `apps/web` trước.
 
-## 8. Biến môi trường cho Web
+## 9. Biến môi trường cho Web
 
 Trong Vercel → Project → Settings → Environment Variables:
 
@@ -232,9 +262,9 @@ NEXT_PUBLIC_API_URL=https://your-clickflow-api.onrender.com/api/v1
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=google-web-client-id.apps.googleusercontent.com
 ```
 
-Sau khi đổi biến môi trường, redeploy web.
+Sau khi đổi env, redeploy web.
 
-## 9. Cấu hình Google OAuth
+## 10. Cấu hình Google OAuth
 
 Trong Google Cloud Console → Credentials → OAuth 2.0 Client IDs:
 
@@ -252,11 +282,9 @@ http://localhost:3001/api/v1/auth/google/callback
 https://your-clickflow-api.onrender.com/api/v1/auth/google/callback
 ```
 
-Nếu web có domain riêng, thêm domain đó vào JavaScript origins.
+Nếu web hoặc API có domain riêng, thêm domain tương ứng vào Google OAuth.
 
-Nếu API có domain riêng, thêm callback của domain API vào redirect URIs.
-
-## 10. Cấu hình Gmail App Password
+## 11. Cấu hình Gmail App Password
 
 1. Vào Google Account.
 2. Bật 2-Step Verification.
@@ -271,33 +299,9 @@ EMAIL_PASS=xxxx xxxx xxxx xxxx
 EMAIL_FROM=ClickFlow <your-email@gmail.com>
 ```
 
-Nếu Gmail chặn gửi mail, ưu tiên dùng SMTP provider như Resend, Brevo, Mailgun. Khi đó đổi `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` theo provider.
+Nếu Gmail chặn gửi mail, dùng SMTP provider như Resend, Brevo hoặc Mailgun.
 
-## 11. Cấu hình Cloudinary
-
-Trong Cloudinary Dashboard, copy:
-
-```bash
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-```
-
-API cần thêm:
-
-```bash
-STORAGE_PROVIDER=cloudinary
-```
-
-Sau khi deploy, test upload:
-
-- Ảnh `.png`, `.jpg`.
-- Tài liệu `.md`, `.pdf`.
-- Video nhỏ `.mp4`.
-
-Cloudinary free có giới hạn dung lượng/băng thông, nên tránh upload file quá lớn khi test.
-
-## 12. Checklist sau deploy
+## 12. Test sau deploy
 
 Kiểm tra API health:
 
@@ -306,12 +310,6 @@ curl https://your-clickflow-api.onrender.com/api/v1/health/ready
 ```
 
 Kết quả mong đợi là HTTP 200.
-
-Kiểm tra web:
-
-```text
-https://your-clickflow-web.vercel.app
-```
 
 Test tay các luồng quan trọng:
 
@@ -330,8 +328,6 @@ Test tay các luồng quan trọng:
 - Chuyển Space Public/Private và permission View/Edit.
 
 ## 13. Chạy E2E thật trước khi coi là sẵn sàng deploy
-
-Máy local cần đang trỏ vào API và database thật/staging.
 
 PowerShell:
 
@@ -357,7 +353,7 @@ export PLAYWRIGHT_SKIP_WEBSERVER="1"
 
 Không hardcode tài khoản/mật khẩu test vào source.
 
-## 14. Các lỗi thường gặp
+## 14. Lỗi thường gặp
 
 ### Web gọi API bị CORS
 
@@ -387,18 +383,24 @@ Kiểm tra Google Cloud Console:
 - API callback nằm trong Authorized redirect URIs.
 - `GOOGLE_CLIENT_ID` ở API giống `NEXT_PUBLIC_GOOGLE_CLIENT_ID` ở web.
 
-### Upload Cloudinary báo 401
+### Upload Cloudflare R2 báo 403 hoặc complete báo lỗi
 
-Kiểm tra:
+Kiểm tra API env:
 
 ```bash
-CLOUDINARY_CLOUD_NAME
-CLOUDINARY_API_KEY
-CLOUDINARY_API_SECRET
-STORAGE_PROVIDER=cloudinary
+STORAGE_PROVIDER=r2
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
 ```
 
-Sau khi sửa env phải redeploy API.
+Kiểm tra thêm:
+
+- R2 token có quyền đọc/ghi object trong bucket.
+- Bucket name trong env đúng tuyệt đối.
+- API đã redeploy sau khi đổi env.
+- Browser upload request dùng method `PUT`.
 
 ### Database chưa có bảng
 
@@ -413,18 +415,17 @@ với `DATABASE_URL` trỏ đúng database server.
 
 ## 15. Thứ tự deploy an toàn
 
-Làm theo thứ tự này để đỡ rối:
-
 1. Push code lên GitHub.
 2. Tạo PostgreSQL.
-3. Deploy API.
-4. Set API env.
-5. Chạy `prisma migrate deploy`.
-6. Deploy Web.
-7. Set Web env.
-8. Cập nhật Google OAuth origins/redirect URIs.
-9. Test health API.
-10. Test đăng ký/login/upload.
-11. Chạy E2E thật.
+3. Tạo Cloudflare R2 bucket + token.
+4. Deploy API.
+5. Set API env.
+6. Chạy `prisma migrate deploy`.
+7. Deploy Web.
+8. Set Web env.
+9. Cập nhật Google OAuth origins/redirect URIs.
+10. Test health API.
+11. Test đăng ký/login/upload.
+12. Chạy E2E thật.
 
-Nếu bước nào lỗi, ưu tiên xem log ở Render API trước, vì phần lớn lỗi production ban đầu nằm ở env hoặc database migration.
+Nếu bước nào lỗi, ưu tiên xem log ở Render API trước, vì phần lớn lỗi production ban đầu nằm ở env, database migration hoặc R2 credentials.

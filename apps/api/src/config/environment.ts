@@ -16,7 +16,7 @@ const environmentSchema = z.object({
   API_RATE_WINDOW_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(60_000),
   AUTH_RATE_WINDOW_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(900_000),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  STORAGE_PROVIDER: z.enum(['memory', 'cloudinary', 's3']).default('memory'),
+  STORAGE_PROVIDER: z.enum(['memory', 'cloudinary', 'r2', 's3']).default('memory'),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   EMAIL_HOST: z.string().min(1).optional(),
   EMAIL_PORT: z.coerce.number().int().positive().max(65_535).default(587),
@@ -26,6 +26,10 @@ const environmentSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
   CLOUDINARY_API_KEY: z.string().min(1).optional(),
   CLOUDINARY_API_SECRET: z.string().min(1).optional(),
+  R2_ACCOUNT_ID: z.string().min(1).optional(),
+  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  R2_BUCKET: z.string().min(1).optional(),
   WEB_URL: z.string().url().default('http://localhost:3000')
 }).superRefine((value, context) => {
   if (value.NODE_ENV === 'staging' || value.NODE_ENV === 'production') {
@@ -34,6 +38,11 @@ const environmentSchema = z.object({
   if (value.STORAGE_PROVIDER === 'cloudinary') {
     for (const key of ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'] as const) {
       if (!value[key]) context.addIssue({ code: 'custom', path: [key], message: 'Required when STORAGE_PROVIDER=cloudinary' });
+    }
+  }
+  if (value.STORAGE_PROVIDER === 'r2') {
+    for (const key of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'] as const) {
+      if (!value[key]) context.addIssue({ code: 'custom', path: [key], message: 'Required when STORAGE_PROVIDER=r2' });
     }
   }
 

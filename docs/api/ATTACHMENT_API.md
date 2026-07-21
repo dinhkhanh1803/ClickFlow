@@ -1,4 +1,4 @@
-# Attachment API — Task 10
+﻿# Attachment API — Task attachments
 
 Upload dùng signed-URL workflow; API không nhận file binary trực tiếp.
 
@@ -13,14 +13,47 @@ Client phải upload đúng key, MIME type và byte size từ intent trước kh
 
 Storage boundary và production requirements nằm tại [`ADR-002-OBJECT-STORAGE.md`](../engineering/ADR-002-OBJECT-STORAGE.md).
 
-## Cloudinary production provider
+## Cloudflare R2 production provider
 
-Set `STORAGE_PROVIDER=cloudinary` together with the three `CLOUDINARY_*` credentials. Tests and unconfigured local environments keep using the in-memory provider.
+Production/staging nên dùng Cloudflare R2 vì R2 là S3-compatible private object storage và phù hợp với attachment ảnh, tài liệu, video.
 
-The upload-intent response is provider-neutral:
+API env cần có:
 
-- `uploadMethod=POST` with `uploadFields` means the browser sends multipart form data to Cloudinary.
-- `uploadMethod=PUT` with `uploadHeaders` remains available for S3-compatible providers.
-- The API secret is used only by the backend to sign fields and is never returned to the browser.
+```bash
+STORAGE_PROVIDER=r2
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+```
 
-Cloudinary assets use private delivery. Downloads use short-lived signed URLs. Before PostgreSQL metadata is committed, the backend reads the stored asset and validates its workspace key, signed MIME metadata, byte size, and magic bytes.
+Upload-intent response vẫn provider-neutral:
+
+- `uploadMethod=PUT` với `uploadHeaders` nghĩa là browser upload file trực tiếp lên R2 bằng signed URL.
+- `uploadMethod=POST` với `uploadFields` vẫn còn hỗ trợ cho Cloudinary legacy.
+- Secret key chỉ dùng ở backend để ký URL, không trả về browser.
+
+R2 bucket phải private. Downloads dùng short-lived signed URLs. Trước khi PostgreSQL metadata được commit, backend gọi `HEAD` object để validate MIME type, byte size và checksum metadata.
+
+## Local/test provider
+
+Local test và automated tests mặc định dùng in-memory provider:
+
+```bash
+STORAGE_PROVIDER=memory
+```
+
+Provider này không bền vững sau khi restart process, chỉ dùng cho test hoặc demo rất nhanh.
+
+## Cloudinary legacy provider
+
+Cloudinary vẫn được giữ lại để tránh phá môi trường cũ:
+
+```bash
+STORAGE_PROVIDER=cloudinary
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+Không nên dùng Cloudinary làm mặc định mới nếu mục tiêu là giảm chi phí attachment.

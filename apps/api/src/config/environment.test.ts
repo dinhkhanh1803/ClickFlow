@@ -25,4 +25,7 @@ describe('environment', () => {
   it('requires credentials when Cloudinary storage is selected', () => {
     expect(() => loadEnvironment({ NODE_ENV: 'test', STORAGE_PROVIDER: 'cloudinary' })).toThrow('CLOUDINARY_CLOUD_NAME');
   });
+  it('requires credentials when Cloudflare R2 storage is selected', () => {
+    expect(() => loadEnvironment({ NODE_ENV: 'test', STORAGE_PROVIDER: 'r2' })).toThrow('R2_ACCOUNT_ID');
+  });
 });
