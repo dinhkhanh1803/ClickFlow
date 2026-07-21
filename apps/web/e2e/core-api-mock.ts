@@ -22,6 +22,7 @@ export type CoreApiState = {
 
 type MockCoreApiOptions = {
   seedPublicViewSpace?: boolean;
+  seedProductivityData?: boolean;
 };
 
 type Workspace = {
@@ -64,7 +65,7 @@ type Task = {
   statusId: string;
   assigneeId: string | null;
   assignee: null;
-  assignees: never[];
+  assignees: Array<{ id: string; displayName: string; initials: string; avatarUrl: string | null }>; 
   tags: never[];
   parentTaskId: null;
   title: string;
@@ -154,6 +155,7 @@ export async function mockCoreApi(page: Page, options: MockCoreApiOptions = {}):
   const statuses = new Map<string, Status[]>();
   const tasks = new Map<string, Task[]>();
   const members = new Map<string, WorkspaceMember[]>();
+  const workspaceSettings = new Map<string, { timezone: string; locale: string; preferences: { weekStartsOn: number; notifications: boolean } }>();
   let workspaceCounter = 1;
   let projectCounter = 1;
   let sectionCounter = 1;
@@ -183,6 +185,53 @@ export async function mockCoreApi(page: Page, options: MockCoreApiOptions = {}):
     sections.set(project.id, [section]);
     tasks.set(project.id, []);
     members.set(workspace.id, []);
+    workspaceSettings.set(workspace.id, { timezone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN', preferences: { weekStartsOn: 1, notifications: true } });
+  }
+
+  if (options.seedProductivityData) {
+    const workspace = workspaceResponse({
+      id: '00000000-0000-4000-8000-000000000800',
+      name: 'Productivity Hub',
+      description: 'Seeded productivity screens',
+      private: true,
+      publicAccess: 'VIEW',
+      role: 'OWNER'
+    });
+    const project = projectResponse({ id: '00000000-0000-4000-8000-000000000801', workspaceId: workspace.id, name: 'Planning Folder' });
+    const section: Section = { id: '00000000-0000-4000-8000-000000000802', projectId: project.id, name: 'Sprint List', position: 0 };
+    const status = defaultStatuses(project.id)[0]!;
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 2);
+    const task: Task = {
+      id: '00000000-0000-4000-8000-000000000803',
+      workspaceId: workspace.id,
+      projectId: project.id,
+      sectionId: section.id,
+      statusId: status.id,
+      assigneeId: user.id,
+      assignee: null,
+      assignees: [{ id: user.id, displayName: user.displayName, initials: 'K', avatarUrl: user.avatarUrl }],
+      tags: [],
+      parentTaskId: null,
+      title: 'Review productivity screens',
+      description: 'Seeded E2E task',
+      priority: 'HIGH',
+      position: 0,
+      dueAt: dueDate.toISOString(),
+      estimateMinutes: 90,
+      completedAt: null,
+      version: 1,
+      archivedAt: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    workspaces.push(workspace);
+    projects.set(workspace.id, [project]);
+    statuses.set(project.id, defaultStatuses(project.id));
+    sections.set(project.id, [section]);
+    tasks.set(project.id, [task]);
+    members.set(workspace.id, [{ id: workspace.id + '-member-owner', userId: user.id, displayName: user.displayName, initials: 'K', avatarUrl: user.avatarUrl, role: 'OWNER' }]);
+    workspaceSettings.set(workspace.id, { timezone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN', preferences: { weekStartsOn: 1, notifications: true } });
   }
 
   await page.route(`${API_ORIGIN}${API_PREFIX}/**`, async (route) => {
@@ -234,6 +283,17 @@ export async function mockCoreApi(page: Page, options: MockCoreApiOptions = {}):
       projects.set(workspace.id, []);
       members.set(workspace.id, [{ id: workspace.id + '-member-owner', userId: user.id, displayName: user.displayName, initials: 'K', avatarUrl: user.avatarUrl, role: 'OWNER' }]);
       return json(route, workspace, 201);
+    }
+
+    const settingsMatch = path.match(/^\/workspaces\/([^/]+)\/settings$/);
+    if (settingsMatch && request.method() === 'GET') return json(route, workspaceSettings.get(settingsMatch[1]!) ?? { timezone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN', preferences: { weekStartsOn: 1, notifications: true } });
+    if (settingsMatch && request.method() === 'PATCH') {
+      const workspaceId = settingsMatch[1]!;
+      const current = workspaceSettings.get(workspaceId) ?? { timezone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN', preferences: { weekStartsOn: 1, notifications: true } };
+      const input = request.postDataJSON() as Partial<typeof current>;
+      const next = { timezone: input.timezone ?? current.timezone, locale: input.locale ?? current.locale, preferences: { ...current.preferences, ...(input.preferences ?? {}) } };
+      workspaceSettings.set(workspaceId, next);
+      return json(route, next);
     }
 
     const membersMatch = path.match(/^\/workspaces\/([^/]+)\/members$/);

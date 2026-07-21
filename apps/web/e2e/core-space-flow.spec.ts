@@ -118,3 +118,34 @@ test('public view-only Space blocks create and task mutations', async ({ page })
 });
 
 
+test('renders My Tasks, Calendar, and Settings from workspace data', async ({ page }) => {
+  await mockCoreApi(page, { seedProductivityData: true });
+
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill('khanh@clickflow.local');
+  await page.getByLabel('Password').fill('Initial-Pass-9!');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.context().addCookies([
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3000' },
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3002' }
+  ]);
+
+  await page.goto('/my-tasks');
+  await expect(page.locator('h1').filter({ hasText: 'My Tasks' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Review productivity screens/ })).toBeVisible();
+
+  await page.goto('/calendar');
+  await expect(page.locator('h1').filter({ hasText: 'Calendar' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Review productivity screens/ })).toBeVisible();
+
+  await page.goto('/settings');
+  await expect(page.locator('h1').filter({ hasText: 'Settings' })).toBeVisible();
+  await expect(page.getByText('khanh@clickflow.local')).toBeVisible();
+  await expect(page.getByLabel('Time zone')).toHaveValue('Asia/Ho_Chi_Minh');
+  await page.getByLabel('Locale').fill('en-US');
+  await page.getByRole('button', { name: 'Save settings' }).click();
+  await expect(page.getByText('Settings saved.')).toBeVisible();
+});
+
+

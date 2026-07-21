@@ -1,2 +1,5 @@
-import { PlaceholderPage } from '@/components/states/placeholder-page';
-export default function Page(){ return <PlaceholderPage title='Settings' description='Workspace and appearance preferences.'/>; }
+import { SettingsClient } from '@/features/productivity/components/settings-client';
+
+export default function Page() {
+  return <SettingsClient />;
+}
