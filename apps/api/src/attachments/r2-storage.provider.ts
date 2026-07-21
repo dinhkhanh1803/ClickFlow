@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { createHmac, createHash } from 'node:crypto';
 
 import type { StorageProvider, StoredObjectMetadata, UploadIntentSpec } from './storage-provider';
@@ -86,7 +86,7 @@ export class R2StorageProvider implements StorageProvider {
   private readonly configuration: R2Configuration;
   private readonly now?: Date;
 
-  constructor(configuration?: Partial<R2Configuration>, now?: Date) {
+  constructor(@Optional() configuration?: Partial<R2Configuration>, @Optional() now?: Date) {
     this.configuration = {
       accountId: configuration?.accountId ?? process.env.R2_ACCOUNT_ID ?? '',
       accessKeyId: configuration?.accessKeyId ?? process.env.R2_ACCESS_KEY_ID ?? '',

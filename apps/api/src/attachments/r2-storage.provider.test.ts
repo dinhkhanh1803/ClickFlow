@@ -1,3 +1,4 @@
+import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createR2SignedUrl, R2StorageProvider } from './r2-storage.provider';
@@ -14,6 +15,11 @@ afterEach(() => {
 });
 
 describe('R2 storage provider', () => {
+  it('can be instantiated by Nest dependency injection without config constructor arguments', async () => {
+    const moduleRef = await Test.createTestingModule({ providers: [R2StorageProvider] }).compile();
+
+    expect(moduleRef.get(R2StorageProvider)).toBeInstanceOf(R2StorageProvider);
+  });
   it('creates a signed PUT upload URL without exposing the secret access key', async () => {
     const intent = await new R2StorageProvider(configuration, new Date('2026-07-21T00:00:00.000Z')).createSignedUpload({
       storageKey: 'workspaces/workspace-1/attachments/file-1.png',
