@@ -1,0 +1,31 @@
+import type { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import request from 'supertest';
+import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/bootstrap/configure-app';
+import { PrismaService } from '../src/database/prisma.service';
+import { StructuredLoggerService } from '../src/observability/structured-logger.service';
+import { registerVerifiedUser } from './auth-test-helper';
+const enabled = process.env.DATABASE_INTEGRATION_TESTS === '1' && Boolean(process.env.DATABASE_URL); const describeDatabase = enabled ? describe : describe.skip; const email = 'task11-user@clickflow.test'; const body = <T>(response: { body: unknown }) => response.body as T;
+
+describeDatabase('Task 11 templates, archive and settings', () => {
+  let app: INestApplication; let prisma: PrismaService; let workspaceId: string; let userId: string; let headers: { Authorization: string }; let base: string;
+  beforeAll(async () => { const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(StructuredLoggerService).useValue({ log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn(), verbose: vi.fn(), fatal: vi.fn() }).compile(); app = moduleRef.createNestApplication(); configureApp(app, { corsOrigins: ['http://localhost:3000'] }); await app.init(); prisma = app.get(PrismaService); const old = await prisma.user.findUnique({ where: { email } }); if (old) { await prisma.workspace.deleteMany({ where: { createdById: old.id } }); await prisma.user.delete({ where: { id: old.id } }); } const registered = await registerVerifiedUser(app, prisma, { email, displayName: 'Task 11', password: 'Task-Eleven-Pass-11!' }); userId = registered.userId; headers = registered.headers; workspaceId = registered.workspaceId; base = `/api/v1/workspaces/${workspaceId}`; });
+  afterAll(async () => { await prisma.workspace.deleteMany({ where: { createdById: userId } }); await prisma.user.deleteMany({ where: { id: userId } }); await app.close(); });
+  it('clones structure idempotently, rolls back invalid snapshots, restores safely and validates settings', async () => {
+    const project = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/projects`).set(headers).send({ name: 'Template source' }).expect(201));
+    const status = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/projects/${project.id}/statuses`).set(headers).send({ name: 'Open', color: '#123456', category: 'OPEN' }).expect(201));
+    const section = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/projects/${project.id}/sections`).set(headers).send({ name: 'Backlog' }).expect(201));
+    const task = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/tasks`).set(headers).send({ projectId: project.id, sectionId: section.id, statusId: status.id, title: 'Reusable task' }).expect(201));
+    await request(app.getHttpServer()).post(`${base}/tasks/${task.id}/checklist-items`).set(headers).send({ label: 'Reusable check' }).expect(201);
+    await request(app.getHttpServer()).post(`${base}/tasks/${task.id}/comments`).set(headers).send({ body: 'Must not copy' }).expect(201);
+    const template = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/project-templates`).set(headers).send({ sourceProjectId: project.id, name: 'Reusable' }).expect(201));
+    const key = 'instantiate-task11-0001';
+    const first = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/project-templates/${template.id}/instantiate`).set(headers).set('Idempotency-Key', key).send({ name: 'Clone' }).expect(201));
+    const retry = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/project-templates/${template.id}/instantiate`).set(headers).set('Idempotency-Key', key).send({ name: 'Ignored retry' }).expect(201)); expect(retry.id).toBe(first.id);
+    const clone = await prisma.project.findUniqueOrThrow({ where: { id: first.id }, include: { statuses: true, sections: true, tasks: { include: { checklistItems: true, comments: true, attachments: true, timeEntries: true } } } }); expect(clone).toMatchObject({ name: 'Clone' }); expect(clone.statuses).toHaveLength(1); expect(clone.sections).toHaveLength(1); expect(clone.tasks[0]!.checklistItems).toHaveLength(1); expect(clone.tasks[0]!.comments).toHaveLength(0); expect(clone.tasks[0]!.attachments).toHaveLength(0); expect(clone.tasks[0]!.timeEntries).toHaveLength(0);
+    const bad = await prisma.projectTemplate.create({ data: { workspaceId, name: 'Broken', structure: { version: 999 } } }); const before = await prisma.project.count({ where: { workspaceId } }); await request(app.getHttpServer()).post(`${base}/project-templates/${bad.id}/instantiate`).set(headers).set('Idempotency-Key', 'instantiate-task11-bad').send({}).expect(500); expect(await prisma.project.count({ where: { workspaceId } })).toBe(before);
+    await request(app.getHttpServer()).delete(`${base}/tasks/${task.id}?version=1`).set(headers).expect(204); expect(body<{ tasks: Array<{ id: string }> }>(await request(app.getHttpServer()).get(`${base}/archive`).set(headers).expect(200)).tasks.some(({ id }) => id === task.id)).toBe(true); await request(app.getHttpServer()).post(`${base}/archive/task/${task.id}/restore`).set(headers).expect(204);
+    await request(app.getHttpServer()).patch(`${base}/settings`).set(headers).send({ timezone: 'not/a-zone' }).expect(400); const settings = body<{ timezone: string; locale: string; preferences: object }>(await request(app.getHttpServer()).patch(`${base}/settings`).set(headers).send({ timezone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN', preferences: { weekStartsOn: 1 } }).expect(200)); expect(settings).toMatchObject({ timezone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN', preferences: { weekStartsOn: 1 } });
+  });
+});

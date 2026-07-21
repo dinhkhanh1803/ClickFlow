@@ -1,0 +1,34 @@
+name: Staging backup restore drill
+on: { workflow_dispatch: {} }
+jobs:
+  restore-drill:
+    environment: staging-restore-drill
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_DATABASE_URL: ${{ secrets.SOURCE_DATABASE_URL }}
+      EMPTY_RESTORE_DATABASE_URL: ${{ secrets.EMPTY_RESTORE_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.24.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - run: pnpm install --frozen-lockfile
+      - name: Refuse a non-empty or source target
+        run: |
+          test "$SOURCE_DATABASE_URL" != "$EMPTY_RESTORE_DATABASE_URL"
+          test "$(psql "$EMPTY_RESTORE_DATABASE_URL" -Atc "select count(*) from pg_tables where schemaname='public'")" = "0"
+      - name: Backup and restore isolated copy
+        run: |
+          pg_dump "$SOURCE_DATABASE_URL" --format=custom --file=/tmp/clickflow.dump
+          pg_restore --dbname="$EMPTY_RESTORE_DATABASE_URL" --no-owner --no-privileges /tmp/clickflow.dump
+      - name: Verify restored schema and acceptance suite
+        env:
+          DATABASE_URL: ${{ env.EMPTY_RESTORE_DATABASE_URL }}
+          DATABASE_INTEGRATION_TESTS: "1"
+          JWT_ACCESS_SECRET: drill-access-secret-at-least-thirty-two-characters
+          JWT_REFRESH_SECRET: drill-refresh-secret-at-least-thirty-two-characters
+        run: |
+          pnpm --filter api exec prisma migrate status
+          pnpm --filter api test:database

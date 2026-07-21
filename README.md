@@ -1,19 +1,45 @@
 # ClickFlow
 
-ClickFlow là ứng dụng quản lý dự án và công việc cho freelancer hoặc solo developer, theo dõi vòng đời từ ý tưởng đến bảo trì. Sản phẩm giúp tập trung dự án web, mobile, game, content và internal tool trong một workspace.
+ClickFlow is a product-management workspace for freelancers and small teams. It includes a Next.js web app, NestJS API, and PostgreSQL persistence.
 
-## Trạng thái
+## Run locally with Git Bash
 
-Phase 0 — Product Foundation. Frontend và backend chưa được khởi tạo; không có hướng dẫn chạy ứng dụng ở giai đoạn này.
+PostgreSQL 18 is already installed on this machine. Copy the environment templates, then replace `<POSTGRES_PASSWORD>` in `apps/api/.env` with the password of the local `postgres` user. Do not commit either local environment file.
 
-## MVP và kiến trúc dự kiến
+```bash
+cp .env.example apps/api/.env
+printf 'NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1\n' > apps/web/.env.local
+export PATH="/c/Program Files/PostgreSQL/18/bin:$PATH"
+psql -U postgres -h localhost -p 5432 -d postgres -c 'CREATE DATABASE clickflow;'
+pnpm install
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate
+```
 
-MVP gồm xác thực, dự án/công việc, các view Kanban/List/Calendar, theo dõi thời gian, tệp đính kèm, bình luận, tìm kiếm, template, báo cáo cơ bản, archive và settings. Kiến trúc dự kiến: Next.js trên Vercel → NestJS REST API trên Render → PostgreSQL trên Render → object storage.
+If the database already exists, skip the `CREATE DATABASE` command.
 
-Monorepo dùng pnpm workspace và Turborepo: `apps/web`, `apps/api`, cùng `packages/contracts`, `ui`, `shared`, `eslint-config`, `typescript-config`.
+Start the API in one Git Bash terminal:
 
-## Phát triển
+```bash
+pnpm dev:api
+```
 
-Các phase: Foundation, Frontend Foundation, Frontend Features, Backend Foundation, Backend Business Modules, Integration, Testing/Hardening, Deployment. Xem [roadmap](docs/delivery/DEVELOPMENT_ROADMAP.md) và [backlog](docs/delivery/BACKLOG.md).
+Start the web app in another Git Bash terminal:
 
-Branch dùng `type/short-description`; commit dùng Conventional Commits. Xem [CONTRIBUTING.md](CONTRIBUTING.md), [tài liệu sản phẩm](docs/product/PRODUCT_VISION.md) và [kiến trúc](docs/engineering/SYSTEM_ARCHITECTURE.md).
+```bash
+pnpm dev
+```
+
+Open the web app at `http://localhost:3000/dashboard`. The API health endpoint is `http://localhost:3001/api/v1/health/live`, and Swagger is available at `http://localhost:3001/api/docs`.
+
+Google login, SMTP delivery, and Cloudinary uploads are optional. Configure their values in `apps/api/.env` or `apps/web/.env.local` only when needed; never expose a client secret, mail password, or Cloudinary secret through a `NEXT_PUBLIC_*` variable.
+
+## Quality commands
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm --filter web exec playwright test
+```

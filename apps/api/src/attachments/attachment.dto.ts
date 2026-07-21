@@ -1,0 +1,7 @@
+import { ApiProperty } from '@nestjs/swagger';
+
+export class UploadIntentRequestDto { @ApiProperty({ type: String }) taskId!: string; @ApiProperty({ type: String }) fileName!: string; @ApiProperty({ type: String }) mimeType!: string; @ApiProperty({ type: Number }) byteSize!: number; }
+export class CompleteAttachmentRequestDto extends UploadIntentRequestDto { @ApiProperty({ type: String }) storageKey!: string; @ApiProperty({ required: false, type: String }) checksum?: string; }
+export class UploadIntentResponseDto { @ApiProperty({ type: String }) storageKey!: string; @ApiProperty({ type: String }) uploadUrl!: string; @ApiProperty({ enum: ['PUT', 'POST'] }) uploadMethod!: 'PUT' | 'POST'; @ApiProperty({ required: false, type: Object }) uploadHeaders?: Record<string, string>; @ApiProperty({ required: false, type: Object }) uploadFields?: Record<string, string>; @ApiProperty({ type: String, format: 'date-time' }) expiresAt!: Date; }
+export class AttachmentResponseDto { @ApiProperty({ type: String }) id!: string; @ApiProperty({ type: String }) taskId!: string; @ApiProperty({ type: String }) fileName!: string; @ApiProperty({ type: String }) mimeType!: string; @ApiProperty({ type: String }) byteSize!: string; @ApiProperty({ type: String, format: 'date-time' }) createdAt!: Date; }
+export class DownloadUrlResponseDto { @ApiProperty({ type: String }) downloadUrl!: string; @ApiProperty({ type: String, format: 'date-time' }) expiresAt!: Date; }
