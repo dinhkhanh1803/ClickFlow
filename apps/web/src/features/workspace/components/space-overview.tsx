@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useDownloadAttachmentUrlMutation, useRemoveAttachmentMutation, useUploadAttachmentMutation } from '@/features/attachments/data/attachment-queries';
 import { Dialog, DialogTitle } from '@/components/ui/dialog';
 import { PageState } from '@/components/states/page-state';
+import type { AttachmentContract, TaskApiResponse } from '@clickflow/contracts';
 import { toast } from 'sonner';
 import { defaultLocalSpaces, loadLocalSpaces, localId, saveLocalSpaces, type LocalListTask, type LocalSpace, type LocalSpaceItemKind, type LocalStatusColor, type LocalStatusScope, type LocalTaskStatus } from '../model/local-navigation';
 import { useWorkspace } from '../model/workspace-store';
@@ -19,7 +20,7 @@ import { parseInviteEmails } from './share-members';
 import { TaskStatusChart } from './task-status-chart';
 import { TaskAssignmentChart } from './task-assignment-chart';
 import { SpaceTabContent, SpaceTaskModal, type SpaceView } from './space-tab-content';
-import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useDeleteStatusMutation, useStartTimerMutation, useStopTimerMutation, useUpdateStatusMutation, useUpdateTaskMutation, useSyncTaskTagsMutation, useAssignableUsersQuery, useInviteWorkspaceMemberMutation, useWorkspaceMembersQuery, useWorkspaceNavigationQuery } from '../data/workspace-queries';
+import { useArchiveTaskMutation, useCreateCommentMutation, useCreateProjectMutation, useCreateRootSectionMutation, useCreateSectionMutation, useCreateStatusMutation, useCreateTaskMutation, useDeleteStatusMutation, useStartTimerMutation, useStopTimerMutation, useUpdateStatusMutation, useUpdateTaskMutation, useSyncTaskTagsMutation, useAssignableUsersQuery, useInviteWorkspaceMemberMutation, useWorkspaceMembersQuery, useWorkspaceNavigationQuery, useWorkspaceQueryClient, workspaceKeys } from '../data/workspace-queries';
 import { useCreateDocumentMutation } from '../data/document-queries';
 
 const DEFAULT_FOLDER_LIST_NAME = 'List';
@@ -60,6 +61,7 @@ function ListRequiredEmptyState({ scope, onCreate }: { scope: EmptyScope; onCrea
 
 export function SpaceOverview() {
   const { space, selectProject } = useWorkspace();
+  const queryClient = useWorkspaceQueryClient();
   const [creating, setCreating] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -331,11 +333,18 @@ export function SpaceOverview() {
         const removed = current.find((attachment) => !patch.attachments?.some((item) => item.id === attachment.id));
         try {
           if (added.length) {
+            const uploadedAttachments: AttachmentContract[] = [];
             for (const attachment of added) {
               if (!attachment.dataUrl) continue;
               const blob = await fetch(attachment.dataUrl).then((response) => response.blob());
               const file = new File([blob], attachment.name, { type: attachment.mimeType });
-              await uploadAttachmentMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, taskId, file });
+              uploadedAttachments.push(await uploadAttachmentMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, taskId, file }));
+            }
+            if (uploadedAttachments.length) {
+              queryClient.setQueryData<{ items: TaskApiResponse[] }>(workspaceKeys.tasks(selectedLocalSpace.id, projectId), (current) => current ? ({
+                ...current,
+                items: current.items.map((item) => item.id === taskId ? ({ ...item, attachments: [...(item.attachments ?? []), ...uploadedAttachments] }) : item)
+              }) : current);
             }
             toast.success(added.length === 1 ? 'Attachment uploaded.' : `${added.length} attachments uploaded.`);
           } else if (removed && !removed.id.startsWith('attachment-')) {

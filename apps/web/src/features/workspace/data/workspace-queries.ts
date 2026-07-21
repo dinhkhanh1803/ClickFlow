@@ -35,7 +35,7 @@ function requireToken(accessToken: string | null): string {
 
 const fallbackQueryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-function useWorkspaceQueryClient() {
+export function useWorkspaceQueryClient() {
   return useContext(QueryClientContext) ?? fallbackQueryClient;
 }
 
