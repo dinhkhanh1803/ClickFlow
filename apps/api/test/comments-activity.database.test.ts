@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap/configure-app';
 import { PrismaService } from '../src/database/prisma.service';
 import { StructuredLoggerService } from '../src/observability/structured-logger.service';
+import { registerVerifiedUser } from './auth-test-helper';
 
 const enabled = process.env.DATABASE_INTEGRATION_TESTS === '1' && Boolean(process.env.DATABASE_URL);
 const describeDatabase = enabled ? describe : describe.skip;
@@ -29,11 +30,12 @@ describeDatabase('Task 7 comments and activity HTTP lifecycle', () => {
   }
 
   async function register(email: string, displayName: string) {
-    const response = await request(app.getHttpServer()).post('/api/v1/auth/register').send({ email, displayName, password: 'Task-Seven-Pass-9!' }).expect(201);
-    const accessToken = String(responseBody<{ accessToken: string }>(response).accessToken);
-    const workspaces = await request(app.getHttpServer()).get('/api/v1/workspaces').set('Authorization', `Bearer ${accessToken}`).expect(200);
-    const workspaceId = responseBody<Array<{ id: string }>>(workspaces)[0]!.id;
-    return { accessToken, userId: responseBody<{ user: { id: string } }>(response).user.id, workspaceId };
+    const registered = await registerVerifiedUser(app, prisma, {
+      email,
+      displayName,
+      password: 'Task-Seven-Pass-9!'
+    });
+    return { accessToken: registered.accessToken, userId: registered.userId, workspaceId: registered.workspaceId };
   }
 
   beforeAll(async () => {

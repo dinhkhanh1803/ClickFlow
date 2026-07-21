@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap/configure-app';
 import { PrismaService } from '../src/database/prisma.service';
 import { StructuredLoggerService } from '../src/observability/structured-logger.service';
+import { registerVerifiedUser } from './auth-test-helper';
 
 const enabled = process.env.DATABASE_INTEGRATION_TESTS === '1' && Boolean(process.env.DATABASE_URL);
 const describeDatabase = enabled ? describe : describe.skip;
@@ -23,10 +24,17 @@ describeDatabase('Task 9 analytics acceptance fixture', () => {
   }
 
   async function register(email: string) {
-    const registered = await request(app.getHttpServer()).post('/api/v1/auth/register').send({ email, displayName: email, password: 'Task-Nine-Pass-9!' }).expect(201);
-    const auth = body<{ accessToken: string; user: { id: string } }>(registered);
-    const workspaces = await request(app.getHttpServer()).get('/api/v1/workspaces').set('Authorization', `Bearer ${auth.accessToken}`).expect(200);
-    return { ...auth, workspaceId: body<Array<{ id: string }>>(workspaces)[0]!.id, headers: { Authorization: `Bearer ${auth.accessToken}` } };
+    const registered = await registerVerifiedUser(app, prisma, {
+      email,
+      displayName: email,
+      password: 'Task-Nine-Pass-9!'
+    });
+    return {
+      accessToken: registered.accessToken,
+      user: { id: registered.userId },
+      workspaceId: registered.workspaceId,
+      headers: registered.headers
+    };
   }
 
   async function fixture(user: Awaited<ReturnType<typeof register>>, name: string) {

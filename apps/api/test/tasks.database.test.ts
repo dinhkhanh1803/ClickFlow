@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap/configure-app';
 import { PrismaService } from '../src/database/prisma.service';
 import { StructuredLoggerService } from '../src/observability/structured-logger.service';
+import { registerVerifiedUser } from './auth-test-helper';
 
 const enabled = process.env.DATABASE_INTEGRATION_TESTS === '1' && Boolean(process.env.DATABASE_URL);
 const describeDatabase = enabled ? describe : describe.skip;
@@ -29,14 +30,12 @@ describeDatabase('Task 6 HTTP lifecycle', () => {
   }
 
   async function register(email: string) {
-    const response = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
+    const registered = await registerVerifiedUser(app, prisma, {
       email,
       displayName: 'Task Six Owner',
       password: 'Task-Six-Pass-9!'
-    }).expect(201);
-    const accessToken = String(response.body.accessToken);
-    const workspaces = await request(app.getHttpServer()).get('/api/v1/workspaces').set('Authorization', `Bearer ${accessToken}`).expect(200);
-    return { accessToken, userId: String(response.body.user.id), workspaceId: String(workspaces.body[0].id) };
+    });
+    return { accessToken: registered.accessToken, userId: registered.userId, workspaceId: registered.workspaceId };
   }
 
   beforeAll(async () => {

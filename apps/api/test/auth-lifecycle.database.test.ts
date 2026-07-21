@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
-import { FakeMailAdapter, MailAdapter, type PasswordResetMail } from '../src/auth/mail.adapter';
+import { FakeMailAdapter, MailAdapter, type EmailVerificationMail, type PasswordResetMail } from '../src/auth/mail.adapter';
 import { configureApp } from '../src/bootstrap/configure-app';
 import { PrismaService } from '../src/database/prisma.service';
 import { StructuredLoggerService } from '../src/observability/structured-logger.service';
@@ -27,6 +27,7 @@ describeDatabase('authentication lifecycle', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let sentMail: PasswordResetMail[];
+  let sentVerifications: EmailVerificationMail[];
 
   beforeAll(async () => {
     const silentLogger = { log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn(), verbose: vi.fn(), fatal: vi.fn() };
@@ -41,6 +42,7 @@ describeDatabase('authentication lifecycle', () => {
     const mail: unknown = app.get(MailAdapter);
     if (!(mail instanceof FakeMailAdapter)) throw new Error('Expected FakeMailAdapter in database tests');
     sentMail = mail.sent;
+    sentVerifications = mail.verifications;
   });
 
   afterEach(async () => {
@@ -51,34 +53,54 @@ describeDatabase('authentication lifecycle', () => {
       await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     }
     sentMail.splice(0);
+    sentVerifications.splice(0);
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it('registers, authorizes /users/me, rotates refresh and logs out', async () => {
+  async function registerEmailAndVerify(email: string, displayName: string, password: string): Promise<string> {
+    await request(app.getHttpServer()).post('/api/v1/auth/register-email').send({ email, displayName, password }).expect(201);
+    const user = await prisma.user.update({
+      where: { email },
+      data: { emailVerifiedAt: new Date() },
+      select: { id: true }
+    });
+    return user.id;
+  }
+
+  it('registers pending verification, authorizes /users/me after login, rotates refresh and logs out', async () => {
     const agent = request.agent(app.getHttpServer());
     const registered = await agent.post('/api/v1/auth/register').send({
       email: emails[0],
       displayName: 'Auth Flow',
       password: 'Initial-Pass-9!'
     }).expect(201);
+    expect(registered.body).toEqual({ accepted: true, email: emails[0] });
+    expect(cookiesFrom(registered)).toHaveLength(0);
+    expect(sentVerifications).toHaveLength(1);
+
+    const verificationToken = new URL(sentVerifications[0]!.verificationUrl).searchParams.get('token');
+    expect(verificationToken).toBeTruthy();
+    await agent.post('/api/v1/auth/verify-email').send({ token: verificationToken }).expect(200, { accepted: true });
+
+    const login = await agent.post('/api/v1/auth/login').send({ email: emails[0], password: 'Initial-Pass-9!' }).expect(200);
 
     await agent.get('/api/v1/users/me')
-      .set('Authorization', `Bearer ${String(registered.body.accessToken)}`)
+      .set('Authorization', `Bearer ${String(login.body.accessToken)}`)
       .expect(200)
       .expect(({ body }) => expect(body).toMatchObject({ email: emails[0], displayName: 'Auth Flow' }));
 
     await agent.get('/api/v1/users/assignable')
-      .set('Authorization', `Bearer ${String(registered.body.accessToken)}`)
+      .set('Authorization', `Bearer ${String(login.body.accessToken)}`)
       .expect(200)
       .expect(({ body }) => expect(body).toEqual(expect.arrayContaining([expect.objectContaining({ email: emails[0], displayName: 'Auth Flow', initials: 'AF' })])));
 
     const refreshed = await agent.post('/api/v1/auth/refresh')
-      .set('x-csrf-token', String(registered.body.csrfToken))
+      .set('x-csrf-token', String(login.body.csrfToken))
       .expect(200);
-    expect(refreshed.body.accessToken).not.toBe(registered.body.accessToken);
+    expect(refreshed.body.accessToken).not.toBe(login.body.accessToken);
 
     await agent.post('/api/v1/auth/logout')
       .set('x-csrf-token', String(refreshed.body.csrfToken))
@@ -90,20 +112,17 @@ describeDatabase('authentication lifecycle', () => {
 
   it('detects refresh reuse and revokes the token family', async () => {
     const agent = request.agent(app.getHttpServer());
-    const registered = await agent.post('/api/v1/auth/register').send({
-      email: emails[1],
-      displayName: 'Reuse Test',
-      password: 'Initial-Pass-9!'
-    }).expect(201);
-    const originalCookies = cookiesFrom(registered);
+    await registerEmailAndVerify(emails[1]!, 'Reuse Test', 'Initial-Pass-9!');
+    const login = await agent.post('/api/v1/auth/login').send({ email: emails[1], password: 'Initial-Pass-9!' }).expect(200);
+    const originalCookies = cookiesFrom(login);
 
     const rotated = await agent.post('/api/v1/auth/refresh')
-      .set('x-csrf-token', String(registered.body.csrfToken))
+      .set('x-csrf-token', String(login.body.csrfToken))
       .expect(200);
 
     await request(app.getHttpServer()).post('/api/v1/auth/refresh')
       .set('Cookie', originalCookies)
-      .set('x-csrf-token', String(registered.body.csrfToken))
+      .set('x-csrf-token', String(login.body.csrfToken))
       .expect(401);
     await agent.post('/api/v1/auth/refresh')
       .set('x-csrf-token', String(rotated.body.csrfToken))
@@ -111,26 +130,18 @@ describeDatabase('authentication lifecycle', () => {
   });
 
   it('rejects an expired refresh session', async () => {
-    const registered = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
-      email: emails[3],
-      displayName: 'Expired Session',
-      password: 'Initial-Pass-9!'
-    }).expect(201);
-    const user = await prisma.user.findUniqueOrThrow({ where: { email: emails[3] }, select: { id: true } });
-    await prisma.session.updateMany({ where: { userId: user.id }, data: { expiresAt: new Date(Date.now() - 1_000) } });
+    const userId = await registerEmailAndVerify(emails[3]!, 'Expired Session', 'Initial-Pass-9!');
+    const login = await request(app.getHttpServer()).post('/api/v1/auth/login').send({ email: emails[3], password: 'Initial-Pass-9!' }).expect(200);
+    await prisma.session.updateMany({ where: { userId }, data: { expiresAt: new Date(Date.now() - 1_000) } });
 
     await request(app.getHttpServer()).post('/api/v1/auth/refresh')
-      .set('Cookie', cookiesFrom(registered))
-      .set('x-csrf-token', String(registered.body.csrfToken))
+      .set('Cookie', cookiesFrom(login))
+      .set('x-csrf-token', String(login.body.csrfToken))
       .expect(401);
   });
 
   it('rate-limits repeated login failures by IP and identity', async () => {
-    await request(app.getHttpServer()).post('/api/v1/auth/register').send({
-      email: emails[4],
-      displayName: 'Rate Limit',
-      password: 'Initial-Pass-9!'
-    }).expect(201);
+    await registerEmailAndVerify(emails[4]!, 'Rate Limit', 'Initial-Pass-9!');
     for (let attempt = 0; attempt < 5; attempt += 1) {
       await request(app.getHttpServer()).post('/api/v1/auth/login')
         .send({ email: emails[4], password: 'Wrong-Pass-10!' })
@@ -142,11 +153,7 @@ describeDatabase('authentication lifecycle', () => {
   });
 
   it('keeps forgot-password responses uniform and consumes reset tokens once', async () => {
-    await request(app.getHttpServer()).post('/api/v1/auth/register').send({
-      email: emails[2],
-      displayName: 'Reset Test',
-      password: 'Initial-Pass-9!'
-    }).expect(201);
+    await registerEmailAndVerify(emails[2]!, 'Reset Test', 'Initial-Pass-9!');
 
     await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: 'missing@clickflow.test' })
       .expect(202, { accepted: true });

@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap/configure-app';
 import { PrismaService } from '../src/database/prisma.service';
 import { StructuredLoggerService } from '../src/observability/structured-logger.service';
+import { registerVerifiedUser } from './auth-test-helper';
 
 const enabled = process.env.DATABASE_INTEGRATION_TESTS === '1' && Boolean(process.env.DATABASE_URL);
 const describeDatabase = enabled ? describe : describe.skip;
@@ -25,20 +26,19 @@ describeDatabase('workspace, project, status and section HTTP lifecycle', () => 
   }
 
   async function register(email: string, displayName: string): Promise<{ accessToken: string; userId: string; workspaceId: string }> {
-    const registered = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
+    const registered = await registerVerifiedUser(app, prisma, {
       email,
       displayName,
       password: 'Task-Five-Pass-9!'
-    }).expect(201);
-    const accessToken = String(registered.body.accessToken);
+    });
     const workspaces = await request(app.getHttpServer()).get('/api/v1/workspaces')
-      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Authorization', `Bearer ${registered.accessToken}`)
       .expect(200);
     expect(workspaces.body).toHaveLength(1);
     expect(workspaces.body[0]).toMatchObject({ role: 'OWNER' });
     return {
-      accessToken,
-      userId: String(registered.body.user.id),
+      accessToken: registered.accessToken,
+      userId: registered.userId,
       workspaceId: String(workspaces.body[0].id)
     };
   }

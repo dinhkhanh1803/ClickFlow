@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap/configure-app';
 import { PrismaService } from '../src/database/prisma.service';
 import { StructuredLoggerService } from '../src/observability/structured-logger.service';
+import { registerVerifiedUser } from './auth-test-helper';
 
 const enabled = process.env.DATABASE_INTEGRATION_TESTS === '1' && Boolean(process.env.DATABASE_URL);
 const describeDatabase = enabled ? describe : describe.skip;
@@ -29,10 +30,12 @@ describeDatabase('Task 8 timer and time-entry HTTP lifecycle', () => {
   }
 
   async function register(email: string, displayName: string) {
-    const response = await request(app.getHttpServer()).post('/api/v1/auth/register').send({ email, displayName, password: 'Task-Eight-Pass-9!' }).expect(201);
-    const body = responseBody<{ accessToken: string; user: { id: string } }>(response);
-    const workspaces = await request(app.getHttpServer()).get('/api/v1/workspaces').set('Authorization', `Bearer ${body.accessToken}`).expect(200);
-    return { accessToken: body.accessToken, userId: body.user.id, workspaceId: responseBody<Array<{ id: string }>>(workspaces)[0]!.id };
+    const registered = await registerVerifiedUser(app, prisma, {
+      email,
+      displayName,
+      password: 'Task-Eight-Pass-9!'
+    });
+    return { accessToken: registered.accessToken, userId: registered.userId, workspaceId: registered.workspaceId };
   }
 
   async function createTask(base: string, authorization: Record<string, string>, name: string) {

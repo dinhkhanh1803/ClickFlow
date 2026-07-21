@@ -6,6 +6,7 @@ import { MemoryStorageProvider } from '../src/attachments/memory-storage.provide
 import { configureApp } from '../src/bootstrap/configure-app';
 import { PrismaService } from '../src/database/prisma.service';
 import { StructuredLoggerService } from '../src/observability/structured-logger.service';
+import { registerVerifiedUser } from './auth-test-helper';
 
 const enabled = process.env.DATABASE_INTEGRATION_TESTS === '1' && Boolean(process.env.DATABASE_URL);
 const describeDatabase = enabled ? describe : describe.skip;
@@ -15,7 +16,14 @@ const body = <T>(response: { body: unknown }) => response.body as T;
 describeDatabase('Task 10 attachment lifecycle', () => {
   let app: INestApplication; let prisma: PrismaService; let storage: MemoryStorageProvider;
   async function cleanup() { const users = await prisma.user.findMany({ where: { email: { in: emails } }, select: { id: true } }); await prisma.workspace.deleteMany({ where: { createdById: { in: users.map(({ id }) => id) } } }); await prisma.user.deleteMany({ where: { id: { in: users.map(({ id }) => id) } } }); storage.clear(); }
-  async function register(email: string) { const response = body<{ accessToken: string; user: { id: string } }>(await request(app.getHttpServer()).post('/api/v1/auth/register').send({ email, displayName: email, password: 'Task-Ten-Pass-10!' }).expect(201)); const workspaces = body<Array<{ id: string }>>(await request(app.getHttpServer()).get('/api/v1/workspaces').set('Authorization', `Bearer ${response.accessToken}`).expect(200)); return { ...response, workspaceId: workspaces[0]!.id, headers: { Authorization: `Bearer ${response.accessToken}` } }; }
+  async function register(email: string) {
+    const registered = await registerVerifiedUser(app, prisma, {
+      email,
+      displayName: email,
+      password: 'Task-Ten-Pass-10!'
+    });
+    return { accessToken: registered.accessToken, user: { id: registered.userId }, workspaceId: registered.workspaceId, headers: registered.headers };
+  }
   async function task(user: Awaited<ReturnType<typeof register>>) { const base = `/api/v1/workspaces/${user.workspaceId}`; const project = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/projects`).set(user.headers).send({ name: 'Files' }).expect(201)); const status = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/projects/${project.id}/statuses`).set(user.headers).send({ name: 'Open', color: '#64748b', category: 'OPEN' }).expect(201)); const created = body<{ id: string }>(await request(app.getHttpServer()).post(`${base}/tasks`).set(user.headers).send({ projectId: project.id, statusId: status.id, title: 'Attachment task' }).expect(201)); return { base, taskId: created.id }; }
   beforeAll(async () => { const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(StructuredLoggerService).useValue({ log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn(), verbose: vi.fn(), fatal: vi.fn() }).compile(); app = moduleRef.createNestApplication(); configureApp(app, { corsOrigins: ['http://localhost:3000'] }); await app.init(); prisma = app.get(PrismaService); storage = app.get(MemoryStorageProvider); await cleanup(); });
   afterAll(async () => { await cleanup(); await app.close(); });

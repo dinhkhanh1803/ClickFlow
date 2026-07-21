@@ -73,19 +73,16 @@ export class AuthController {
     return { accepted: true };
   }
   @Post('register')
-  @ApiOperation({ summary: 'Create an account, workspace and initial session' })
+  @ApiOperation({ summary: 'Create an email account pending verification' })
   @ApiBody({ type: RegisterRequestDto })
-  @ApiCreatedResponse({ type: AuthResponseDto })
+  @ApiCreatedResponse({ type: EmailRegistrationResponseDto })
   async register(
     @Body(new ZodValidationPipe(registerSchema)) input: RegisterInput,
     @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
     @Ip() ipAddress: string
-  ): Promise<AuthResponseDto> {
-    this.limiter.consume('register', ipAddress, input.email);
-    const result = await this.auth.register(input, clientContext(request, ipAddress));
-    writeAuthCookies(response, result.refreshToken, result.csrfToken, result.refreshExpiresAt);
-    return publicResult(result);
+  ): Promise<EmailRegistrationResponseDto> {
+    this.limiter.consume('register-email', ipAddress, input.email);
+    return this.auth.registerEmail(input, clientContext(request, ipAddress));
   }
 
   @Post('login')
