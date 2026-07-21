@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bold, Download, FilePlus2, FileText, Heading1, Italic, Link2, List, ListOrdered, MoreHorizontal, Sparkles, Underline, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TextInputDialog } from '@/components/ui/text-input-dialog';
 import { defaultLocalSpaces, loadLocalSpaces, localId, saveLocalSpaces, type LocalDocumentBlockStyle, type LocalSpace } from '../model/local-navigation';
 import { exportDocx, importDocx, sanitizeDocumentHtml } from '../lib/document-file';
 import { useArchiveDocumentMutation, useCreateDocumentMutation, useUpdateDocumentMutation } from '../data/document-queries';
@@ -78,10 +79,14 @@ export function DocumentWorkspace() {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkHref, setLinkHref] = useState('');
   const [pageMenuId, setPageMenuId] = useState<string | null>(null);
   const [importTargetPageId, setImportTargetPageId] = useState<string | null>(null);
   const [fileMessage, setFileMessage] = useState<string | null>(null);
   const [isRenamingTitle, setIsRenamingTitle] = useState(false);
+  const [renamePageTarget, setRenamePageTarget] = useState<{ pageId: string; currentName: string } | null>(null);
+  const [renamePageDraft, setRenamePageDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved');
   const createDocumentMutation = useCreateDocumentMutation();
@@ -90,6 +95,7 @@ export function DocumentWorkspace() {
   const versionRef = useRef(new Map<string, number>());
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const contentSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linkSelectionRef = useRef<Range | null>(null);
 
 
   useEffect(() => {
@@ -191,8 +197,23 @@ export function DocumentWorkspace() {
     saveContent(editor.innerHTML);
   };
   const createSelectionLink = () => {
-    const href = window.prompt('Paste a link')?.trim();
-    if (href) applySelectionFormat('createLink', href);
+    const selection = window.getSelection();
+    linkSelectionRef.current = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    setLinkHref('');
+    setLinkDialogOpen(true);
+  };
+  const submitSelectionLink = () => {
+    const href = linkHref.trim();
+    if (!href) return;
+    const selection = window.getSelection();
+    if (linkSelectionRef.current) {
+      selection?.removeAllRanges();
+      selection?.addRange(linkSelectionRef.current);
+    }
+    applySelectionFormat('createLink', href);
+    setLinkDialogOpen(false);
+    setLinkHref('');
+    linkSelectionRef.current = null;
   };
 
   const insertCommand = (command: DocumentCommand) => {
@@ -224,9 +245,15 @@ export function DocumentWorkspace() {
   };
 
   const renamePage = (pageId: string, currentName: string) => {
-    const name = window.prompt('Rename page', currentName)?.trim();
-    if (name) updatePage(pageId, { name });
+    setRenamePageTarget({ pageId, currentName });
+    setRenamePageDraft(currentName);
     setPageMenuId(null);
+  };
+  const submitPageRename = () => {
+    if (!renamePageTarget) return;
+    const name = renamePageDraft.trim();
+    if (name) updatePage(renamePageTarget.pageId, { name });
+    setRenamePageTarget(null);
   };
   const startTitleRename = () => {
     setTitleDraft(selectedDoc?.name ?? '');
@@ -378,5 +405,7 @@ export function DocumentWorkspace() {
       <aside className="border-b border-slate-200 p-4 lg:sticky lg:top-[7.5rem] lg:h-[calc(100vh-7.5rem)] lg:self-start lg:overflow-y-auto lg:border-b-0 lg:border-r dark:border-slate-800"><div className="flex items-center justify-between"><div><p className="text-sm font-semibold">{selectedFolder?.name ?? 'Pages'}</p><p className="mt-1 text-xs text-slate-500">Pages</p></div><button aria-label="Add page" type="button" onClick={addPage} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-900"><FilePlus2 size={17} /></button></div><input ref={importInputRef} type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => void handleDocxImport(event)} className="sr-only" /><nav className="mt-4 space-y-1">{pages.map((page) => <div key={page.id} className="relative flex items-center"><button type="button" onClick={() => openPage(page.id)} aria-current={page.id === selectedDoc.id ? 'page' : undefined} className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm ${page.id === selectedDoc.id ? 'bg-slate-900/10 font-semibold text-slate-900 dark:bg-white/10 dark:text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'}`}><FileText size={16} />{page.name}</button><button type="button" aria-label={`Page options ${page.name}`} onClick={() => setPageMenuId((current) => current === page.id ? null : page.id)} className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><MoreHorizontal size={15} /></button>{pageMenuId === page.id && <div role="menu" className="absolute right-0 top-8 z-30 w-48 rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-700 dark:bg-slate-900"><button type="button" role="menuitem" onClick={() => renamePage(page.id, page.name)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Rename page</button><button type="button" role="menuitem" onClick={() => void copyPageLink(page.id)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Copy link</button><button type="button" role="menuitem" onClick={() => importPage(page.id)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"><Upload size={14} />Import .docx</button><button type="button" role="menuitem" onClick={() => void exportPage(page.id)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"><Download size={14} />Export .docx</button><button type="button" role="menuitem" onClick={() => duplicatePage(page.id)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Duplicate page</button><button type="button" role="menuitem" disabled={pages.length === 1} onClick={() => deletePage(page.id)} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 disabled:opacity-40 dark:hover:bg-rose-950/30">Delete page</button></div>}</div>)}</nav>{fileMessage && <p role="status" className="mt-3 text-xs text-slate-500">{fileMessage}</p>}<button type="button" onClick={addPage} className="mt-3 flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-indigo-600"><FilePlus2 size={16} />Add page</button></aside>
       <section className="w-full px-8 py-10 lg:px-12"><p className="text-sm text-slate-500">{selectedFolder?.name ?? selectedSpace.name} <span className="px-1">/</span> Docs</p><div className="relative mt-4 inline-block"><button type="button" aria-label="Link Task or Doc" onClick={() => setLinkOpen((open) => !open)} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-indigo-600"><Link2 size={15} />Link Task or Doc</button>{linkOpen && <div role="menu" aria-label="Link task or document" className="absolute left-0 top-7 z-20 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900"><p className="px-2 py-1 text-xs font-semibold text-slate-500">Tasks</p>{linkableTasks.length ? linkableTasks.map((task) => <button key={task.id} type="button" role="menuitem" onClick={() => insertReference(`[Task: ${task.title}]`)} className="block w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Task: {task.title}</button>) : <p className="px-2 py-2 text-sm text-slate-500">No tasks yet</p>}<p className="mt-1 border-t border-slate-100 px-2 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800">Docs</p>{linkableDocs.map((doc) => <button key={doc.id} type="button" role="menuitem" onClick={() => insertReference(`[[${doc.name}]]`)} className="block w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Doc: {doc.name}</button>)}</div>}</div><h1 ref={titleRef} role={isRenamingTitle ? 'textbox' : undefined} aria-label={isRenamingTitle ? 'Document title' : undefined} contentEditable={isRenamingTitle} suppressContentEditableWarning tabIndex={0} onClick={() => { if (!isRenamingTitle) startTitleRename(); }} onBlur={commitTitleRename} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commitTitleRename(); } if (event.key === 'Escape') { event.preventDefault(); setIsRenamingTitle(false); } }} className="mt-4 max-w-full cursor-text text-4xl font-bold leading-tight tracking-tight outline-none">{isRenamingTitle ? titleDraft : selectedDoc.name}</h1><div className="mt-3 flex items-center gap-2 text-sm text-slate-500"><span className="grid h-6 w-6 place-items-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">KT</span><span>Khanh Tran</span><span>|</span><span>{navigationQuery.usesApi ? saveState === 'saving' ? 'Saving...' : saveState === 'error' ? 'Save failed' : 'Saved to workspace' : 'Saved locally'}</span></div><div className="relative mt-8"><div role="toolbar" aria-label="Text formatting" className="sticky top-32 z-10 mb-3 flex w-fit items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900"><button type="button" aria-label="Bold selection" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionFormat('bold')} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><Bold size={16} /></button><button type="button" aria-label="Italic selection" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionFormat('italic')} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><Italic size={16} /></button><button type="button" aria-label="Underline selection" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionFormat('underline')} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><Underline size={16} /></button><span className="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" /><button type="button" aria-label="Heading selection" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionFormat('formatBlock', 'h2')} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><Heading1 size={16} /></button><button type="button" aria-label="Bulleted list selection" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionFormat('insertUnorderedList')} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><List size={16} /></button><button type="button" aria-label="Numbered list selection" onMouseDown={(event) => event.preventDefault()} onClick={() => applySelectionFormat('insertOrderedList')} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><ListOrdered size={16} /></button><button type="button" aria-label="Link selection" onMouseDown={(event) => event.preventDefault()} onClick={createSelectionLink} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><Link2 size={16} /></button></div><div key={selectedDoc.id} ref={editorRef} role="textbox" aria-label="Document content" contentEditable suppressContentEditableWarning spellCheck dangerouslySetInnerHTML={{ __html: selectedDoc.document?.content ?? '' }} onInput={(event) => handleEditorInput(event.currentTarget.innerHTML, event.currentTarget.textContent ?? '', event.currentTarget)} data-block-style={blockStyle} data-placeholder={commands.find((command) => command.style === blockStyle)?.placeholder ?? 'Write, press space for AI, / for commands'} className={`relative min-h-[calc(100vh-20rem)] w-full bg-transparent py-2 outline-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)] [&_a]:text-indigo-600 [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-400 [&_blockquote]:pl-4 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:font-mono [&_h1]:mt-8 [&_h1]:text-4xl [&_h1]:font-bold [&_h2]:mt-6 [&_h2]:text-3xl [&_h2]:font-bold [&_h3]:mt-5 [&_h3]:text-2xl [&_h3]:font-semibold [&_img]:my-4 [&_img]:max-w-full [&_img]:rounded-xl [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_pre]:my-4 [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-4 [&_pre]:font-mono [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 dark:[&_code]:bg-slate-900 dark:[&_pre]:bg-slate-900 [&_table]:my-5 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_th]:border [&_th]:border-slate-300 [&_th]:bg-slate-100 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_td]:border [&_td]:border-slate-300 [&_td]:px-3 [&_td]:py-2 [&_td_p]:my-0 dark:[&_th]:border-slate-700 dark:[&_th]:bg-slate-900 dark:[&_td]:border-slate-700 ${blockStyleClassNames[blockStyle]}`} />{slashQuery !== null && <div role="menu" aria-label="Document commands" className="absolute left-0 top-14 z-20 grid w-[34rem] max-w-full grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">{commands.filter((command) => command.name.toLowerCase().includes(slashQuery)).map((command) => <button key={command.name} type="button" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={() => insertCommand(command)} className="rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800">{command.name}</button>)}</div>}</div></section>
     </div>
+  <TextInputDialog open={linkDialogOpen} title="Paste a link" label="Link URL" value={linkHref} placeholder="https://example.com" submitLabel="Apply link" onValueChange={setLinkHref} onOpenChange={(open) => { setLinkDialogOpen(open); if (!open) linkSelectionRef.current = null; }} onSubmit={submitSelectionLink} />
+  <TextInputDialog open={renamePageTarget !== null} title="Rename page" label="Page name" value={renamePageDraft} submitLabel="Rename" onValueChange={setRenamePageDraft} onOpenChange={(open) => { if (!open) setRenamePageTarget(null); }} onSubmit={submitPageRename} />
   </main>;
 }
