@@ -14,6 +14,7 @@ export const ALLOWED_ATTACHMENT_MIME_TYPES = [
   'video/webm',
   'video/quicktime',
   'text/plain',
+  'text/markdown',
   'application/zip',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -33,6 +34,7 @@ export const ATTACHMENT_MIME_EXTENSIONS = {
   'video/webm': 'webm',
   'video/quicktime': 'mov',
   'text/plain': 'txt',
+  'text/markdown': 'md',
   'application/zip': 'zip',
   'application/msword': 'doc',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
@@ -73,8 +75,13 @@ export function hasValidMagicBytes(mimeType: string, bytes: Uint8Array): boolean
   return candidates.some((signature) => signature.every((value, index) => bytes[index] === value) || bytes.some((value, index) => signature.every((signatureValue, offset) => bytes[index + offset] === signatureValue)));
 }
 
-export function assertStoredObject(mimeType: string, byteSize: number, bytes: Uint8Array): void {
+export function assertStoredObjectMetadata(mimeType: string, byteSize: number): void {
   if (!ALLOWED_ATTACHMENT_MIME_TYPES.includes(mimeType as never)) throw new BadRequestException('Attachment MIME type is not allowed');
-  if (byteSize < 1 || byteSize > maxAttachmentBytesForMimeType(mimeType) || byteSize !== bytes.byteLength) throw new BadRequestException('Attachment size is invalid');
+  if (byteSize < 1 || byteSize > maxAttachmentBytesForMimeType(mimeType)) throw new BadRequestException('Attachment size is invalid');
+}
+
+export function assertStoredObject(mimeType: string, byteSize: number, bytes: Uint8Array): void {
+  assertStoredObjectMetadata(mimeType, byteSize);
+  if (byteSize !== bytes.byteLength) throw new BadRequestException('Attachment size is invalid');
   if (!hasValidMagicBytes(mimeType, bytes)) throw new BadRequestException('Attachment content does not match its MIME type');
 }

@@ -45,7 +45,8 @@ export function cloudinaryAssetCoordinates(storageKey: string): { publicId: stri
   const match = storageKey.match(/^(.+)\.([a-z0-9]+)$/i);
   if (!match) throw new Error('Cloudinary storage keys must include a file extension');
   const format = match[2]!.toLowerCase();
-  return { publicId: match[1]!, format, resourceType: extensionResourceTypes[format] ?? 'raw' };
+  const resourceType = extensionResourceTypes[format] ?? 'raw';
+  return { publicId: resourceType === 'raw' ? storageKey : match[1]!, format, resourceType };
 }
 
 export function createCloudinaryUploadIntent(
@@ -58,7 +59,7 @@ export function createCloudinaryUploadIntent(
   const { publicId } = cloudinaryAssetCoordinates(spec.storageKey);
   const resourceType = cloudinaryResourceTypeForMimeType(spec.mimeType);
   const context = `mime_type=${spec.mimeType}`;
-  const parameters = { context, overwrite: false, public_id: publicId, resource_type: resourceType, timestamp, type: 'private' };
+  const parameters = { context, overwrite: false, public_id: publicId, timestamp, type: 'private' };
   const signature = cloudinary.utils.api_sign_request(parameters, configuration.apiSecret);
 
   return {
@@ -69,7 +70,6 @@ export function createCloudinaryUploadIntent(
       context,
       overwrite: 'false',
       public_id: publicId,
-      resource_type: resourceType,
       signature,
       timestamp: String(timestamp),
       type: 'private'
@@ -127,28 +127,20 @@ export class CloudinaryStorageProvider implements StorageProvider {
     try {
       resource = await cloudinary.api.resource(publicId, {
         resource_type: resourceType,
-        type: 'private'
+        type: 'private',
+        context: true
       }) as unknown as CloudinaryResource;
     } catch (error) {
       if (this.isNotFound(error)) return null;
       throw error;
     }
 
-    const probeUrl = cloudinary.utils.private_download_url(publicId, format, {
-      resource_type: resourceType,
-      type: 'private',
-      expires_at: Math.floor(Date.now() / 1000) + 60
-    });
-    const response = await fetch(probeUrl);
-    if (!response.ok) throw new Error(`Cloudinary asset verification failed with HTTP ${response.status}`);
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const mimeType = resource.context?.custom?.mime_type ?? this.mimeTypeForFormat(resource.format);
+    const mimeType = resource.context?.custom?.mime_type ?? this.mimeTypeForFormat(resource.format || format);
 
     return {
       storageKey,
       mimeType,
       byteSize: resource.bytes,
-      bytes,
       checksum: resource.etag
     };
   }
@@ -201,6 +193,7 @@ export class CloudinaryStorageProvider implements StorageProvider {
     if (format === 'mov') return 'video/quicktime';
     if (format === 'pdf') return 'application/pdf';
     if (format === 'txt') return 'text/plain';
+    if (format === 'md') return 'text/markdown';
     if (format === 'doc') return 'application/msword';
     if (format === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     if (format === 'xls') return 'application/vnd.ms-excel';

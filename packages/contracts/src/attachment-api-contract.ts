@@ -9,6 +9,7 @@ export const attachmentPolicyContract = {
     'video/webm',
     'video/quicktime',
     'text/plain',
+    'text/markdown',
     'application/zip',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

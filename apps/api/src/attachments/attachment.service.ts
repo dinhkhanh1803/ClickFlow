@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { AuthClientContext } from '../auth/auth.service';
 import { PrismaService } from '../database/prisma.service';
-import { assertStoredObject, storageExtensionForMimeType } from './attachment-rules';
+import { assertStoredObject, assertStoredObjectMetadata, storageExtensionForMimeType } from './attachment-rules';
 import type { CompleteAttachmentInput, UploadIntentInput } from './attachment.schemas';
 import { STORAGE_PROVIDER, type StorageProvider } from './storage-provider';
 
@@ -24,7 +24,8 @@ export class AttachmentService {
     const object = await this.storage.head(input.storageKey);
     if (!object) throw new BadRequestException('Uploaded object was not found');
     if (object.mimeType !== input.mimeType || object.byteSize !== input.byteSize) throw new BadRequestException('Uploaded object metadata does not match the intent');
-    assertStoredObject(object.mimeType, object.byteSize, object.bytes);
+    if (object.bytes) assertStoredObject(object.mimeType, object.byteSize, object.bytes);
+    else assertStoredObjectMetadata(object.mimeType, object.byteSize);
     const attachment = await this.prisma.$transaction(async (transaction) => {
       const created = await transaction.attachment.create({ data: { workspaceId, taskId: input.taskId, uploadedById: userId, storageKey: input.storageKey, fileName: input.fileName, mimeType: input.mimeType, byteSize: input.byteSize, checksum: input.checksum ?? object.checksum } });
       await transaction.activityLog.create({ data: { workspaceId, actorId: userId, eventType: 'ATTACHMENT_CREATED', subjectType: 'TASK', subjectId: input.taskId, requestId: context.requestId, metadata: { attachmentId: created.id } } });

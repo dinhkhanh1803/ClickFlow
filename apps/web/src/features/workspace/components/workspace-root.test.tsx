@@ -647,6 +647,24 @@ describe('WorkspaceRoot', () => {
 
     expect(screen.getByRole('dialog', { name: 'Attachment preview' })).toBeInTheDocument();
   });
+
+  it('opens a markdown attachment in an expanded text preview dialog', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [{ id: 'attachment-1', name: 'RISK_REGISTER.md', mimeType: 'text/markdown', size: 18, dataUrl: 'data:text/markdown;base64,IyBSaXNrIFJlZ2lzdGVy', createdAt: '2026-07-17T00:00:00.000Z' }], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'Preview attachment RISK_REGISTER.md' }));
+
+    expect(screen.getByRole('dialog', { name: 'Attachment preview' })).toBeInTheDocument();
+    expect(await screen.findByText('# Risk Register')).toBeInTheDocument();
+  });
   it('renders a resize handle for the Activity panel', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([

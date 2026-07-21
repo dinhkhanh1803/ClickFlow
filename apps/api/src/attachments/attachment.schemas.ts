@@ -9,6 +9,6 @@ const uploadBaseSchema = z.object({
 }).strict();
 
 export const uploadIntentSchema = uploadBaseSchema.refine((value) => value.byteSize <= maxAttachmentBytesForMimeType(value.mimeType), { path: ['byteSize'], message: 'Attachment size exceeds the limit for this file type' });
-export const completeAttachmentSchema = uploadIntentSchema.and(z.object({ storageKey: z.string().min(1).max(512), checksum: z.string().max(128).optional() }).strict());
+export const completeAttachmentSchema = uploadBaseSchema.extend({ storageKey: z.string().min(1).max(512), checksum: z.string().max(128).optional() }).strict().refine((value) => value.byteSize <= maxAttachmentBytesForMimeType(value.mimeType), { path: ['byteSize'], message: 'Attachment size exceeds the limit for this file type' });
 export type UploadIntentInput = z.infer<typeof uploadIntentSchema>;
 export type CompleteAttachmentInput = z.infer<typeof completeAttachmentSchema>;

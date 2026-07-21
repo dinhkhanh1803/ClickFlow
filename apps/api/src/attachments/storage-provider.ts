@@ -11,7 +11,7 @@ export interface StoredObjectMetadata {
   storageKey: string;
   mimeType: string;
   byteSize: number;
-  bytes: Uint8Array;
+  bytes?: Uint8Array;
   checksum?: string;
 }
 

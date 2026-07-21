@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { defaultLocalSpaces, loadLocalSpaces, localId, saveLocalSpaces, type LocalListTask, type LocalSpace, type LocalSpaceItemKind, type LocalStatusColor, type LocalStatusScope, type LocalTaskStatus } from '../model/local-navigation';
 import { useWorkspace } from '../model/workspace-store';
 import type { Project, Task } from '../model/workspace-types';
-import { LocalListTaskSurface, type AssigneeOption } from './local-list-task-surface';
+import { LocalListTaskSurface, type AssigneeOption, type AttachmentPreviewData } from './local-list-task-surface';
 import { LocalCalendarTaskSurface } from './local-calendar-task-surface';
 import { CreationDialog } from './creation-dialog';
 import { LocalTableTaskSurface } from './local-table-task-surface';
@@ -391,17 +391,31 @@ export function SpaceOverview() {
     setLocalSpaces(nextSpaces);
     saveLocalSpaces(nextSpaces);
   };
-  const openAttachment = async (attachment: import('../model/local-navigation').LocalTaskAttachment) => {
+  const openAttachment = async (attachment: import('../model/local-navigation').LocalTaskAttachment): Promise<AttachmentPreviewData | null> => {
+    const kind = attachment.mimeType.startsWith('image/') ? 'image' : attachment.mimeType.startsWith('video/') ? 'video' : attachment.mimeType === 'application/pdf' ? 'pdf' : (attachment.mimeType === 'text/plain' || attachment.mimeType === 'text/markdown') ? 'text' : 'file';
     if (attachment.dataUrl) {
+      if (kind === 'text') {
+        const response = await fetch(attachment.dataUrl);
+        return { attachment, text: await response.text(), downloadUrl: attachment.dataUrl };
+      }
+      if (kind !== 'file') return { attachment, url: attachment.dataUrl, downloadUrl: attachment.dataUrl };
       window.open(attachment.dataUrl, '_blank', 'noopener,noreferrer');
-      return;
+      return null;
     }
-    if (!selectedLocalSpace || attachment.id.startsWith('attachment-')) return;
+    if (!selectedLocalSpace || attachment.id.startsWith('attachment-')) return null;
     try {
       const { downloadUrl } = await downloadAttachmentUrlMutation.mutateAsync({ workspaceId: selectedLocalSpace.id, attachmentId: attachment.id });
+      if (kind === 'text') {
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error('Unable to load text preview.');
+        return { attachment, text: await response.text(), downloadUrl };
+      }
+      if (kind === 'image' || kind === 'video' || kind === 'pdf') return { attachment, url: downloadUrl, downloadUrl };
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      return null;
     } catch {
       toast.error('Unable to open the attachment.');
+      return null;
     }
   };
   const deleteLocalListTasks = async (taskIds: string[]) => {
