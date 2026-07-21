@@ -80,3 +80,10 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Custom statuses support color selection, rename/recolor, safe deletion with task fallback to Open, while Open/In progress/Complete are database-protected system statuses.
 - [x] Tasks support multiple persisted assignees, avatar-only display, and hover-to-unassign without losing legacy assignments.
 - [x] Task time estimates and tags persist through the API and remain visible after task data refresh.
+- [x] Legacy /auth/register is protected by email verification and no longer bypasses verified registration.
+- [x] Authenticated Space E2E coverage validates login, Space/Folder/List/Task creation, public view-only restrictions, invite, productivity pages, and archive restore/duplicate.
+- [x] Space member invite flow lists existing users, labels the current user as Me, and preserves member avatars where available.
+- [x] Public/Private Space permissions are enforced in owner-only and view-only frontend flows.
+- [x] My Tasks, Calendar, and Settings pages are implemented against workspace-backed data.
+- [x] Native browser prompt dialogs have been replaced with accessible in-app dialogs.
+- [x] Space archive, restore, and duplicate flows are available through backend APIs and sidebar actions.
