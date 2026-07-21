@@ -68,7 +68,7 @@ Chi tiết triển khai theo frontend hiện tại: [Backend–FE alignment chec
 - [x] Task screens load and mutate core Task fields through workspace-scoped backend APIs.
 - [x] List and Board views create tasks inline within the selected status; Save or Enter commits and Escape cancels.
 - [x] Comments and activity history use backend APIs.
-- [ ] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs.
+- [x] End-to-end tests cover authenticated frontend workflows against PostgreSQL-backed APIs via `apps/web/e2e/real-api-authenticated.spec.ts`.
 - [x] Task timers and the Time Tracking overview use backend APIs.
 - [x] Dashboard, global search, and reports use workspace-scoped analytics APIs.
 - [x] Task attachment mutations use the signed object-storage API.
