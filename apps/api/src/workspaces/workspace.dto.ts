@@ -40,6 +40,10 @@ export class WorkspaceResponseDto {
 }
 
 
+export class ArchivedWorkspaceResponseDto extends WorkspaceResponseDto {
+  @ApiProperty() declare archivedAt: Date;
+}
+
 export class InviteWorkspaceMemberRequestDto {
   @ApiProperty({ type: String, format: 'email' }) email!: string;
   @ApiPropertyOptional({ type: String, enum: ['MEMBER'], default: 'MEMBER' }) role?: string;

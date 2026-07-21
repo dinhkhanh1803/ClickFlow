@@ -162,6 +162,43 @@ describe('WorkspaceService', () => {
     await expect(service.inviteMember('workspace-1', 'member-1', { email: 'bao@clickflow.test', role: 'MEMBER' })).rejects.toBeInstanceOf(ForbiddenException);
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
     expect(prisma.workspaceMember.upsert).not.toHaveBeenCalled();
-  });});
+  });
 
+  it('allows an OWNER to restore an archived Space', async () => {
+    const restored = { id: 'workspace-1', name: 'Restored', description: null, tone: null, private: true, publicAccess: 'VIEW', timezone: 'UTC', locale: 'en', createdBy: { id: 'owner-1', displayName: 'Owner', avatarUrl: null }, createdAt: new Date('2026-07-21T00:00:00.000Z'), updatedAt: new Date('2026-07-21T00:00:00.000Z'), archivedAt: null };
+    const prisma = {
+      workspaceMember: { findUnique: vi.fn().mockResolvedValue({ role: 'OWNER' }) },
+      workspace: { updateMany: vi.fn().mockResolvedValue({ count: 1 }), findUniqueOrThrow: vi.fn().mockResolvedValue(restored) }
+    };
+    const service = new WorkspaceService(prisma as unknown as PrismaService);
+
+    await expect(service.restore('workspace-1', 'owner-1')).resolves.toMatchObject({ ...restored, role: 'OWNER' });
+    expect(prisma.workspace.updateMany).toHaveBeenCalledWith({ where: { id: 'workspace-1', archivedAt: { not: null } }, data: { archivedAt: null } });
+  });
+
+  it('duplicates an owned Space into a new owner workspace', async () => {
+    const source = { id: 'workspace-1', name: 'Source', description: 'Plan', tone: 'bg-indigo-500', private: false, publicAccess: 'EDIT', timezone: 'UTC', locale: 'en', settings: {}, projects: [], sections: [], statuses: [], tasks: [], documents: [] };
+    const copy = { id: 'workspace-copy', name: 'Source copy', description: 'Plan', tone: 'bg-indigo-500', private: false, publicAccess: 'EDIT', timezone: 'UTC', locale: 'en', createdBy: { id: 'owner-1', displayName: 'Owner', avatarUrl: null }, createdAt: new Date('2026-07-21T00:00:00.000Z'), updatedAt: new Date('2026-07-21T00:00:00.000Z'), archivedAt: null };
+    const transaction = {
+      workspace: { create: vi.fn().mockResolvedValue(copy) },
+      workspaceMember: { create: vi.fn().mockResolvedValue({ id: 'member-copy' }) },
+      project: { create: vi.fn() },
+      section: { create: vi.fn() },
+      taskStatus: { create: vi.fn() },
+      task: { create: vi.fn(), update: vi.fn() },
+      taskAssignment: { createMany: vi.fn() },
+      document: { create: vi.fn() }
+    };
+    const prisma = {
+      workspaceMember: { findUnique: vi.fn().mockResolvedValue({ role: 'OWNER' }) },
+      workspace: { findFirst: vi.fn().mockResolvedValue(source) },
+      $transaction: vi.fn((callback: (client: typeof transaction) => unknown) => callback(transaction))
+    };
+    const service = new WorkspaceService(prisma as unknown as PrismaService);
+
+    await expect(service.duplicate('workspace-1', 'owner-1')).resolves.toMatchObject({ ...copy, role: 'OWNER' });
+    expect(transaction.workspace.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ name: 'Source copy', createdById: 'owner-1', private: false, publicAccess: 'EDIT' }) }));
+    expect(transaction.workspaceMember.create).toHaveBeenCalledWith({ data: { workspaceId: 'workspace-copy', userId: 'owner-1', role: 'OWNER' } });
+  });
+});
 

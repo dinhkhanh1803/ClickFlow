@@ -18,6 +18,8 @@ export type CoreApiState = {
   createdProjectRequests: unknown[];
   createdTaskRequests: unknown[];
   invitedMemberRequests: unknown[];
+  duplicatedWorkspaceIds: string[];
+  restoredWorkspaceIds: string[];
 };
 
 type MockCoreApiOptions = {
@@ -38,6 +40,7 @@ type Workspace = {
   createdBy: { id: string; displayName: string; avatarUrl: string | null };
   createdAt: string;
   updatedAt: string;
+  archivedAt: string | null;
 };
 
 type Project = {
@@ -93,6 +96,7 @@ function workspaceResponse(input: Partial<Workspace> & Pick<Workspace, 'id' | 'n
     createdBy: { id: user.id, displayName: user.displayName, avatarUrl: user.avatarUrl },
     createdAt: now,
     updatedAt: now,
+    archivedAt: null,
     ...input
   };
 }
@@ -148,7 +152,7 @@ async function emptyOptions(route: Route) {
 }
 
 export async function mockCoreApi(page: Page, options: MockCoreApiOptions = {}): Promise<CoreApiState> {
-  const state: CoreApiState = { createdWorkspaceRequests: [], createdProjectRequests: [], createdTaskRequests: [], invitedMemberRequests: [] };
+  const state: CoreApiState = { createdWorkspaceRequests: [], createdProjectRequests: [], createdTaskRequests: [], invitedMemberRequests: [], duplicatedWorkspaceIds: [], restoredWorkspaceIds: [] };
   const workspaces: Workspace[] = [];
   const projects = new Map<string, Project[]>();
   const sections = new Map<string, Section[]>();
@@ -268,7 +272,8 @@ export async function mockCoreApi(page: Page, options: MockCoreApiOptions = {}):
       ]);
     }
 
-    if (request.method() === 'GET' && path === '/workspaces') return json(route, workspaces);
+    if (request.method() === 'GET' && path === '/workspaces') return json(route, workspaces.filter((workspace) => !workspace.archivedAt));
+    if (request.method() === 'GET' && path === '/workspaces/archived') return json(route, workspaces.filter((workspace) => workspace.archivedAt));
     if (request.method() === 'POST' && path === '/workspaces') {
       const input = request.postDataJSON() as { name: string; description?: string | null; private?: boolean; publicAccess?: 'VIEW' | 'EDIT' };
       state.createdWorkspaceRequests.push(input);
@@ -283,6 +288,41 @@ export async function mockCoreApi(page: Page, options: MockCoreApiOptions = {}):
       projects.set(workspace.id, []);
       members.set(workspace.id, [{ id: workspace.id + '-member-owner', userId: user.id, displayName: user.displayName, initials: 'K', avatarUrl: user.avatarUrl, role: 'OWNER' }]);
       return json(route, workspace, 201);
+    }
+
+    const workspaceActionMatch = path.match(/^\/workspaces\/([^/]+)(?:\/(restore|duplicate))?$/);
+    if (workspaceActionMatch && request.method() === 'DELETE' && !workspaceActionMatch[2]) {
+      const workspaceId = workspaceActionMatch[1]!;
+      const workspace = workspaces.find((item) => item.id === workspaceId);
+      if (workspace) workspace.archivedAt = new Date('2026-07-21T00:00:00.000Z').toISOString();
+      return json(route, { ok: true });
+    }
+    if (workspaceActionMatch && request.method() === 'POST' && workspaceActionMatch[2] === 'restore') {
+      const workspaceId = workspaceActionMatch[1]!;
+      const workspace = workspaces.find((item) => item.id === workspaceId);
+      if (!workspace) return json(route, { code: 'NOT_FOUND', message: 'Workspace not found' }, 404);
+      workspace.archivedAt = null;
+      state.restoredWorkspaceIds.push(workspaceId);
+      return json(route, workspace);
+    }
+    if (workspaceActionMatch && request.method() === 'POST' && workspaceActionMatch[2] === 'duplicate') {
+      const workspaceId = workspaceActionMatch[1]!;
+      const source = workspaces.find((item) => item.id === workspaceId);
+      if (!source) return json(route, { code: 'NOT_FOUND', message: 'Workspace not found' }, 404);
+      const copy = workspaceResponse({
+        ...source,
+        id: `00000000-0000-4000-8000-00000000060${workspaceCounter++}`,
+        name: `${source.name} copy`,
+        archivedAt: null,
+        role: 'OWNER',
+        createdBy: { id: user.id, displayName: user.displayName, avatarUrl: user.avatarUrl }
+      });
+      workspaces.push(copy);
+      projects.set(copy.id, []);
+      members.set(copy.id, [{ id: copy.id + '-member-owner', userId: user.id, displayName: user.displayName, initials: 'K', avatarUrl: user.avatarUrl, role: 'OWNER' }]);
+      workspaceSettings.set(copy.id, { timezone: copy.timezone, locale: copy.locale, preferences: { weekStartsOn: 1, notifications: true } });
+      state.duplicatedWorkspaceIds.push(workspaceId);
+      return json(route, copy, 201);
     }
 
     const settingsMatch = path.match(/^\/workspaces\/([^/]+)\/settings$/);

@@ -6,7 +6,7 @@ import { CurrentUser } from '../authorization/current-user.decorator';
 import { CurrentWorkspaceId } from '../authorization/current-workspace.decorator';
 import { RequireWorkspaceAccess } from '../authorization/workspace-access.decorator';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { CreateWorkspaceRequestDto, InviteWorkspaceMemberRequestDto, UpdateWorkspaceRequestDto, WorkspaceMemberResponseDto, WorkspaceResponseDto } from './workspace.dto';
+import { ArchivedWorkspaceResponseDto, CreateWorkspaceRequestDto, InviteWorkspaceMemberRequestDto, UpdateWorkspaceRequestDto, WorkspaceMemberResponseDto, WorkspaceResponseDto } from './workspace.dto';
 import { createWorkspaceSchema, inviteWorkspaceMemberSchema, type CreateWorkspaceInput, type InviteWorkspaceMemberInput, updateWorkspaceSchema, type UpdateWorkspaceInput } from './workspace.schemas';
 import { WorkspaceService } from './workspace.service';
 
@@ -32,6 +32,12 @@ export class WorkspaceController {
     return this.workspaces.create(user.id, input);
   }
 
+  @Get('archived')
+  @ApiOkResponse({ type: [ArchivedWorkspaceResponseDto] })
+  archived(@CurrentUser() user: AuthenticatedUser) {
+    return this.workspaces.listArchivedForUser(user.id);
+  }
+
   @Get(':workspaceId')
   @RequireWorkspaceAccess()
   @ApiOkResponse({ type: WorkspaceResponseDto })
@@ -45,6 +51,19 @@ export class WorkspaceController {
   @ApiOkResponse({ type: WorkspaceResponseDto })
   update(@CurrentWorkspaceId() workspaceId: string, @CurrentUser() user: AuthenticatedUser, @Body(new ZodValidationPipe(updateWorkspaceSchema)) input: UpdateWorkspaceInput) {
     return this.workspaces.update(workspaceId, user.id, input);
+  }
+
+  @Post(':workspaceId/restore')
+  @ApiOkResponse({ type: WorkspaceResponseDto })
+  restore(@CurrentWorkspaceId() workspaceId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.workspaces.restore(workspaceId, user.id);
+  }
+
+  @Post(':workspaceId/duplicate')
+  @RequireWorkspaceAccess()
+  @ApiCreatedResponse({ type: WorkspaceResponseDto })
+  duplicate(@CurrentWorkspaceId() workspaceId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.workspaces.duplicate(workspaceId, user.id);
   }
 
   @Delete(':workspaceId')
@@ -73,4 +92,5 @@ export class WorkspaceController {
     return this.workspaces.listMembers(workspaceId);
   }
 }
+
 

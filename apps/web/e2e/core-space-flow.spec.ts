@@ -148,4 +148,41 @@ test('renders My Tasks, Calendar, and Settings from workspace data', async ({ pa
   await expect(page.getByText('Settings saved.')).toBeVisible();
 });
 
+test('duplicates, archives, and restores a Space from the sidebar', async ({ page }) => {
+  const api = await mockCoreApi(page);
+
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill('khanh@clickflow.local');
+  await page.getByLabel('Password').fill('Initial-Pass-9!');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.context().addCookies([
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3000' },
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3002' }
+  ]);
+
+  await page.goto('/projects');
+  await page.getByRole('button', { name: 'Create a new Space' }).click();
+  await page.getByLabel('Space name').fill('Archive Source');
+  await page.getByRole('button', { name: 'Create Space', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Archive Source' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'More options for Archive Source' }).click();
+  await page.getByRole('menuitem', { name: 'Duplicate' }).click();
+  await expect(page.getByRole('link', { name: 'Archive Source copy' })).toBeVisible();
+  expect(api.duplicatedWorkspaceIds).toHaveLength(1);
+
+  await page.getByRole('button', { name: 'More options for Archive Source', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Delete' }).click();
+  await expect(page.getByRole('dialog', { name: 'Delete Archive Source' })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete Space' }).click();
+  await expect(page.getByRole('link', { name: 'Archive Source', exact: true })).toBeHidden();
+
+  await page.getByRole('button', { name: 'Archived' }).click();
+  await expect(page.getByRole('heading', { name: 'Archived Spaces' })).toBeVisible();
+  await expect(page.getByText('Archive Source', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Restore' }).click();
+  await expect(page.getByRole('link', { name: 'Archive Source', exact: true })).toBeVisible();
+  expect(api.restoredWorkspaceIds).toHaveLength(1);
+});
 

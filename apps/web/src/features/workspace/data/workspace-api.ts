@@ -12,6 +12,7 @@ import type {
   UpdateProjectRequest,
   UpdateSectionRequest,
   WorkspaceResponse,
+  ArchivedWorkspaceResponse,
   AssignableUserResponse,
   InviteWorkspaceMemberRequest,
   TaskTagResponse,
@@ -33,6 +34,15 @@ export const workspaceApi = {
   },
   archiveWorkspace(accessToken: string, workspaceId: string): Promise<void> {
     return client.delete('/workspaces/' + workspaceId, authorized(accessToken));
+  },
+  listArchivedWorkspaces(accessToken: string): Promise<ArchivedWorkspaceResponse[]> {
+    return client.get('/workspaces/archived', authorized(accessToken));
+  },
+  restoreWorkspace(accessToken: string, workspaceId: string): Promise<WorkspaceResponse> {
+    return client.post('/workspaces/' + workspaceId + '/restore', {}, authorized(accessToken));
+  },
+  duplicateWorkspace(accessToken: string, workspaceId: string): Promise<WorkspaceResponse> {
+    return client.post('/workspaces/' + workspaceId + '/duplicate', {}, authorized(accessToken));
   },
   listWorkspaces(accessToken: string): Promise<WorkspaceResponse[]> {
     return client.get('/workspaces', authorized(accessToken));

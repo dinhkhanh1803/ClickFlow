@@ -19,6 +19,11 @@ export interface WorkspaceResponse {
   createdBy: { id: string; displayName: string; avatarUrl: string | null };
   createdAt: UtcIsoTimestamp;
   updatedAt: UtcIsoTimestamp;
+  archivedAt?: UtcIsoTimestamp | null;
+}
+
+export interface ArchivedWorkspaceResponse extends WorkspaceResponse {
+  archivedAt: UtcIsoTimestamp;
 }
 export interface InviteWorkspaceMemberRequest {
   email: string;

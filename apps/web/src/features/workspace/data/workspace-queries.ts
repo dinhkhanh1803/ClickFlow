@@ -24,7 +24,8 @@ export const workspaceKeys = {
   timeEntries: (workspaceId: string) => ['workspaces', workspaceId, 'time-entries'] as const,
   documents: documentKeys.workspace,
   assignableUsers: ['users', 'assignable'] as const,
-  members: (workspaceId: string) => ['workspaces', workspaceId, 'members'] as const
+  members: (workspaceId: string) => ['workspaces', workspaceId, 'members'] as const,
+  archived: ['workspaces', 'archived'] as const
 };
 
 function requireToken(accessToken: string | null): string {
@@ -38,6 +39,17 @@ function useWorkspaceQueryClient() {
   return useContext(QueryClientContext) ?? fallbackQueryClient;
 }
 
+
+export function useArchivedWorkspacesQuery(enabled = true) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const authenticated = useAuthStore((state) => state.status === 'authenticated') && enabled;
+  const queryClient = useWorkspaceQueryClient();
+  return useQuery({
+    queryKey: workspaceKeys.archived,
+    queryFn: () => workspaceApi.listArchivedWorkspaces(requireToken(accessToken)),
+    enabled: authenticated && Boolean(accessToken)
+  }, queryClient);
+}
 
 export function useWorkspaceMembersQuery(workspaceId: string | undefined, enabled = true) {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -137,15 +149,42 @@ export function useUpdateWorkspaceMutation() {
   const accessToken = useAuthStore((state) => state.accessToken);
   return useMutation({
     mutationFn: ({ workspaceId, input }: { workspaceId: string; input: import('@clickflow/contracts').UpdateWorkspaceRequest }) => workspaceApi.updateWorkspace(requireToken(accessToken), workspaceId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.archived });
+    }
+  }, queryClient);
+}
+export function useRestoreWorkspaceMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: (workspaceId: string) => workspaceApi.restoreWorkspace(requireToken(accessToken), workspaceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.archived });
+    }
+  }, queryClient);
+}
+
+export function useDuplicateWorkspaceMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: (workspaceId: string) => workspaceApi.duplicateWorkspace(requireToken(accessToken), workspaceId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: workspaceKeys.all })
   }, queryClient);
 }
+
 export function useArchiveWorkspaceMutation() {
   const queryClient = useWorkspaceQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);
   return useMutation({
     mutationFn: (workspaceId: string) => workspaceApi.archiveWorkspace(requireToken(accessToken), workspaceId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspaceKeys.all })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.archived });
+    }
   }, queryClient);
 }
 
@@ -336,4 +375,5 @@ export function useDeleteStatusMutation() {
     onSuccess: (_result, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.statuses(variables.workspaceId, variables.projectId) })
   }, queryClient);
 }
+
 
