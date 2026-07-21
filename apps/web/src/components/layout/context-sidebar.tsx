@@ -7,7 +7,7 @@ import { ChevronDown, ChevronRight, ChevronsLeft, FileText, Folder, LayoutDashbo
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { notifyToastPreview } from '@/lib/feedback/toast-feedback';
-import { defaultLocalSpaces, loadLocalSpaces, localId, nextSpaceTone, saveLocalSpaces, type LocalSpace, type LocalSpaceItemKind } from '@/features/workspace/model/local-navigation';
+import { LOCAL_SPACES_STORAGE_KEY, defaultLocalSpaces, loadLocalSpaces, localId, nextSpaceTone, saveLocalSpaces, type LocalSpace, type LocalSpaceItemKind } from '@/features/workspace/model/local-navigation';
 import { useCreateDocumentMutation } from '@/features/workspace/data/document-queries';
 import type { GlobalModulePath } from '@/components/layout/app-sidebar';
 import { CreationDialog, type CreationDialogKind, type SpacePublicAccess } from '@/features/workspace/components/creation-dialog';
@@ -106,7 +106,8 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(() => new Set(['folder-projects']));
   const navigationQuery = useWorkspaceNavigationQuery(isSpaces);
   const archivedQuery = useArchivedWorkspacesQuery(isSpaces && archivedOpen);
-  const effectiveSpaces = navigationQuery.data ?? spaces;
+  const usingApiWorkspaces = navigationQuery.usesApi;
+  const effectiveSpaces = usingApiWorkspaces ? navigationQuery.data ?? [] : spaces;
   const createWorkspaceMutation = useCreateWorkspaceMutation();
   const updateWorkspaceMutation = useUpdateWorkspaceMutation();
   const archiveWorkspaceMutation = useArchiveWorkspaceMutation();
@@ -142,7 +143,15 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     window.addEventListener('clickflow:local-spaces-changed', synchronizeSpaces);
     return () => window.removeEventListener('clickflow:local-spaces-changed', synchronizeSpaces);
   }, []);
-  useEffect(() => { if (hydrated) saveLocalSpaces(spaces); }, [hydrated, spaces]);
+  useEffect(() => {
+    if (!hydrated) return;
+    if (usingApiWorkspaces) return;
+    saveLocalSpaces(spaces);
+  }, [hydrated, spaces, usingApiWorkspaces]);
+  useEffect(() => {
+    if (!usingApiWorkspaces) return;
+    window.localStorage.removeItem(LOCAL_SPACES_STORAGE_KEY);
+  }, [usingApiWorkspaces]);
   useEffect(() => {
     const hasOpenMenu = showCreateMenu || projectMenuId !== null || spaceMenuId !== null || listMenuId !== null || spaceCreateMenuId !== null || folderCreateMenuId !== null;
     if (!hasOpenMenu) return;

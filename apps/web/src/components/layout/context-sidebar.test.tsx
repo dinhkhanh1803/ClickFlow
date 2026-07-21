@@ -1,12 +1,42 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LOCAL_SPACES_STORAGE_KEY } from '@/features/workspace/model/local-navigation';
+import { useAuthStore } from '@/features/auth/model/auth-store';
+import { workspaceApi } from '@/features/workspace/data/workspace-api';
 vi.mock('next/navigation', () => ({ usePathname: () => '/calendar' }));
+vi.mock('@/features/workspace/data/workspace-api', () => ({
+  workspaceApi: {
+    listWorkspaces: vi.fn(),
+    listProjects: vi.fn(),
+    listSections: vi.fn(),
+    listStatuses: vi.fn(),
+    listTasks: vi.fn(),
+    listComments: vi.fn(),
+    listActivity: vi.fn(),
+    listTimeEntries: vi.fn(),
+    listDocuments: vi.fn(),
+    listArchivedWorkspaces: vi.fn(),
+    createWorkspace: vi.fn(),
+    updateWorkspace: vi.fn(),
+    archiveWorkspace: vi.fn(),
+    restoreWorkspace: vi.fn(),
+    duplicateWorkspace: vi.fn(),
+    listMembers: vi.fn(),
+    inviteMember: vi.fn(),
+    createProject: vi.fn(),
+    updateProject: vi.fn(),
+    archiveProject: vi.fn(),
+    createRootSection: vi.fn(),
+    createSection: vi.fn(),
+    updateSection: vi.fn(),
+    archiveSection: vi.fn()
+  }
+}));
 import { ContextSidebar } from '@/components/layout/context-sidebar';
 
 describe('ContextSidebar', () => {
-  afterEach(() => { cleanup(); window.localStorage.clear(); });
+  afterEach(() => { cleanup(); window.localStorage.clear(); useAuthStore.getState().clearSession(); vi.clearAllMocks(); });
 
   it('renders Planner-specific navigation for the active global module', () => {
     render(<ContextSidebar />);
@@ -14,6 +44,26 @@ describe('ContextSidebar', () => {
     expect(screen.getByRole('link', { name: 'Calendar' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Schedule' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Focus' })).toBeInTheDocument();
+  });
+
+  it('does not show or keep local demo Spaces when authenticated workspace loading fails', async () => {
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [] }
+    ]));
+    useAuthStore.getState().setSession({
+      accessToken: 'access-token',
+      tokenType: 'Bearer',
+      expiresIn: 900,
+      csrfToken: 'csrf-token',
+      user: { id: 'user-1', email: 'khanh@clickflow.local', displayName: 'Khanh', avatarUrl: null, timezone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN' }
+    });
+    vi.mocked(workspaceApi.listWorkspaces).mockRejectedValue(new Error('API offline'));
+
+    render(<ContextSidebar modulePath="/projects" />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load workspaces.');
+    expect(screen.queryByRole('link', { name: 'Space 1' })).not.toBeInTheDocument();
+    await waitFor(() => expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toBeNull());
   });
 
   it('filters the Spaces tree from the header search and removes the unused options button', async () => {
