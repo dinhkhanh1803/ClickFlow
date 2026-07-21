@@ -177,7 +177,7 @@ export function LocalListTaskSurface({ view, tasks, statusGroups, statusOverride
 
   return <>
     {view === 'Board' ? <section>
-      <h2 className="sr-only">List Board</h2><ListToolbar statusOptions={statusOptions} selectedStatusKeys={selectedStatusKeys} onSelectedStatusKeysChange={setSelectedStatusKeys} hideClosed={hideClosed} assignedToMeOnly={assignedToMeOnly} onToggleClosed={() => setHideClosed((value) => !value)} onToggleAssigned={() => setAssignedToMeOnly((value) => !value)} />
+      <h2 className="sr-only">Space Board</h2><ListToolbar statusOptions={statusOptions} selectedStatusKeys={selectedStatusKeys} onSelectedStatusKeysChange={setSelectedStatusKeys} hideClosed={hideClosed} assignedToMeOnly={assignedToMeOnly} onToggleClosed={() => setHideClosed((value) => !value)} onToggleAssigned={() => setAssignedToMeOnly((value) => !value)} />
       <div className="flex min-h-[520px] items-start gap-2 overflow-x-auto p-4">
         {visibleStatusOptions.map(({ status: statusValue, label, icon: StatusIcon, columnClassName, badgeClassName, taskIconClassName, groupId }) => {
           const statusTasks = visibleTasks.filter((task) => taskBelongsToStatus(task, { status: statusValue, groupId }));
@@ -191,7 +191,7 @@ export function LocalListTaskSurface({ view, tasks, statusGroups, statusOverride
         <button type="button" aria-label="Add group" onClick={openStatusCreate} className="mt-1 inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-3 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-900 dark:hover:text-white"><Plus aria-hidden="true" size={16} />Add group</button>
       </div>
     </section> : <section className="pb-8">
-      <h2 className="sr-only">List Tasks</h2><ListToolbar statusOptions={statusOptions} selectedStatusKeys={selectedStatusKeys} onSelectedStatusKeysChange={setSelectedStatusKeys} hideClosed={hideClosed} assignedToMeOnly={assignedToMeOnly} onToggleClosed={() => setHideClosed((value) => !value)} onToggleAssigned={() => setAssignedToMeOnly((value) => !value)} />
+      <h2 className="sr-only">Space List</h2><ListToolbar statusOptions={statusOptions} selectedStatusKeys={selectedStatusKeys} onSelectedStatusKeysChange={setSelectedStatusKeys} hideClosed={hideClosed} assignedToMeOnly={assignedToMeOnly} onToggleClosed={() => setHideClosed((value) => !value)} onToggleAssigned={() => setAssignedToMeOnly((value) => !value)} />
       <div className="space-y-5 px-5 pt-5">
         {visibleStatusOptions.map(({ status: statusValue, label, icon: StatusIcon, badgeClassName, taskIconClassName, groupId }) => {
           const statusTasks = visibleTasks.filter((task) => taskBelongsToStatus(task, { status: statusValue, groupId }));
@@ -412,7 +412,11 @@ export function StatusPicker({ value, statusGroupId, options, onChange, open, on
   const currentUser = useAuthStore((state) => state.user);
   const [query, setQuery] = useState('');
   const fallbackAssignees: AssigneeOption[] = currentUser ? [{ userId: currentUser.id, displayName: currentUser.displayName, initials: currentUser.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'Me', avatarUrl: currentUser.avatarUrl ?? null, email: currentUser.email }] : [];
-  const people = [...(assignees.length ? assignees : fallbackAssignees)].sort((left, right) => left.displayName.localeCompare(right.displayName));
+  const people = [...(assignees.length ? assignees : fallbackAssignees)].sort((left, right) => {
+    if (left.userId === currentUser?.id) return -1;
+    if (right.userId === currentUser?.id) return 1;
+    return left.displayName.localeCompare(right.displayName);
+  });
   const activeIds = assigneeIds ?? (assigneeId ? [assigneeId] : []);
   const selected = selectedAssignees.length ? selectedAssignees : people.filter((person) => activeIds.includes(person.userId)).map((person) => ({ id: person.userId, displayName: person.displayName, initials: person.initials, avatarUrl: person.avatarUrl }));
   const filteredPeople = people.filter((person) => !query.trim() || person.displayName.toLowerCase().includes(query.trim().toLowerCase()) || person.email?.toLowerCase().includes(query.trim().toLowerCase()));
@@ -466,7 +470,7 @@ function ListToolbar({ statusOptions, selectedStatusKeys, onSelectedStatusKeysCh
   const toggleStatus = (key: string) => onSelectedStatusKeysChange(selectedStatusKeys.includes(key) ? selectedStatusKeys.filter((item) => item !== key) : [...selectedStatusKeys, key]);
   return <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2 dark:border-slate-800">
     <div ref={filterRef} className="relative">
-      <button type="button" aria-label="Status filter" aria-expanded={statusFilterOpen} onClick={() => setStatusFilterOpen((open) => !open)} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${selectedStatusKeys.length ? 'border-violet-400 bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200' : 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/50 dark:text-violet-300'}`}><Layers3 aria-hidden="true" size={14} />Status{selectedStatusKeys.length ? <span className="rounded-full bg-violet-600 px-1.5 text-[10px] text-white">{selectedStatusKeys.length}</span> : null}<ChevronDown aria-hidden="true" size={13} /></button>
+      <button type="button" aria-label="Status" aria-expanded={statusFilterOpen} onClick={() => setStatusFilterOpen((open) => !open)} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${selectedStatusKeys.length ? 'border-violet-400 bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200' : 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/50 dark:text-violet-300'}`}><Layers3 aria-hidden="true" size={14} />Status{selectedStatusKeys.length ? <span className="rounded-full bg-violet-600 px-1.5 text-[10px] text-white">{selectedStatusKeys.length}</span> : null}<ChevronDown aria-hidden="true" size={13} /></button>
       {statusFilterOpen ? <div role="menu" aria-label="Filter by status" className="absolute left-0 top-9 z-40 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
         <p className="px-2 pb-2 pt-1 text-xs font-semibold text-slate-500">Filter by status</p>
         <button type="button" role="menuitemcheckbox" aria-checked={!selectedStatusKeys.length} onClick={() => onSelectedStatusKeysChange([])} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"><span>All statuses</span>{!selectedStatusKeys.length ? <Check size={15} className="text-indigo-500" /> : null}</button>

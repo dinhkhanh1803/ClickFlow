@@ -90,7 +90,18 @@ export type LocalSpace = {
 export const LOCAL_SPACES_STORAGE_KEY = 'clickflow.local-spaces.v1';
 
 export const defaultLocalSpaces: LocalSpace[] = [
-  { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [{ id: 'folder-projects', name: 'Projects', kind: 'folder' }] },
+  {
+    id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+      { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+      {
+        id: 'list-product-launch', name: 'Product launch', kind: 'list', parentId: 'folder-projects', tasks: [
+          { id: 'task-architecture', title: 'Define information architecture', status: 'In progress', priority: 'High', assignee: 'KD', startDate: '', dueDate: '2026-07-18', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: 'Establish the navigation model and the first execution loop for product teams.', comments: [], activity: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' },
+          { id: 'task-workspace', title: 'Design the Space command surface', status: 'Backlog', priority: 'Normal', assignee: 'LM', startDate: '', dueDate: '2026-07-21', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: 'Make the Space useful before a team opens a project.', comments: [], activity: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' },
+          { id: 'task-review', title: 'Validate delivery flow', status: 'Done', priority: 'Normal', assignee: 'TN', startDate: '', dueDate: '2026-07-15', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: 'Review the flow with the founding team.', comments: [], activity: [], attachments: [], createdAt: '2026-07-17T00:00:00.000Z' },
+        ]
+      }
+    ]
+  },
   { id: 'space-2', name: 'Space 2', tone: 'bg-orange-500', private: true, items: [] },
   { id: 'space-3', name: 'Space 3', tone: 'bg-pink-500', private: true, items: [] },
 ];

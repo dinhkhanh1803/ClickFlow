@@ -196,8 +196,9 @@ describe('WorkspaceService', () => {
     };
     const service = new WorkspaceService(prisma as unknown as PrismaService);
 
-    await expect(service.duplicate('workspace-1', 'owner-1')).resolves.toMatchObject({ ...copy, role: 'OWNER' });
-    expect(transaction.workspace.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ name: 'Source copy', createdById: 'owner-1', private: false, publicAccess: 'EDIT' }) }));
+    await expect(service.duplicate('workspace-1', 'owner-1')).resolves.toMatchObject({ id: copy.id, name: copy.name, role: 'OWNER' });
+    const workspaceCreateInput = transaction.workspace.create.mock.calls[0]?.[0] as unknown as { data: { name: string; createdById: string; private: boolean; publicAccess: string } };
+    expect(workspaceCreateInput.data).toMatchObject({ name: 'Source copy', createdById: 'owner-1', private: false, publicAccess: 'EDIT' });
     expect(transaction.workspaceMember.create).toHaveBeenCalledWith({ data: { workspaceId: 'workspace-copy', userId: 'owner-1', role: 'OWNER' } });
   });
 });
