@@ -16,6 +16,7 @@ const user = {
 export type CoreApiState = {
   createdWorkspaceRequests: unknown[];
   createdTaskRequests: unknown[];
+  invitedMemberRequests: unknown[];
 };
 
 type Workspace = {
@@ -48,6 +49,7 @@ type Project = {
 };
 
 type Section = { id: string; projectId: string; name: string; position: number };
+type WorkspaceMember = { id: string; userId: string; displayName: string; initials: string; avatarUrl: string | null; role: 'OWNER' | 'MEMBER' };
 type Status = { id: string; projectId: string; name: string; color: string; category: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED'; completed: boolean; position: number; isSystem: boolean };
 type Task = {
   id: string;
@@ -140,16 +142,18 @@ async function emptyOptions(route: Route) {
 }
 
 export async function mockCoreApi(page: Page): Promise<CoreApiState> {
-  const state: CoreApiState = { createdWorkspaceRequests: [], createdTaskRequests: [] };
+  const state: CoreApiState = { createdWorkspaceRequests: [], createdTaskRequests: [], invitedMemberRequests: [] };
   const workspaces: Workspace[] = [];
   const projects = new Map<string, Project[]>();
   const sections = new Map<string, Section[]>();
   const statuses = new Map<string, Status[]>();
   const tasks = new Map<string, Task[]>();
+  const members = new Map<string, WorkspaceMember[]>();
   let workspaceCounter = 1;
   let projectCounter = 1;
   let sectionCounter = 1;
   let taskCounter = 1;
+  let memberCounter = 1;
 
   await page.route(`${API_ORIGIN}${API_PREFIX}/**`, async (route) => {
     const request = route.request();
@@ -198,9 +202,21 @@ export async function mockCoreApi(page: Page): Promise<CoreApiState> {
       });
       workspaces.push(workspace);
       projects.set(workspace.id, []);
+      members.set(workspace.id, [{ id: workspace.id + '-member-owner', userId: user.id, displayName: user.displayName, initials: 'K', avatarUrl: user.avatarUrl, role: 'OWNER' }]);
       return json(route, workspace, 201);
     }
 
+    const membersMatch = path.match(/^\/workspaces\/([^/]+)\/members$/);
+    if (membersMatch && request.method() === 'GET') return json(route, members.get(membersMatch[1]!) ?? []);
+    if (membersMatch && request.method() === 'POST') {
+      const workspaceId = membersMatch[1]!;
+      const input = request.postDataJSON() as { email: string; role?: 'MEMBER' };
+      state.invitedMemberRequests.push(input);
+      const member: WorkspaceMember = { id: `${workspaceId}-member-${memberCounter++}`, userId: '00000000-0000-4000-8000-000000000002', displayName: 'Teammate', initials: 'T', avatarUrl: null, role: input.role ?? 'MEMBER' };
+      const existing = members.get(workspaceId) ?? [];
+      if (!existing.some((item) => item.userId === member.userId)) members.set(workspaceId, [...existing, member]);
+      return json(route, member, 201);
+    }
     const projectListMatch = path.match(/^\/workspaces\/([^/]+)\/projects$/);
     if (projectListMatch && request.method() === 'GET') {
       const workspaceId = projectListMatch[1]!;
@@ -279,4 +295,7 @@ export async function mockCoreApi(page: Page): Promise<CoreApiState> {
 
   return state;
 }
+
+
+
 

@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nest
 import { WorkspaceRole } from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
-import type { CreateWorkspaceInput, UpdateWorkspaceInput } from './workspace.schemas';
+import type { CreateWorkspaceInput, InviteWorkspaceMemberInput, UpdateWorkspaceInput } from './workspace.schemas';
 
 function initials(displayName: string): string {
   return displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
@@ -118,6 +118,40 @@ export class WorkspaceService {
     if (archived.count !== 1) throw new NotFoundException('Active Workspace not found');
   }
 
+  async inviteMember(workspaceId: string, ownerId: string, input: InviteWorkspaceMemberInput) {
+    const ownerMembership = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId: ownerId } },
+      select: { role: true }
+    });
+    if (!ownerMembership) throw new NotFoundException('Workspace not found');
+    if (ownerMembership.role !== WorkspaceRole.OWNER) throw new ForbiddenException('Only the Space owner can invite members');
+
+    const user = await this.prisma.user.findFirst({
+      where: { email: input.email, archivedAt: null },
+      select: { id: true, displayName: true, avatarUrl: true }
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const membership = await this.prisma.workspaceMember.upsert({
+      where: { workspaceId_userId: { workspaceId, userId: user.id } },
+      create: { workspaceId, userId: user.id, role: input.role },
+      update: {},
+      select: {
+        id: true,
+        userId: true,
+        role: true,
+        user: { select: { displayName: true, avatarUrl: true } }
+      }
+    });
+    return {
+      id: membership.id,
+      userId: membership.userId,
+      role: membership.role,
+      displayName: membership.user.displayName,
+      initials: initials(membership.user.displayName),
+      avatarUrl: membership.user.avatarUrl
+    };
+  }
   async listMembers(workspaceId: string) {
     const members = await this.prisma.workspaceMember.findMany({
       where: { workspaceId, workspace: { archivedAt: null }, user: { archivedAt: null } },
@@ -137,6 +171,7 @@ export class WorkspaceService {
     }));
   }
 }
+
 
 
 

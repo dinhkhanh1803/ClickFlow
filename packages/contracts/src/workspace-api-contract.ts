@@ -1,4 +1,4 @@
-﻿import type { UtcIsoTimestamp } from './domain-contract';
+import type { UtcIsoTimestamp } from './domain-contract';
 
 export type WorkspaceRole = 'OWNER' | 'MEMBER' | 'PUBLIC';
 export type WorkspacePublicAccess = 'VIEW' | 'EDIT';
@@ -20,6 +20,20 @@ export interface WorkspaceResponse {
   createdAt: UtcIsoTimestamp;
   updatedAt: UtcIsoTimestamp;
 }
+export interface InviteWorkspaceMemberRequest {
+  email: string;
+  role?: 'MEMBER';
+}
+
+export interface WorkspaceMemberResponse {
+  id: string;
+  userId: string;
+  displayName: string;
+  initials: string;
+  avatarUrl: string | null;
+  role: 'OWNER' | 'MEMBER';
+}
+
 export interface CreateWorkspaceRequest {
   name: string;
   description?: string | null;
@@ -99,4 +113,6 @@ export interface CreateProjectRequest {
 export type UpdateProjectRequest = Partial<CreateProjectRequest>;
 export interface CreateSectionRequest { name: string; }
 export type UpdateSectionRequest = Partial<CreateSectionRequest>;
+
+
 

@@ -23,7 +23,8 @@ export const workspaceKeys = {
   activity: (workspaceId: string, taskId: string) => ['workspaces', workspaceId, 'tasks', taskId, 'activity'] as const,
   timeEntries: (workspaceId: string) => ['workspaces', workspaceId, 'time-entries'] as const,
   documents: documentKeys.workspace,
-  assignableUsers: ['users', 'assignable'] as const
+  assignableUsers: ['users', 'assignable'] as const,
+  members: (workspaceId: string) => ['workspaces', workspaceId, 'members'] as const
 };
 
 function requireToken(accessToken: string | null): string {
@@ -37,6 +38,29 @@ function useWorkspaceQueryClient() {
   return useContext(QueryClientContext) ?? fallbackQueryClient;
 }
 
+
+export function useWorkspaceMembersQuery(workspaceId: string | undefined, enabled = true) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const authenticated = useAuthStore((state) => state.status === 'authenticated') && enabled;
+  const queryClient = useWorkspaceQueryClient();
+  return useQuery({
+    queryKey: workspaceKeys.members(workspaceId ?? ''),
+    queryFn: () => workspaceApi.listMembers(requireToken(accessToken), workspaceId ?? ''),
+    enabled: authenticated && Boolean(accessToken) && Boolean(workspaceId)
+  }, queryClient);
+}
+
+export function useInviteWorkspaceMemberMutation() {
+  const queryClient = useWorkspaceQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  return useMutation({
+    mutationFn: ({ workspaceId, email }: { workspaceId: string; email: string }) => workspaceApi.inviteMember(requireToken(accessToken), workspaceId, { email, role: 'MEMBER' }),
+    onSuccess: (_member, variables) => {
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.members(variables.workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
+    }
+  }, queryClient);
+}
 export function useAssignableUsersQuery(enabled = true) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const authenticated = useAuthStore((state) => state.status === 'authenticated') && enabled;
@@ -312,3 +336,4 @@ export function useDeleteStatusMutation() {
     onSuccess: (_result, variables) => queryClient.invalidateQueries({ queryKey: workspaceKeys.statuses(variables.workspaceId, variables.projectId) })
   }, queryClient);
 }
+

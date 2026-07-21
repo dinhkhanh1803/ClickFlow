@@ -13,7 +13,9 @@ import type {
   UpdateSectionRequest,
   WorkspaceResponse,
   AssignableUserResponse,
-  TaskTagResponse
+  InviteWorkspaceMemberRequest,
+  TaskTagResponse,
+  WorkspaceMemberResponse
 } from '@clickflow/contracts';
 
 import { createApiClient } from '@/lib/api/client';
@@ -34,6 +36,12 @@ export const workspaceApi = {
   },
   listWorkspaces(accessToken: string): Promise<WorkspaceResponse[]> {
     return client.get('/workspaces', authorized(accessToken));
+  },
+  listMembers(accessToken: string, workspaceId: string): Promise<WorkspaceMemberResponse[]> {
+    return client.get('/workspaces/' + workspaceId + '/members', authorized(accessToken));
+  },
+  inviteMember(accessToken: string, workspaceId: string, input: InviteWorkspaceMemberRequest): Promise<WorkspaceMemberResponse> {
+    return client.post('/workspaces/' + workspaceId + '/members', input, authorized(accessToken));
   },
   listAssignableUsers(accessToken: string, query?: string): Promise<AssignableUserResponse[]> {
     const search = query?.trim();
@@ -88,3 +96,6 @@ export const workspaceApi = {
     return client.delete(`/workspaces/${workspaceId}/projects/${projectId}/sections/${sectionId}`, authorized(accessToken));
   }
 };
+
+
+

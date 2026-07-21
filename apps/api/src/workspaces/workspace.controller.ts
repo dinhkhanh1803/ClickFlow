@@ -6,8 +6,8 @@ import { CurrentUser } from '../authorization/current-user.decorator';
 import { CurrentWorkspaceId } from '../authorization/current-workspace.decorator';
 import { RequireWorkspaceAccess } from '../authorization/workspace-access.decorator';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { CreateWorkspaceRequestDto, UpdateWorkspaceRequestDto, WorkspaceMemberResponseDto, WorkspaceResponseDto } from './workspace.dto';
-import { createWorkspaceSchema, type CreateWorkspaceInput, updateWorkspaceSchema, type UpdateWorkspaceInput } from './workspace.schemas';
+import { CreateWorkspaceRequestDto, InviteWorkspaceMemberRequestDto, UpdateWorkspaceRequestDto, WorkspaceMemberResponseDto, WorkspaceResponseDto } from './workspace.dto';
+import { createWorkspaceSchema, inviteWorkspaceMemberSchema, type CreateWorkspaceInput, type InviteWorkspaceMemberInput, updateWorkspaceSchema, type UpdateWorkspaceInput } from './workspace.schemas';
 import { WorkspaceService } from './workspace.service';
 
 @ApiTags('workspaces')
@@ -55,6 +55,17 @@ export class WorkspaceController {
     return this.workspaces.archive(workspaceId, user.id);
   }
 
+  @Post(':workspaceId/members')
+  @RequireWorkspaceAccess()
+  @ApiBody({ type: InviteWorkspaceMemberRequestDto })
+  @ApiCreatedResponse({ type: WorkspaceMemberResponseDto })
+  inviteMember(
+    @CurrentWorkspaceId() workspaceId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(inviteWorkspaceMemberSchema)) input: InviteWorkspaceMemberInput
+  ) {
+    return this.workspaces.inviteMember(workspaceId, user.id, input);
+  }
   @Get(':workspaceId/members')
   @RequireWorkspaceAccess()
   @ApiOkResponse({ type: [WorkspaceMemberResponseDto] })
@@ -62,3 +73,4 @@ export class WorkspaceController {
     return this.workspaces.listMembers(workspaceId);
   }
 }
+

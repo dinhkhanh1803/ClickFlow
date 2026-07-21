@@ -50,3 +50,36 @@ test('signs in and completes the core Space, Folder, List, Task flow', async ({ 
   expect(api.createdTaskRequests[0]).toMatchObject({ title: 'Ship E2E guarded flow', priority: 'NORMAL' });
 });
 
+
+test('private Space owner can invite an existing member by email', async ({ page }) => {
+  const api = await mockCoreApi(page);
+
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill('khanh@clickflow.local');
+  await page.getByLabel('Password').fill('Initial-Pass-9!');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.context().addCookies([
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3000' },
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3002' }
+  ]);
+
+  await page.goto('/projects');
+  await page.getByRole('button', { name: 'Create a new Space' }).click();
+  await page.getByLabel('Space name').fill('Private Collaboration');
+  await page.getByRole('button', { name: 'Private' }).click();
+  await page.getByRole('button', { name: 'Create Space', exact: true }).click();
+
+  await expect(page.getByRole('link', { name: 'Private Collaboration' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Share' })).toBeVisible();
+  await page.getByRole('button', { name: 'Share' }).click();
+  await expect(page.getByRole('heading', { name: 'Share this Space' })).toBeVisible();
+  await expect(page.getByText('Khanh', { exact: true })).toBeVisible();
+
+  await page.getByLabel('Invite by name or email').fill('teammate@clickflow.local');
+  await page.getByRole('button', { name: 'Invite' }).click();
+
+  await expect(page.getByText('Teammate')).toBeVisible();
+  expect(api.invitedMemberRequests[0]).toMatchObject({ email: 'teammate@clickflow.local', role: 'MEMBER' });
+});
+

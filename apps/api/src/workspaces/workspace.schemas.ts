@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
 export const workspacePublicAccessSchema = z.enum(['VIEW', 'EDIT']);
 
@@ -16,3 +16,11 @@ export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
 
 export const updateWorkspaceSchema = createWorkspaceSchema.pick({ name: true, description: true, tone: true, private: true, publicAccess: true }).partial().refine((input) => Object.keys(input).length > 0, 'At least one field is required');
 export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceSchema>;
+
+export const inviteWorkspaceMemberSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  role: z.literal('MEMBER').default('MEMBER')
+}).strict();
+export type InviteWorkspaceMemberInput = z.infer<typeof inviteWorkspaceMemberSchema>;
+
+

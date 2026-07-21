@@ -44,4 +44,20 @@ describe('workspaceApi', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('http://localhost:3001/api/v1/workspaces', expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'Booking' }) }));
   });
-});
+
+  it('invites workspace members by email through the members resource', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(
+      JSON.stringify({ id: 'member-1', userId: 'user-2', displayName: 'Bao Nguyen', initials: 'BN', avatarUrl: null, role: 'MEMBER' }),
+      { status: 201, headers: { 'content-type': 'application/json' } }
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await workspaceApi.inviteMember('token', 'workspace-1', { email: 'bao@clickflow.test', role: 'MEMBER' });
+
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3001/api/v1/workspaces/workspace-1/members', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ email: 'bao@clickflow.test', role: 'MEMBER' }),
+      headers: expect.objectContaining({ Authorization: 'Bearer token' })
+    }));
+  });});
+

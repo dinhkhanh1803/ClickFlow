@@ -123,5 +123,45 @@ describe('WorkspaceService', () => {
     prisma.workspaceMember.findUnique.mockResolvedValue({ role: 'MEMBER' });
     await expect(service.archive('workspace-1', 'member-1')).rejects.toBeInstanceOf(ForbiddenException);
   });
-});
+
+  it('allows an OWNER to invite an existing user as a member and returns the member profile', async () => {
+    const invited = { id: 'user-2', displayName: 'Bao Nguyen', avatarUrl: 'https://example.com/bao.png' };
+    const membership = { id: 'member-2', userId: invited.id, role: 'MEMBER', user: invited };
+    const prisma = {
+      workspaceMember: {
+        findUnique: vi.fn().mockResolvedValue({ role: 'OWNER' }),
+        upsert: vi.fn().mockResolvedValue(membership)
+      },
+      user: { findFirst: vi.fn().mockResolvedValue(invited) }
+    };
+    const service = new WorkspaceService(prisma as unknown as PrismaService);
+
+    await expect(service.inviteMember('workspace-1', 'owner-1', { email: 'bao@clickflow.test', role: 'MEMBER' })).resolves.toEqual({
+      id: 'member-2',
+      userId: 'user-2',
+      role: 'MEMBER',
+      displayName: 'Bao Nguyen',
+      initials: 'BN',
+      avatarUrl: 'https://example.com/bao.png'
+    });
+    expect(prisma.workspaceMember.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { workspaceId_userId: { workspaceId: 'workspace-1', userId: 'owner-1' } } }));
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { email: 'bao@clickflow.test', archivedAt: null } }));
+    expect(prisma.workspaceMember.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { workspaceId_userId: { workspaceId: 'workspace-1', userId: 'user-2' } },
+      create: { workspaceId: 'workspace-1', userId: 'user-2', role: 'MEMBER' }
+    }));
+  });
+
+  it('blocks non-owners from inviting Space members', async () => {
+    const prisma = {
+      workspaceMember: { findUnique: vi.fn().mockResolvedValue({ role: 'MEMBER' }), upsert: vi.fn() },
+      user: { findFirst: vi.fn() }
+    };
+    const service = new WorkspaceService(prisma as unknown as PrismaService);
+
+    await expect(service.inviteMember('workspace-1', 'member-1', { email: 'bao@clickflow.test', role: 'MEMBER' })).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    expect(prisma.workspaceMember.upsert).not.toHaveBeenCalled();
+  });});
+
 
