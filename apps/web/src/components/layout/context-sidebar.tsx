@@ -82,7 +82,7 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newSpacePrivate, setNewSpacePrivate] = useState(false);
-  const [newSpacePublicAccess, setNewSpacePublicAccess] = useState<SpacePublicAccess>('VIEW');
+  const [newSpacePublicAccess, setNewSpacePublicAccess] = useState<SpacePublicAccess>('EDIT');
   const [newSpaceInvitees, setNewSpaceInvitees] = useState('');
   const [parentSpaceId, setParentSpaceId] = useState(defaultLocalSpaces[0].id);
   const [parentItemId, setParentItemId] = useState<string | undefined>();
@@ -95,7 +95,7 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
   const [settingsName, setSettingsName] = useState('');
   const [settingsPrivate, setSettingsPrivate] = useState(false);
   const [settingsDescription, setSettingsDescription] = useState('');
-  const [settingsPublicAccess, setSettingsPublicAccess] = useState<SpacePublicAccess>('VIEW');
+  const [settingsPublicAccess, setSettingsPublicAccess] = useState<SpacePublicAccess>('EDIT');
   const [settingsIcon, setSettingsIcon] = useState(DEFAULT_SPACE_ICON);
   const [settingsTone, setSettingsTone] = useState('bg-indigo-500');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -230,7 +230,7 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     setParentSpaceId(activeSpaceId || effectiveSpaces[0]?.id || '');
     setNewDescription('');
     setNewSpacePrivate(false);
-    setNewSpacePublicAccess('VIEW');
+    setNewSpacePublicAccess('EDIT');
     setNewSpaceInvitees('');
     setParentItemId(undefined);
     setShowCreateMenu(false);
@@ -248,7 +248,7 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     setParentSpaceId(spaceId);
     setNewDescription('');
     setNewSpacePrivate(false);
-    setNewSpacePublicAccess('VIEW');
+    setNewSpacePublicAccess('EDIT');
     setNewSpaceInvitees('');
     setParentItemId(undefined);
     setSpaceCreateMenuId(null);
@@ -266,7 +266,7 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     setParentSpaceId(spaceId);
     setNewDescription('');
     setNewSpacePrivate(false);
-    setNewSpacePublicAccess('VIEW');
+    setNewSpacePublicAccess('EDIT');
     setNewSpaceInvitees('');
     setParentItemId(folderId);
     setFolderCreateMenuId(null);
@@ -279,7 +279,7 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     setSettingsName(target.name);
     setSettingsPrivate(Boolean(target.private));
     setSettingsDescription(target.description ?? '');
-    setSettingsPublicAccess(target.publicAccess ?? 'VIEW');
+    setSettingsPublicAccess(target.publicAccess ?? 'EDIT');
     setSettingsIcon(target.icon && !target.icon.includes(BROKEN_EMOJI_MARKER) ? target.icon : DEFAULT_SPACE_ICON);
     setSettingsTone(target.tone);
     setSpaceMenuId(null);

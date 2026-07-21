@@ -1,4 +1,4 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LOCAL_SPACES_STORAGE_KEY } from '@/features/workspace/model/local-navigation';
@@ -250,7 +250,7 @@ describe('ContextSidebar', () => {
     const name = screen.getByLabelText('Space settings name');
     await user.clear(name);
     await user.type(name, 'Design team');
-    await user.click(screen.getByRole('button', { name: 'Private' }));
+    await user.click(screen.getByRole('switch', { name: 'Access visibility' }));
     await user.click(screen.getByRole('button', { name: 'Space icon 🎯' }));
     await user.click(screen.getByRole('button', { name: 'Space color emerald-500' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));

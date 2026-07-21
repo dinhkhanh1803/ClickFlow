@@ -29,7 +29,8 @@ const taskSelect = {
   taskAssignments: { select: { user: { select: { id: true, displayName: true, avatarUrl: true } } }, orderBy: { assignedAt: 'asc' as const } },
   status: { select: { id: true, name: true, color: true, completed: true } },
   taskTags: { select: { tag: { select: { id: true, name: true, color: true } } }, orderBy: { tag: { name: 'asc' as const } } },
-  checklistItems: { select: { id: true, taskId: true, label: true, completed: true, position: true }, orderBy: { position: 'asc' as const } }
+  checklistItems: { select: { id: true, taskId: true, label: true, completed: true, position: true }, orderBy: { position: 'asc' as const } },
+  attachments: { where: { archivedAt: null }, select: { id: true, taskId: true, fileName: true, mimeType: true, byteSize: true, createdAt: true }, orderBy: { createdAt: 'asc' as const } }
 } as const;
 
 type TaskRecord = Prisma.TaskGetPayload<{ select: typeof taskSelect }>;
@@ -54,6 +55,7 @@ function serializeTask(task: TaskRecord) {
     assignees: task.taskAssignments.map(({ user }) => ({ ...user, initials: initials(user.displayName) })),
     taskAssignments: undefined,
     tags: task.taskTags.map(({ tag }) => tag),
+    attachments: task.attachments.map((attachment) => ({ ...attachment, byteSize: attachment.byteSize.toString() })),
     taskTags: undefined
   };
 }

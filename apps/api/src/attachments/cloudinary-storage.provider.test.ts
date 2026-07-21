@@ -31,10 +31,30 @@ describe('Cloudinary storage provider', () => {
     expect(Object.values(intent.uploadFields)).not.toContain('private-secret');
   });
 
+  it('routes videos and raw files to matching Cloudinary resource types', () => {
+    const videoIntent = createCloudinaryUploadIntent({
+      storageKey: 'workspaces/workspace-1/attachments/file-2.mp4',
+      mimeType: 'video/mp4',
+      byteSize: 12,
+      expiresInSeconds: 600
+    }, { cloudName: 'clickflow', apiKey: 'public-key', apiSecret: 'private-secret' }, new Date('2026-07-19T00:00:00.000Z'));
+    const rawIntent = createCloudinaryUploadIntent({
+      storageKey: 'workspaces/workspace-1/attachments/file-3.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      byteSize: 12,
+      expiresInSeconds: 600
+    }, { cloudName: 'clickflow', apiKey: 'public-key', apiSecret: 'private-secret' }, new Date('2026-07-19T00:00:00.000Z'));
+
+    expect(videoIntent.uploadUrl).toBe('https://api.cloudinary.com/v1_1/clickflow/video/upload');
+    expect(videoIntent.uploadFields.resource_type).toBe('video');
+    expect(rawIntent.uploadUrl).toBe('https://api.cloudinary.com/v1_1/clickflow/raw/upload');
+    expect(rawIntent.uploadFields.resource_type).toBe('raw');
+  });
   it('maps a storage key to a Cloudinary public ID and format', () => {
     expect(cloudinaryAssetCoordinates('workspaces/a/attachments/file.pdf')).toEqual({
       publicId: 'workspaces/a/attachments/file',
-      format: 'pdf'
+      format: 'pdf',
+      resourceType: 'raw'
     });
     expect(() => cloudinaryAssetCoordinates('missing-extension')).toThrow('file extension');
   });

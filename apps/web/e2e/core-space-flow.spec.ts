@@ -21,7 +21,6 @@ test('signs in and completes the core Space, Folder, List, Task flow', async ({ 
   await page.getByRole('button', { name: 'Create a new Space' }).click();
   await page.getByLabel('Space name').fill('Regression Space');
   await page.getByLabel('Space description').fill('E2E protected flow');
-  await page.getByRole('button', { name: 'Can edit' }).click();
   await page.getByRole('button', { name: 'Create Space', exact: true }).click();
 
   await expect(page.getByRole('link', { name: 'Regression Space' })).toBeVisible();
@@ -67,7 +66,7 @@ test('private Space owner can invite an existing member by email', async ({ page
   await page.goto('/projects');
   await page.getByRole('button', { name: 'Create a new Space' }).click();
   await page.getByLabel('Space name').fill('Private Collaboration');
-  await page.getByRole('button', { name: 'Private' }).click();
+  await page.getByRole('switch', { name: 'Access visibility' }).click();
   await page.getByRole('button', { name: 'Create Space', exact: true }).click();
 
   await expect(page.getByRole('link', { name: 'Private Collaboration' })).toBeVisible();

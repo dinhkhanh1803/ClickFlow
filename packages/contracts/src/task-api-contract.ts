@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { apiTaskPrioritySchema } from './domain-contract';
+import type { AttachmentContract } from './attachment-api-contract';
 
 const uuid = z.string().uuid();
 const nullableUuid = uuid.nullable();
@@ -64,6 +65,7 @@ export interface TaskApiResponse {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  attachments?: AttachmentContract[];
 }
 
 export interface TaskListResponse {

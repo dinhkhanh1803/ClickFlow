@@ -593,7 +593,7 @@ describe('WorkspaceRoot', () => {
     expect(screen.queryByPlaceholderText('Search statuses')).not.toBeInTheDocument();
     expect(screen.getByRole('listbox', { name: 'Task priority choices' })).toBeInTheDocument();
   });
-  it('stores task attachments locally and exposes an icon-only comment submit action', async () => {
+  it('stores multiple file and video task attachments locally and exposes an icon-only comment submit action', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
       { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
@@ -605,10 +605,12 @@ describe('WorkspaceRoot', () => {
     render(<WorkspaceRoot />);
 
     await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
-    await user.upload(screen.getByLabelText('Add attachment'), new File(['brief'], 'kickoff.txt', { type: 'text/plain' }));
+    await user.upload(screen.getByLabelText('Add attachment'), [new File(['brief'], 'kickoff.txt', { type: 'text/plain' }), new File([Uint8Array.from([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70])], 'clip.mp4', { type: 'video/mp4' })]);
 
     expect(await screen.findByText('kickoff.txt')).toBeInTheDocument();
+    expect(await screen.findByText('clip.mp4')).toBeInTheDocument();
     expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('kickoff.txt');
+    expect(window.localStorage.getItem(LOCAL_SPACES_STORAGE_KEY)).toContain('clip.mp4');
     expect(screen.getByRole('button', { name: 'Send comment' })).toBeInTheDocument();
   });
   it('opens an image attachment in an expanded preview dialog', async () => {
@@ -629,6 +631,22 @@ describe('WorkspaceRoot', () => {
     expect(screen.getByRole('img', { name: 'mockup.png' })).toBeInTheDocument();
   });
 
+  it('opens a video attachment in an expanded preview dialog', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([
+      { id: 'space-1', name: 'Space 1', tone: 'bg-indigo-500', items: [
+        { id: 'folder-projects', name: 'Projects', kind: 'folder' },
+        { id: 'list-roadmap', name: 'Roadmap', kind: 'list', parentId: 'folder-projects', tasks: [{ id: 'task-1', title: 'Prepare kickoff', status: 'Backlog', priority: 'Normal', assignee: '', startDate: '', dueDate: '', timeEstimate: '', trackingStartedAt: null, trackedSeconds: 0, tags: [], description: '', comments: [], attachments: [{ id: 'attachment-1', name: 'clip.mp4', mimeType: 'video/mp4', size: 2048, dataUrl: 'data:video/mp4;base64,AAAAIGZ0eXA=', createdAt: '2026-07-17T00:00:00.000Z' }], createdAt: '2026-07-17T00:00:00.000Z' }] },
+      ] },
+    ]));
+    window.history.replaceState(null, '', '/projects?space=space-1&folder=folder-projects&list=list-roadmap');
+    render(<WorkspaceRoot />);
+
+    await user.click(await screen.findByRole('button', { name: 'Prepare kickoff' }));
+    await user.click(screen.getByRole('button', { name: 'Preview attachment clip.mp4' }));
+
+    expect(screen.getByRole('dialog', { name: 'Attachment preview' })).toBeInTheDocument();
+  });
   it('renders a resize handle for the Activity panel', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([

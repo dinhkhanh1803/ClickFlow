@@ -66,7 +66,7 @@ function mapTask(task: TaskApiResponse, statuses: ProjectStatusResponse[], comme
       id: activity.id, eventType: activity.eventType, actorName: activity.actor?.displayName ?? 'System',
       metadata: activity.metadata, createdAt: activity.createdAt
     })),
-    attachments: [],
+    attachments: (task.attachments ?? []).map((attachment) => ({ id: attachment.id, name: attachment.fileName, mimeType: attachment.mimeType, size: Number(attachment.byteSize), dataUrl: '', createdAt: attachment.createdAt })),
     createdAt: task.createdAt
   };
 }

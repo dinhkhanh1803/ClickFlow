@@ -1,16 +1,16 @@
-import type { AttachmentContract, AttachmentUploadIntentContract } from '@clickflow/contracts';
+import type { AttachmentContract, AttachmentMimeType, AttachmentUploadIntentContract } from '@clickflow/contracts';
 
 import { createApiClient } from '@/lib/api/client';
 import { apiBaseUrl } from '@/lib/api/environment';
 
-type UploadInput = { taskId: string; fileName: string; mimeType: 'application/pdf' | 'image/jpeg' | 'image/png'; byteSize: number };
+type UploadInput = { taskId: string; fileName: string; mimeType: AttachmentMimeType; byteSize: number };
 
 const client = createApiClient(apiBaseUrl);
 const authorized = (accessToken: string) => ({ accessToken });
 
 export const attachmentApi = {
   async upload(accessToken: string, workspaceId: string, taskId: string, file: File): Promise<AttachmentContract> {
-    const input: UploadInput = { taskId, fileName: file.name, mimeType: file.type as UploadInput['mimeType'], byteSize: file.size };
+    const input: UploadInput = { taskId, fileName: file.name, mimeType: file.type as AttachmentMimeType, byteSize: file.size };
     const intent = await client.post<AttachmentUploadIntentContract>(`/workspaces/${workspaceId}/attachments/upload-intents`, input, authorized(accessToken));
     let upload: Response;
     if (intent.uploadMethod === 'POST') {

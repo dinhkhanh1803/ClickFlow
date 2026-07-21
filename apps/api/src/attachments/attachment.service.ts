@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { AuthClientContext } from '../auth/auth.service';
 import { PrismaService } from '../database/prisma.service';
-import { assertStoredObject } from './attachment-rules';
+import { assertStoredObject, storageExtensionForMimeType } from './attachment-rules';
 import type { CompleteAttachmentInput, UploadIntentInput } from './attachment.schemas';
 import { STORAGE_PROVIDER, type StorageProvider } from './storage-provider';
 
@@ -12,7 +12,7 @@ export class AttachmentService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService, @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider) {}
   async createUploadIntent(workspaceId: string, input: UploadIntentInput) {
     await this.assertTask(workspaceId, input.taskId);
-    const extension = input.mimeType === 'image/jpeg' ? 'jpg' : input.mimeType === 'image/png' ? 'png' : 'pdf';
+    const extension = storageExtensionForMimeType(input.mimeType);
     const storageKey = `workspaces/${workspaceId}/attachments/${randomUUID()}.${extension}`;
     return { storageKey, ...await this.storage.createSignedUpload({ storageKey, mimeType: input.mimeType, byteSize: input.byteSize, expiresInSeconds: 600 }) };
   }
