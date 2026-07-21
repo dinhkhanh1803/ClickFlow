@@ -94,9 +94,9 @@ describe('WorkspaceRoot', () => {
 
     expect(screen.queryByRole('menu', { name: 'Overview refresh settings' })).not.toBeInTheDocument();
   });
-  it('shows Share only for a private Space', () => {
+  it('shows Share for any owner-managed Space', () => {
     render(<WorkspaceRoot />);
-    expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
 
     cleanup();
     window.localStorage.setItem(LOCAL_SPACES_STORAGE_KEY, JSON.stringify([{ id: 'private-space', name: 'Private Space', tone: 'bg-indigo-500', private: true, items: [] }]));
