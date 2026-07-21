@@ -7,7 +7,7 @@ import { ChevronDown, ChevronRight, ChevronsLeft, FileText, Folder, LayoutDashbo
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { notifyToastPreview } from '@/lib/feedback/toast-feedback';
-import { defaultLocalSpaces, loadLocalSpaces, localId, nextSpaceTone, saveLocalSpaces, type LocalSpaceItemKind } from '@/features/workspace/model/local-navigation';
+import { defaultLocalSpaces, loadLocalSpaces, localId, nextSpaceTone, saveLocalSpaces, type LocalSpace, type LocalSpaceItemKind } from '@/features/workspace/model/local-navigation';
 import { useCreateDocumentMutation } from '@/features/workspace/data/document-queries';
 import type { GlobalModulePath } from '@/components/layout/app-sidebar';
 import { CreationDialog, type CreationDialogKind, type SpacePublicAccess } from '@/features/workspace/components/creation-dialog';
@@ -47,6 +47,14 @@ function spaceAvatarText(space: { icon?: string; name: string }): string {
   if (space.icon && !space.icon.includes(BROKEN_EMOJI_MARKER)) return space.icon;
   const initial = space.name.trim().slice(0, 1).toUpperCase();
   return initial || DEFAULT_SPACE_ICON;
+}
+
+function canEditSpace(space: LocalSpace | undefined): boolean {
+  return !space || space.role !== 'PUBLIC' || space.publicAccess === 'EDIT';
+}
+
+function notifyViewOnlySpace(): void {
+  toast.info('This public Space is view-only.');
 }
 
 type ContextSidebarProps = { modulePath?: GlobalModulePath; preview?: boolean; onCollapse?: () => void };
@@ -191,6 +199,14 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     window.dispatchEvent(new Event('clickflow:space-navigation'));
   };
   const beginCreate = (kind: CreateKind) => {
+    if (kind !== 'space') {
+      const targetSpace = effectiveSpaces.find((space) => space.id === (activeSpaceId || effectiveSpaces[0]?.id || ''));
+      if (!canEditSpace(targetSpace)) {
+        notifyViewOnlySpace();
+        setShowCreateMenu(false);
+        return;
+      }
+    }
     setCreateKind(kind);
     setNewName('');
     setParentSpaceId(activeSpaceId || effectiveSpaces[0]?.id || '');
@@ -203,6 +219,12 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     setCreateOpen(true);
   };
   const beginCreateInSpace = (kind: LocalSpaceItemKind, spaceId: string) => {
+    const targetSpace = effectiveSpaces.find((space) => space.id === spaceId);
+    if (!canEditSpace(targetSpace)) {
+      notifyViewOnlySpace();
+      setSpaceCreateMenuId(null);
+      return;
+    }
     setCreateKind(kind);
     setNewName('');
     setParentSpaceId(spaceId);
@@ -215,6 +237,12 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     setCreateOpen(true);
   };
   const beginCreateInFolder = (kind: LocalSpaceItemKind, spaceId: string, folderId: string) => {
+    const targetSpace = effectiveSpaces.find((space) => space.id === spaceId);
+    if (!canEditSpace(targetSpace)) {
+      notifyViewOnlySpace();
+      setFolderCreateMenuId(null);
+      return;
+    }
     setCreateKind(kind);
     setNewName('');
     setParentSpaceId(spaceId);
@@ -262,8 +290,16 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
       openSpaceSettings(spaceId);
     } else if (action === 'copy-link') {
       void navigator.clipboard?.writeText(`${window.location.origin}/projects?space=${spaceId}`);
+    } else if (action === 'duplicate') {
+      if (!canEditSpace(space)) {
+        notifyViewOnlySpace();
+      } else {
+        toast.info('Workspace management is not available in the current API yet.');
+      }
     } else if (action === 'delete') {
-      if (space.role && space.role !== 'OWNER') {
+      if (!canEditSpace(space)) {
+        notifyViewOnlySpace();
+      } else if (space.role && space.role !== 'OWNER') {
         toast.error('Only the Space owner can delete it.');
       } else {
         setDeleteTarget({ kind: 'space', spaceId, name: space.name });
@@ -277,6 +313,11 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     const list = space?.items.find((item) => item.id === listId);
     const projectId = list?.apiProjectId ?? list?.parentId ?? '';
     if (!list || (navigationQuery.usesApi && !projectId)) return;
+    if (action !== 'copy-link' && !canEditSpace(space)) {
+      notifyViewOnlySpace();
+      setListMenuId(null);
+      return;
+    }
     if (action === 'rename') {
       const nextName = window.prompt('Rename List', list.name)?.trim();
       if (nextName) void updateSectionMutation.mutateAsync({ workspaceId: spaceId, projectId, sectionId: listId, name: nextName }).catch(() => toast.error('Unable to rename this List.'));
@@ -296,6 +337,11 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     const space = effectiveSpaces.find((item) => item.id === spaceId);
     const folder = space?.items.find((item) => item.id === folderId);
     if (!folder) return;
+    if (action !== 'copy-link' && !canEditSpace(space)) {
+      notifyViewOnlySpace();
+      setProjectMenuId(null);
+      return;
+    }
     if (action === 'rename') {
       const nextName = window.prompt('Rename Project', folder.name)?.trim();
       if (nextName) void updateProjectMutation.mutateAsync({ workspaceId: spaceId, projectId: folderId, name: nextName }).catch(() => toast.error('Unable to rename this Project.'));
@@ -315,6 +361,12 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const { kind, spaceId, itemId, projectId } = deleteTarget;
+    const targetSpace = effectiveSpaces.find((space) => space.id === spaceId);
+    if (!canEditSpace(targetSpace)) {
+      notifyViewOnlySpace();
+      setDeleteTarget(null);
+      return;
+    }
     try {
       if (kind === 'space') {
         if (navigationQuery.usesApi) {
@@ -374,6 +426,14 @@ export function ContextSidebar({ modulePath, preview = false, onCollapse }: Cont
     event.preventDefault();
     const name = newName.trim();
     if (!name) return;
+    if (createKind !== 'space') {
+      const targetSpace = effectiveSpaces.find((space) => space.id === parentSpaceId);
+      if (!canEditSpace(targetSpace)) {
+        notifyViewOnlySpace();
+        setCreateOpen(false);
+        return;
+      }
+    }
     if (
       createWorkspaceMutation.isPending ||
       createProjectMutation.isPending ||

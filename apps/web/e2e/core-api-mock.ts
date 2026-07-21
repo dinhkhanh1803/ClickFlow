@@ -15,8 +15,13 @@ const user = {
 
 export type CoreApiState = {
   createdWorkspaceRequests: unknown[];
+  createdProjectRequests: unknown[];
   createdTaskRequests: unknown[];
   invitedMemberRequests: unknown[];
+};
+
+type MockCoreApiOptions = {
+  seedPublicViewSpace?: boolean;
 };
 
 type Workspace = {
@@ -141,8 +146,8 @@ async function emptyOptions(route: Route) {
   });
 }
 
-export async function mockCoreApi(page: Page): Promise<CoreApiState> {
-  const state: CoreApiState = { createdWorkspaceRequests: [], createdTaskRequests: [], invitedMemberRequests: [] };
+export async function mockCoreApi(page: Page, options: MockCoreApiOptions = {}): Promise<CoreApiState> {
+  const state: CoreApiState = { createdWorkspaceRequests: [], createdProjectRequests: [], createdTaskRequests: [], invitedMemberRequests: [] };
   const workspaces: Workspace[] = [];
   const projects = new Map<string, Project[]>();
   const sections = new Map<string, Section[]>();
@@ -154,6 +159,31 @@ export async function mockCoreApi(page: Page): Promise<CoreApiState> {
   let sectionCounter = 1;
   let taskCounter = 1;
   let memberCounter = 1;
+
+  const canEditWorkspace = (workspaceId: string) => {
+    const workspace = workspaces.find((item) => item.id === workspaceId);
+    return !workspace || workspace.role !== 'PUBLIC' || workspace.publicAccess === 'EDIT';
+  };
+
+  if (options.seedPublicViewSpace) {
+    const workspace = workspaceResponse({
+      id: '00000000-0000-4000-8000-000000000900',
+      name: 'Public Readonly',
+      description: 'Visible to everyone, editable by owner only',
+      private: false,
+      publicAccess: 'VIEW',
+      role: 'PUBLIC',
+      createdBy: { id: '00000000-0000-4000-8000-000000000099', displayName: 'Owner User', avatarUrl: null }
+    });
+    const project = projectResponse({ id: '00000000-0000-4000-8000-000000000901', workspaceId: workspace.id, name: 'Readonly Folder' });
+    const section: Section = { id: '00000000-0000-4000-8000-000000000902', projectId: project.id, name: 'Readonly List', position: 0 };
+    workspaces.push(workspace);
+    projects.set(workspace.id, [project]);
+    statuses.set(project.id, defaultStatuses(project.id));
+    sections.set(project.id, [section]);
+    tasks.set(project.id, []);
+    members.set(workspace.id, []);
+  }
 
   await page.route(`${API_ORIGIN}${API_PREFIX}/**`, async (route) => {
     const request = route.request();
@@ -225,7 +255,9 @@ export async function mockCoreApi(page: Page): Promise<CoreApiState> {
     }
     if (projectListMatch && request.method() === 'POST') {
       const workspaceId = projectListMatch[1]!;
+      if (!canEditWorkspace(workspaceId)) return json(route, { code: 'FORBIDDEN', message: 'View-only public Space.' }, 403);
       const input = request.postDataJSON() as { name: string; description?: string | null; tone?: string | null };
+      state.createdProjectRequests.push(input);
       const project = projectResponse({ id: `00000000-0000-4000-8000-00000000020${projectCounter++}`, workspaceId, name: input.name, description: input.description ?? null, tone: input.tone ?? null });
       projects.set(workspaceId, [...(projects.get(workspaceId) ?? []), project]);
       statuses.set(project.id, defaultStatuses(project.id));
@@ -237,6 +269,8 @@ export async function mockCoreApi(page: Page): Promise<CoreApiState> {
     const sectionsMatch = path.match(/^\/workspaces\/([^/]+)\/projects\/([^/]+)\/sections$/);
     if (sectionsMatch && request.method() === 'GET') return json(route, sections.get(sectionsMatch[2]!) ?? []);
     if (sectionsMatch && request.method() === 'POST') {
+      const workspaceId = sectionsMatch[1]!;
+      if (!canEditWorkspace(workspaceId)) return json(route, { code: 'FORBIDDEN', message: 'View-only public Space.' }, 403);
       const projectId = sectionsMatch[2]!;
       const input = request.postDataJSON() as { name: string };
       const section = { id: `00000000-0000-4000-8000-00000000030${sectionCounter++}`, projectId, name: input.name, position: (sections.get(projectId) ?? []).length };
@@ -255,6 +289,7 @@ export async function mockCoreApi(page: Page): Promise<CoreApiState> {
     }
     if (tasksMatch && request.method() === 'POST') {
       const workspaceId = tasksMatch[1]!;
+      if (!canEditWorkspace(workspaceId)) return json(route, { code: 'FORBIDDEN', message: 'View-only public Space.' }, 403);
       const input = request.postDataJSON() as { projectId: string; sectionId?: string | null; statusId: string; title: string; priority?: Task['priority'] };
       state.createdTaskRequests.push(input);
       const task: Task = {

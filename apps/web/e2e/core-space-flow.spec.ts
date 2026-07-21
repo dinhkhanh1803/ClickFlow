@@ -83,3 +83,38 @@ test('private Space owner can invite an existing member by email', async ({ page
   expect(api.invitedMemberRequests[0]).toMatchObject({ email: 'teammate@clickflow.local', role: 'MEMBER' });
 });
 
+
+test('public view-only Space blocks create and task mutations', async ({ page }) => {
+  const api = await mockCoreApi(page, { seedPublicViewSpace: true });
+
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill('khanh@clickflow.local');
+  await page.getByLabel('Password').fill('Initial-Pass-9!');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.context().addCookies([
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3000' },
+    { name: 'clickflow_csrf', value: 'e2e-csrf-token', url: 'http://127.0.0.1:3002' }
+  ]);
+
+  await page.goto('/projects?space=00000000-0000-4000-8000-000000000900');
+  await expect(page.getByRole('link', { name: 'Public Readonly' })).toBeVisible();
+  await expect(page.getByText('Created by Owner User')).toBeVisible();
+  await expect(page.getByText('View only').first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Create in Public Readonly' }).click();
+  await page.getByRole('menuitem', { name: 'Folder' }).click();
+  await expect(page.getByText('This public Space is view-only.')).toBeVisible();
+  await expect(page.getByLabel('folder name')).toBeHidden();
+  expect(api.createdProjectRequests).toHaveLength(0);
+
+  await page.goto('/projects?space=00000000-0000-4000-8000-000000000900&folder=00000000-0000-4000-8000-000000000901&list=00000000-0000-4000-8000-000000000902');
+  await expect(page.getByText('Public Readonly / Readonly Folder / Readonly List')).toBeVisible();
+  await page.getByRole('button', { name: 'Add task in OPEN' }).click();
+  await page.getByLabel('Task name').fill('Blocked task');
+  await page.getByRole('button', { name: 'Save task' }).click();
+  await expect(page.getByText('This public Space is view-only.')).toBeVisible();
+  expect(api.createdTaskRequests).toHaveLength(0);
+});
+
+
